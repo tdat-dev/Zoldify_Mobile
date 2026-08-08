@@ -1,98 +1,91 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
+import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { productService } from '@/services/product.service';
+import { API_URL } from '@/lib/config';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
+/**
+ * Màn hình mẫu — chứng minh cả chuỗi chạy được:
+ * NativeWind (className) + TanStack Query + axios + kiểu sinh từ openapi.
+ *
+ * C và D thay nội dung này bằng trang chủ thật. Giữ lại phần xử lý
+ * loading/lỗi/rỗng, đó là ba trạng thái hay bị quên nhất.
+ */
+export default function HomeScreen() {
+  const { data, isPending, isError, error, refetch, isRefetching } = useQuery({
+    queryKey: ['products', { page: 1 }],
+    queryFn: async () => {
+      const res = await productService.getAll(1, 20);
+      return res.data.data;
+    },
+  });
+
+  if (isPending) {
     return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
+      <View className="flex-1 items-center justify-center bg-brand-light">
+        <ActivityIndicator size="large" />
+        <Text className="mt-3 text-slate-600">Đang tải sản phẩm…</Text>
+      </View>
     );
   }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+
+  if (isError) {
+    return (
+      <View className="flex-1 items-center justify-center gap-3 bg-brand-light px-6">
+        <Text className="text-center text-base font-semibold text-slate-800">
+          Không gọi được API
+        </Text>
+        <Text className="text-center text-sm text-slate-500">
+          {error instanceof Error ? error.message : 'Lỗi không rõ'}
+        </Text>
+        <Text className="text-center text-xs text-slate-400">
+          Đang gọi: {API_URL}
+        </Text>
+        <Pressable
+          onPress={() => refetch()}
+          className="mt-2 rounded-lg bg-brand px-5 py-3">
+          <Text className="font-semibold text-white">Thử lại</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (data.result.length === 0) {
+    return (
+      <View className="flex-1 items-center justify-center bg-brand-light px-6">
+        <Text className="text-center text-slate-600">
+          Chưa có sản phẩm nào
+        </Text>
+      </View>
+    );
+  }
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+    <FlatList
+      data={data.result}
+      keyExtractor={(item) => String(item.id)}
+      refreshing={isRefetching}
+      onRefresh={refetch}
+      contentContainerClassName="p-4 gap-3"
+      ListHeaderComponent={
+        <View className="mb-2 flex-row items-center justify-between">
+          <Text className="text-xl font-bold text-slate-900">Sản phẩm</Text>
+          <Pressable onPress={() => router.push('/login')}>
+            <Text className="font-medium text-brand">Đăng nhập</Text>
+          </Pressable>
+        </View>
+      }
+      renderItem={({ item }) => (
+        <View className="rounded-xl border border-slate-200 bg-white p-4">
+          <Text className="text-base font-semibold text-slate-900">
+            {item.name}
+          </Text>
+          <Text className="mt-1 text-brand">
+            {Number(item.price).toLocaleString('vi-VN')} đ
+          </Text>
+        </View>
+      )}
+    />
   );
 }
-
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
-});
