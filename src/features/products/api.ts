@@ -1,0 +1,60 @@
+import { useQuery } from '@tanstack/react-query';
+
+import http from '@/lib/api/client';
+import type { ApiResponse, Paginated, Product } from '@/api';
+
+/** Bộ lọc danh sách sản phẩm — khớp query param backend nhận. */
+export interface ProductFilters {
+  q?: string;
+  category_id?: number;
+  seller_id?: number;
+  price_min?: number;
+  price_max?: number;
+  sort?: string;
+}
+
+/**
+ * Query-key factory: đi từ chung -> riêng, luôn là mảng.
+ *
+ * Nhờ phân tầng này mà `invalidateQueries` trúng đúng mức cần:
+ *   productKeys.all            -> mọi thứ về sản phẩm
+ *   productKeys.lists()        -> mọi danh sách (mọi bộ lọc/trang)
+ *   productKeys.detail(id)     -> đúng một sản phẩm
+ */
+export const productKeys = {
+  all: ['products'] as const,
+  lists: () => [...productKeys.all, 'list'] as const,
+  list: (page: number, limit: number, filters?: ProductFilters) =>
+    [...productKeys.lists(), { page, limit, ...filters }] as const,
+  details: () => [...productKeys.all, 'detail'] as const,
+  detail: (id: number) => [...productKeys.details(), id] as const,
+};
+
+async function fetchProducts(page: number, limit: number, filters?: ProductFilters) {
+  const res = await http.get<ApiResponse<Paginated<Product>>>('/products', {
+    params: { current: page, pageSize: limit, ...filters },
+  });
+  return res.data.data;
+}
+
+async function fetchProduct(id: number) {
+  const res = await http.get<ApiResponse<Product>>(`/products/${id}`);
+  return res.data.data;
+}
+
+/** Danh sách sản phẩm có phân trang + lọc. Trả thẳng { result, meta }. */
+export function useProducts(page = 1, limit = 20, filters?: ProductFilters) {
+  return useQuery({
+    queryKey: productKeys.list(page, limit, filters),
+    queryFn: () => fetchProducts(page, limit, filters),
+  });
+}
+
+/** Chi tiết một sản phẩm. */
+export function useProduct(id: number) {
+  return useQuery({
+    queryKey: productKeys.detail(id),
+    queryFn: () => fetchProduct(id),
+    enabled: Number.isFinite(id),
+  });
+}

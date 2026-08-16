@@ -1,6 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { API_URL } from './config';
-import { tokenStore } from './token-store';
+import { API_URL } from '@/lib/config';
+import { tokenStore } from '@/lib/auth/token-store';
 
 /**
  * Client HTTP dùng chung cho toàn app.
