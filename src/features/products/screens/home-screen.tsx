@@ -1,7 +1,7 @@
-import { router } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 
 import { useProducts } from '@/features/products/api';
+import { useAuthStore } from '@/features/auth/store';
 import { API_URL } from '@/lib/config';
 
 /**
@@ -13,6 +13,7 @@ import { API_URL } from '@/lib/config';
  */
 export default function HomeScreen() {
   const { data, isPending, isError, error, refetch, isRefetching } = useProducts(1, 20);
+  const signOut = useAuthStore((s) => s.signOut);
 
   if (isPending) {
     return (
@@ -60,8 +61,8 @@ export default function HomeScreen() {
       ListHeaderComponent={
         <View className="mb-2 flex-row items-center justify-between">
           <Text className="text-xl font-bold text-slate-900">Sản phẩm</Text>
-          <Pressable onPress={() => router.push('/login')}>
-            <Text className="font-medium text-brand">Đăng nhập</Text>
+          <Pressable onPress={() => signOut()}>
+            <Text className="font-medium text-brand">Đăng xuất</Text>
           </Pressable>
         </View>
       }

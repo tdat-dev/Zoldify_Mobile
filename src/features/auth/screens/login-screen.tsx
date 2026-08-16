@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -10,6 +9,7 @@ import {
 } from 'react-native';
 
 import { useLogin } from '@/features/auth/api';
+import { useAuthStore } from '@/features/auth/store';
 
 /**
  * Màn hình đăng nhập mẫu.
@@ -23,6 +23,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
 
   const login = useLogin();
+  const signIn = useAuthStore((s) => s.signIn);
 
   const disabled = !email || !password || login.isPending;
 
@@ -58,7 +59,9 @@ export default function LoginScreen() {
 
       <Pressable
         disabled={disabled}
-        onPress={() => login.mutate({ email, password }, { onSuccess: () => router.replace('/') })}
+        onPress={() =>
+          login.mutate({ email, password }, { onSuccess: () => signIn() })
+        }
         className={`items-center rounded-lg py-4 ${disabled ? 'bg-slate-300' : 'bg-brand'}`}>
         {login.isPending ? (
           <ActivityIndicator color="#fff" />
