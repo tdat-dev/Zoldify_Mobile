@@ -1,3 +1,11 @@
+import {
+  BeVietnamPro_400Regular,
+  BeVietnamPro_500Medium,
+  BeVietnamPro_600SemiBold,
+  BeVietnamPro_700Bold,
+  BeVietnamPro_800ExtraBold,
+  useFonts,
+} from '@expo-google-fonts/be-vietnam-pro';
 import { QueryClientProvider } from '@tanstack/react-query';
 import {
   DarkTheme,
@@ -43,10 +51,10 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
  * Router tự điều hướng về nhóm hợp lệ và dọn lịch sử. Đây là bảo vệ phía
  * client cho UX — server vẫn phải tự chặn mọi request.
  */
-function RootNavigator() {
+function RootNavigator({ appReady }: { appReady: boolean }) {
   const status = useAuthStore((s) => s.status);
   const signedIn = status === 'signedIn';
-  const hydrated = status !== 'hydrating';
+  const hydrated = status !== 'hydrating' && appReady;
 
   return (
     <>
@@ -76,6 +84,14 @@ export default function RootLayout() {
   const hydrate = useAuthStore((s) => s.hydrate);
   const sessionExpired = useAuthStore((s) => s.sessionExpired);
 
+  const [fontsLoaded] = useFonts({
+    BeVietnamPro_400Regular,
+    BeVietnamPro_500Medium,
+    BeVietnamPro_600SemiBold,
+    BeVietnamPro_700Bold,
+    BeVietnamPro_800ExtraBold,
+  });
+
   useEffect(() => {
     // Đọc token lúc mở app, xác định phiên.
     hydrate();
@@ -91,7 +107,7 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <RootNavigator />
+        <RootNavigator appReady={fontsLoaded} />
       </ThemeProvider>
     </QueryClientProvider>
   );
