@@ -9,6 +9,8 @@ import type {
   LoginUserDto,
   MessageResponse,
   RegisterUserDto,
+  SendRegisterOtpDto,
+  VerifyRegisterOtpDto,
 } from '@/api';
 
 export const authKeys = {
@@ -29,6 +31,19 @@ export const authApi = {
   async register(dto: RegisterUserDto): Promise<AuthUser> {
     const res = await http.post<ApiResponse<AuthUser>>('/auth/register', dto);
     return res.data.data;
+  },
+
+  /** Bước 1 đăng ký OTP: gửi mã xác thực về email. */
+  async sendRegisterOtp(dto: SendRegisterOtpDto): Promise<void> {
+    await http.post<ApiResponse<MessageResponse>>('/auth/register/send-otp', dto);
+  },
+
+  /**
+   * Bước 2: xác thực mã + đặt mật khẩu. Backend tạo tài khoản tại đây.
+   * Response chưa chắc trả token nên nơi gọi sẽ đăng nhập lại để lấy phiên.
+   */
+  async verifyRegisterOtp(dto: VerifyRegisterOtpDto): Promise<void> {
+    await http.post<ApiResponse<MessageResponse>>('/auth/register/verify-otp', dto);
   },
 
   async profile(): Promise<AuthUser> {
@@ -57,9 +72,23 @@ export function useLogin() {
   });
 }
 
-/** Mutation đăng ký. */
+/** Mutation đăng ký (trực tiếp, không OTP). */
 export function useRegister() {
   return useMutation({
     mutationFn: (dto: RegisterUserDto) => authApi.register(dto),
+  });
+}
+
+/** Gửi OTP đăng ký về email. */
+export function useSendRegisterOtp() {
+  return useMutation({
+    mutationFn: (dto: SendRegisterOtpDto) => authApi.sendRegisterOtp(dto),
+  });
+}
+
+/** Xác thực OTP đăng ký (tạo tài khoản). */
+export function useVerifyRegisterOtp() {
+  return useMutation({
+    mutationFn: (dto: VerifyRegisterOtpDto) => authApi.verifyRegisterOtp(dto),
   });
 }

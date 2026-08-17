@@ -1,74 +1,80 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-} from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { Button } from '@/components/ui/button';
+import { Screen } from '@/components/ui/screen';
+import { Text } from '@/components/ui/text';
+import { TextField } from '@/components/ui/text-field';
 import { useLogin } from '@/features/auth/api';
 import { useAuthStore } from '@/features/auth/store';
+import { useOnboardingStore } from '@/features/onboarding/store';
 
-/**
- * Màn hình đăng nhập mẫu.
- *
- * Cố tình để trần, không thư viện form — đủ để chứng minh đường đi
- * đăng nhập chạy thật và token được cất vào SecureStore. Làm lại bằng
- * react-hook-form + zod khi dựng giao diện thật.
- */
+/** Đăng nhập bằng email + mật khẩu (thật). Email điền sẵn nếu tới từ luồng. */
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
+  const draftEmail = useOnboardingStore((s) => s.email);
+  const [email, setEmail] = useState(draftEmail);
   const [password, setPassword] = useState('');
 
   const login = useLogin();
   const signIn = useAuthStore((s) => s.signIn);
 
-  const disabled = !email || !password || login.isPending;
+  const disabled = !email.trim() || !password || login.isPending;
+
+  const onSubmit = () => {
+    login.mutate(
+      { email: email.trim(), password },
+      { onSuccess: () => signIn() },
+    );
+  };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      className="flex-1 justify-center bg-white px-6">
-      <Text className="mb-1 text-2xl font-bold text-slate-900">Đăng nhập</Text>
-      <Text className="mb-6 text-slate-500">Zoldify — đồ cũ, vẫn chất</Text>
-
-      <TextInput
-        value={email}
-        onChangeText={setEmail}
-        placeholder="Email"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        className="mb-3 rounded-lg border border-slate-300 px-4 py-3 text-slate-900"
-      />
-
-      <TextInput
-        value={password}
-        onChangeText={setPassword}
-        placeholder="Mật khẩu"
-        secureTextEntry
-        className="mb-4 rounded-lg border border-slate-300 px-4 py-3 text-slate-900"
-      />
-
-      {login.isError && (
-        <Text className="mb-3 text-sm text-red-600">
-          Đăng nhập không thành công. Kiểm tra lại email và mật khẩu.
+    <Screen
+      onBack={() => router.back()}
+      footer={
+        <Button title="Đăng nhập" onPress={onSubmit} loading={login.isPending} disabled={disabled} />
+      }>
+      <View style={styles.head}>
+        <Text variant="title">Đăng nhập</Text>
+        <Text variant="bodyMuted" style={styles.sub}>
+          Chào mừng bạn quay lại Zoldify.
         </Text>
-      )}
+      </View>
 
-      <Pressable
-        disabled={disabled}
-        onPress={() =>
-          login.mutate({ email, password }, { onSuccess: () => signIn() })
-        }
-        className={`items-center rounded-lg py-4 ${disabled ? 'bg-slate-300' : 'bg-brand'}`}>
-        {login.isPending ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text className="font-semibold text-white">Đăng nhập</Text>
-        )}
-      </Pressable>
-    </KeyboardAvoidingView>
+      <View style={styles.form}>
+        <TextField
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          placeholder="ban@truong.edu.vn"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <TextField
+          label="Mật khẩu"
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Nhập mật khẩu"
+          secure
+          autoCapitalize="none"
+          returnKeyType="go"
+          onSubmitEditing={() => !disabled && onSubmit()}
+        />
+
+        {login.isError ? (
+          <Text variant="caption" style={styles.error}>
+            Đăng nhập chưa được. Kiểm tra lại email và mật khẩu nhé.
+          </Text>
+        ) : null}
+      </View>
+    </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  head: { marginTop: 8, marginBottom: 28 },
+  sub: { marginTop: 8 },
+  form: { gap: 18 },
+  error: { color: '#DC2626' },
+});
