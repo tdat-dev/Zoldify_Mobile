@@ -1,26 +1,18 @@
 import Feather from '@expo/vector-icons/Feather';
 import { Tabs } from 'expo-router';
-import { Pressable, StyleSheet, View, type GestureResponderEvent } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Font, Palette } from '@/components/ui/theme';
 
 /**
- * Thanh dưới: Trang chủ · Tìm kiếm · ĐĂNG BÁN (nút tròn nổi giữa) · Thông báo
- * · Tài khoản. Giỏ hàng & Tin nhắn nằm trên header, không lặp ở đây. Icon
- * Feather (≈ lucide của web), nền trắng, hairline trên.
+ * Thanh dưới: Trang chủ · Tìm kiếm · ĐĂNG BÁN (icon tròn nổi giữa) · Thông báo
+ * · Tôi. Giỏ hàng & Tin nhắn nằm trên header, không lặp ở đây.
+ *
+ * Nút giữa nổi bằng cách dịch RIÊNG icon lên (translateY) — không dùng
+ * tabBarButton tuỳ biến, nhờ đó nhãn vẫn nằm đúng hàng như các tab khác và
+ * không bị đè/cắt (lỗi thấy trên web trước đây).
  */
-function SellButton(props: { onPress?: (e: GestureResponderEvent) => void; accessibilityState?: { selected?: boolean } }) {
-  return (
-    <Pressable style={styles.sellWrap} onPress={props.onPress} accessibilityRole="button">
-      <View style={styles.sellCircle}>
-        <Feather name="plus" size={26} color={Palette.white} />
-      </View>
-      <Text style={styles.sellLabel}>Đăng bán</Text>
-    </Pressable>
-  );
-}
-
 export default function TabsLayout() {
   return (
     <Tabs
@@ -32,11 +24,12 @@ export default function TabsLayout() {
           backgroundColor: Palette.white,
           borderTopWidth: 1,
           borderTopColor: Palette.line,
-          height: 60,
-          paddingTop: 6,
-          paddingBottom: 8,
+          height: 66,
+          paddingTop: 8,
+          paddingBottom: 10,
         },
         tabBarLabelStyle: { fontFamily: Font.semibold, fontSize: 11 },
+        tabBarItemStyle: { paddingTop: 2 },
       }}>
       <Tabs.Screen
         name="index"
@@ -56,9 +49,12 @@ export default function TabsLayout() {
         name="sell"
         options={{
           title: 'Đăng bán',
-          tabBarButton: (props) => (
-            <SellButton onPress={props.onPress ?? undefined} accessibilityState={props.accessibilityState} />
+          tabBarIcon: () => (
+            <View style={styles.sellCircle}>
+              <Feather name="plus" size={26} color={Palette.white} />
+            </View>
           ),
+          tabBarLabel: () => <Text style={styles.sellLabel}>Đăng bán</Text>,
         }}
       />
       <Tabs.Screen
@@ -80,28 +76,22 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  sellWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingBottom: 6,
-  },
+  // Dịch icon lên cho nổi khỏi thanh; nhãn "Đăng bán" vẫn ở đúng hàng nhãn.
   sellCircle: {
-    position: 'absolute',
-    top: -18,
-    width: 52,
-    height: 52,
+    width: 48,
+    height: 48,
     borderRadius: 999,
     backgroundColor: Palette.brand,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: Palette.white,
+    transform: [{ translateY: -16 }],
     shadowColor: '#141E3C',
     shadowOpacity: 0.18,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 5,
+    elevation: 6,
   },
   sellLabel: { fontFamily: Font.semibold, fontSize: 11, color: Palette.brand },
 });
