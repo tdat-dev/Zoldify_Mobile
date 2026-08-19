@@ -58,3 +58,13 @@ export function useProduct(id: number) {
     enabled: Number.isFinite(id),
   });
 }
+
+/** Tìm kiếm theo từ khoá `q`. Chỉ gọi khi từ khoá đủ dài (>= 2 ký tự). */
+export function useProductSearch(q: string) {
+  const query = q.trim();
+  return useQuery({
+    queryKey: productKeys.list(1, 20, { q: query }),
+    queryFn: () => fetchProducts(1, 20, { q: query }),
+    enabled: query.length >= 2,
+  });
+}

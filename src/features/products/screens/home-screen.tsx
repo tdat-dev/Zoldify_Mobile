@@ -37,8 +37,8 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* Ô tìm kiếm (khung; màn tìm kiếm làm sau). */}
-      <Pressable style={styles.search}>
+      {/* Ô tìm kiếm → mở màn tìm kiếm. */}
+      <Pressable style={styles.search} onPress={() => router.push('/search')}>
         <View style={styles.magCircle} />
         <View style={styles.magHandle} />
         <Text style={styles.searchPlaceholder}>Tìm sản phẩm trên Zoldify</Text>
