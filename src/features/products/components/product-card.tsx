@@ -6,6 +6,7 @@ import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import type { Product } from '@/api';
 import { formatVnd } from '@/lib/format';
+import { mediaUrl } from '@/lib/media';
 
 /**
  * Ô hàng — theo ItemTile của web: ảnh vuông, tên cắt 2 dòng, giá ĐỎ. Không
@@ -18,7 +19,7 @@ export function ProductCard({ product }: { product: Product }) {
       onPress={() => router.push({ pathname: '/products/[id]', params: { id: product.id } })}
       accessibilityRole="button">
       <View style={styles.imageWrap}>
-        <Image source={product.image} style={styles.image} contentFit="cover" transition={160} />
+        <Image source={mediaUrl(product.image)} style={styles.image} contentFit="cover" transition={160} />
       </View>
 
       <Text variant="body" numberOfLines={2} style={styles.name}>

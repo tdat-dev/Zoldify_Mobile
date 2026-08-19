@@ -9,6 +9,7 @@ import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProduct } from '@/features/products/api';
 import { useRequireAuth } from '@/features/auth/use-require-auth';
 import { formatVnd } from '@/lib/format';
+import { mediaUrl } from '@/lib/media';
 
 const CONDITION_LABEL: Record<string, string> = {
   new: 'Mới',
@@ -55,7 +56,7 @@ export default function ProductDetailScreen() {
     <View style={styles.root}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
         <View style={styles.imageWrap}>
-          <Image source={product.image} style={styles.image} contentFit="cover" transition={160} />
+          <Image source={mediaUrl(product.image)} style={styles.image} contentFit="cover" transition={160} />
           <Pressable style={[styles.backBtn, { top: insets.top + 8 }]} hitSlop={10} onPress={back}>
             <View style={styles.chevron} />
           </Pressable>

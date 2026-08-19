@@ -7,6 +7,7 @@ import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProducts } from '@/features/products/api';
 import { ProductCard } from '@/features/products/components/product-card';
+import { CategoryRail } from '@/features/categories/components/category-rail';
 import { useAuthStore } from '@/features/auth/store';
 
 /**
@@ -88,7 +89,10 @@ export default function HomeScreen() {
         refreshing={isRefetching}
         onRefresh={refetch}
         ListHeaderComponent={
-          <Text variant="heading" style={styles.sectionTitle}>Mới đăng</Text>
+          <View>
+            <CategoryRail />
+            <Text variant="heading" style={styles.sectionTitle}>Mới đăng</Text>
+          </View>
         }
         ListEmptyComponent={
           <View style={styles.empty}>
