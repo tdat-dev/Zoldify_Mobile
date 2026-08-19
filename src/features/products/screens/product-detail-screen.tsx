@@ -1,3 +1,4 @@
+import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProduct } from '@/features/products/api';
-import { useAddToCart } from '@/features/cart/api';
+import { useAddToCart, useCartCount } from '@/features/cart/api';
 import { useAuthStore } from '@/features/auth/store';
 import { useRequireAuth } from '@/features/auth/use-require-auth';
 import { formatVnd } from '@/lib/format';
@@ -33,9 +34,36 @@ export default function ProductDetailScreen() {
   const [mode, setMode] = useState<null | 'add' | 'buy'>(null);
   const [added, setAdded] = useState(false);
   const [errMsg, setErrMsg] = useState<string | null>(null);
+  const { data: cartCount = 0 } = useCartCount();
   const { data: product, isPending, isError, refetch } = useProduct(Number(id));
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
+  // Thanh trên: back + ô tìm kiếm + tin nhắn + giỏ (đồng nhất với trang chủ).
+  const topBar = (
+    <View style={[styles.topbar, { paddingTop: insets.top + 8 }]}>
+      <Pressable style={styles.tbBack} hitSlop={8} onPress={back} accessibilityLabel="Quay lại">
+        <View style={styles.chevron} />
+      </Pressable>
+      <Pressable style={styles.searchPill} onPress={() => router.push('/search')}>
+        <Feather name="search" size={16} color={Palette.inkMuted} />
+        <Text style={styles.searchPlaceholder} numberOfLines={1}>
+          Tìm đồ cũ trên Zoldify
+        </Text>
+      </Pressable>
+      <Pressable style={styles.tbIcon} hitSlop={4} onPress={() => router.push('/messages')}>
+        <Feather name="message-circle" size={22} color={Palette.ink} />
+      </Pressable>
+      <Pressable style={styles.tbIcon} hitSlop={4} onPress={() => router.push('/cart')}>
+        <Feather name="shopping-cart" size={22} color={Palette.ink} />
+        {cartCount > 0 ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{cartCount > 99 ? '99+' : String(cartCount)}</Text>
+          </View>
+        ) : null}
+      </Pressable>
+    </View>
+  );
 
   const cartError = (e: unknown) => {
     const msg = (e as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
@@ -75,19 +103,25 @@ export default function ProductDetailScreen() {
 
   if (isPending) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={Palette.brand} />
+      <View style={styles.root}>
+        {topBar}
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={Palette.brand} />
+        </View>
       </View>
     );
   }
 
   if (isError || !product) {
     return (
-      <View style={[styles.center, styles.pad]}>
-        <Text variant="heading">Không tải được sản phẩm</Text>
-        <View style={styles.retry}>
-          <Button title="Thử lại" onPress={() => refetch()} />
-          <Button title="Quay lại" variant="ghost" onPress={back} />
+      <View style={styles.root}>
+        {topBar}
+        <View style={[styles.center, styles.pad]}>
+          <Text variant="heading">Không tải được sản phẩm</Text>
+          <View style={styles.retry}>
+            <Button title="Thử lại" onPress={() => refetch()} />
+            <Button title="Quay lại" variant="ghost" onPress={back} />
+          </View>
         </View>
       </View>
     );
@@ -98,12 +132,10 @@ export default function ProductDetailScreen() {
 
   return (
     <View style={styles.root}>
+      {topBar}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
         <View style={styles.imageWrap}>
           <Image source={mediaUrl(product.image)} style={styles.image} contentFit="cover" transition={160} />
-          <Pressable style={[styles.backBtn, { top: insets.top + 8 }]} hitSlop={10} onPress={back}>
-            <View style={styles.chevron} />
-          </Pressable>
         </View>
 
         <View style={styles.body}>
@@ -191,16 +223,42 @@ const styles = StyleSheet.create({
   retry: { alignSelf: 'stretch', paddingHorizontal: 24, gap: 8 },
   imageWrap: { aspectRatio: 1, backgroundColor: Palette.surfaceSunken },
   image: { width: '100%', height: '100%' },
-  backBtn: {
-    position: 'absolute',
-    left: 12,
-    width: 38,
-    height: 38,
+  topbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingBottom: 10,
+    backgroundColor: Palette.surfaceCard,
+    borderBottomWidth: 1,
+    borderBottomColor: Palette.line,
+  },
+  tbBack: { width: 34, height: 40, alignItems: 'flex-start', justifyContent: 'center' },
+  searchPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 40,
+    paddingHorizontal: 12,
     borderRadius: Radius.control,
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    backgroundColor: Palette.surfaceSunken,
+  },
+  searchPlaceholder: { flex: 1, fontFamily: Font.regular, fontSize: 13.5, color: Palette.inkFaint },
+  tbIcon: { width: 38, height: 40, alignItems: 'center', justifyContent: 'center' },
+  badge: {
+    position: 'absolute',
+    right: 2,
+    top: 2,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    borderRadius: 999,
+    backgroundColor: Palette.price,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  badgeText: { fontFamily: Font.bold, fontSize: 9.5, color: Palette.white },
   chevron: {
     width: 11,
     height: 11,
