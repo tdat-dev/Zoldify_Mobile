@@ -35,7 +35,7 @@ export default function HomeScreen() {
   if (isPending) {
     return (
       <View style={styles.root}>
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
         <HomeHeader />
         <View style={styles.fill}>
           <ActivityIndicator size="large" color={Palette.brand} />
@@ -48,7 +48,7 @@ export default function HomeScreen() {
   if (isError) {
     return (
       <View style={styles.root}>
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
         <HomeHeader />
         <View style={styles.fill}>
           <Text variant="heading">Không tải được sản phẩm</Text>

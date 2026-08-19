@@ -29,7 +29,7 @@ function IconButton({
 }) {
   return (
     <Pressable style={styles.iconBtn} onPress={onPress} hitSlop={4}>
-      <Feather name={name} size={size} color={Palette.ink} />
+      <Feather name={name} size={size} color={Palette.white} />
       {badge && badge > 0 ? (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{badge > 99 ? '99+' : String(badge)}</Text>
@@ -97,11 +97,9 @@ export function HomeHeader() {
 
 const styles = StyleSheet.create({
   wrap: {
-    backgroundColor: Palette.surfaceCard,
+    backgroundColor: Palette.brand,
     paddingHorizontal: 12,
     paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.line,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   iconBtn: {
@@ -130,7 +128,7 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     height: 44,
     borderRadius: Radius.control,
-    backgroundColor: Palette.surfaceSunken,
+    backgroundColor: Palette.white,
     overflow: 'hidden',
   },
   scope: {

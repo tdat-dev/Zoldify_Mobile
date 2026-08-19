@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: Palette.chrome,
+    backgroundColor: Palette.brand,
     paddingHorizontal: 16,
     paddingBottom: 12,
   },

@@ -1,5 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
+import { StatusBar } from 'expo-status-bar';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -42,6 +43,7 @@ export default function ProductDetailScreen() {
   // Thanh trên: back + ô tìm kiếm + tin nhắn + giỏ (đồng nhất với trang chủ).
   const topBar = (
     <View style={[styles.topbar, { paddingTop: insets.top + 8 }]}>
+      <StatusBar style="light" />
       <Pressable style={styles.tbBack} hitSlop={8} onPress={back} accessibilityLabel="Quay lại">
         <View style={styles.chevron} />
       </Pressable>
@@ -52,10 +54,10 @@ export default function ProductDetailScreen() {
         </Text>
       </Pressable>
       <Pressable style={styles.tbIcon} hitSlop={4} onPress={() => router.push('/messages')}>
-        <Feather name="message-circle" size={22} color={Palette.ink} />
+        <Feather name="message-circle" size={22} color={Palette.white} />
       </Pressable>
       <Pressable style={styles.tbIcon} hitSlop={4} onPress={() => router.push('/cart')}>
-        <Feather name="shopping-cart" size={22} color={Palette.ink} />
+        <Feather name="shopping-cart" size={22} color={Palette.white} />
         {cartCount > 0 ? (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{cartCount > 99 ? '99+' : String(cartCount)}</Text>
@@ -229,9 +231,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingBottom: 10,
-    backgroundColor: Palette.surfaceCard,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.line,
+    backgroundColor: Palette.brand,
   },
   tbBack: { width: 34, height: 40, alignItems: 'flex-start', justifyContent: 'center' },
   searchPill: {
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     height: 40,
     paddingHorizontal: 12,
     borderRadius: Radius.control,
-    backgroundColor: Palette.surfaceSunken,
+    backgroundColor: Palette.white,
   },
   searchPlaceholder: { flex: 1, fontFamily: Font.regular, fontSize: 13.5, color: Palette.inkFaint },
   tbIcon: { width: 38, height: 40, alignItems: 'center', justifyContent: 'center' },
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     height: 11,
     borderLeftWidth: 2,
     borderBottomWidth: 2,
-    borderColor: Palette.ink,
+    borderColor: Palette.white,
     transform: [{ rotate: '45deg' }],
     marginLeft: 4,
   },
