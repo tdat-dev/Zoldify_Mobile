@@ -38,7 +38,7 @@ export default function SellScreen() {
   const [description, setDescription] = useState('');
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; price?: string; category?: string }>({});
-  const [failed, setFailed] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (guest) {
     return <TabPlaceholder title="Đăng bán" note="Đăng nhập để đăng bán món của bạn." />;
@@ -64,7 +64,7 @@ export default function SellScreen() {
   };
 
   const onSubmit = async () => {
-    setFailed(false);
+    setErrorMsg(null);
     if (!validate()) return;
     try {
       setBusy(true);
@@ -79,8 +79,10 @@ export default function SellScreen() {
         description: description.trim() || undefined,
       });
       router.push({ pathname: '/products/[id]', params: { id: product.id } });
-    } catch {
-      setFailed(true);
+    } catch (e) {
+      // Hiện đúng thông báo của backend (vd cần cài địa chỉ lấy hàng).
+      const msg = (e as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+      setErrorMsg(typeof msg === 'string' ? msg : 'Đăng bán chưa được. Thử lại nhé.');
     } finally {
       setBusy(false);
     }
@@ -151,7 +153,7 @@ export default function SellScreen() {
             style={styles.multiline}
           />
 
-          {failed ? <Text variant="caption" style={styles.err}>Đăng bán chưa được. Thử lại nhé.</Text> : null}
+          {errorMsg ? <Text variant="caption" style={styles.err}>{errorMsg}</Text> : null}
         </View>
       </ScrollView>
 
