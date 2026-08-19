@@ -7,21 +7,21 @@ import { useProducts } from '@/features/products/api';
 import { ProductCard } from '@/features/products/components/product-card';
 
 /**
- * "Mới về" — món mới đăng, cuộn ngang. Ở chợ đồ cũ mỗi món là duy nhất nên
- * "mới về" đúng động lực hơn "flash sale": ai nhanh người đó được. Bấm "Xem
- * thêm" mở tìm kiếm để lượn tiếp.
+ * Rail sản phẩm cuộn ngang, tái dùng cho "Mới về" (sort=newest) và "Món được
+ * săn" (sort=most_viewed). Ở chợ đồ cũ, "mới về" và "đang được nhiều người xem"
+ * là hai động lực thật, thay cho Flash Sale của hàng mới.
  */
 const CARD_WIDTH = 150;
 
-export function NewArrivalsRail() {
-  const { data } = useProducts(1, 10);
+export function ProductRail({ title, sort }: { title: string; sort: string }) {
+  const { data } = useProducts(1, 10, { sort });
   const items = data?.result ?? [];
   if (items.length === 0) return null;
 
   return (
     <View style={styles.wrap}>
       <View style={styles.head}>
-        <Text variant="heading">Mới về</Text>
+        <Text variant="heading">{title}</Text>
         <Pressable hitSlop={8} onPress={() => router.push('/search')}>
           <Text style={styles.more}>Xem thêm</Text>
         </Pressable>

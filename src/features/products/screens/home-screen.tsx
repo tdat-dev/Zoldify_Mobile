@@ -7,7 +7,8 @@ import { Palette } from '@/components/ui/theme';
 import { useInfiniteProducts } from '@/features/products/api';
 import { ProductCard } from '@/features/products/components/product-card';
 import { HomeHeader } from '@/features/products/components/home-header';
-import { NewArrivalsRail } from '@/features/products/components/new-arrivals-rail';
+import { ProductRail } from '@/features/products/components/product-rail';
+import { TrustStrip } from '@/features/products/components/trust-strip';
 import { QuickLinks } from '@/features/products/components/quick-links';
 import { CategoryChips } from '@/features/categories/components/category-chips';
 
@@ -82,8 +83,10 @@ export default function HomeScreen() {
         ListHeaderComponent={
           <View style={styles.header}>
             <QuickLinks />
+            <TrustStrip />
             <CategoryChips />
-            <NewArrivalsRail />
+            <ProductRail title="Mới về" sort="newest" />
+            <ProductRail title="Món được săn" sort="most_viewed" />
             <Text variant="heading" style={styles.sectionTitle}>Dạo chợ</Text>
           </View>
         }
