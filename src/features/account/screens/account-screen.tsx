@@ -35,7 +35,12 @@ export default function AccountScreen() {
           </View>
 
           <View style={styles.actions}>
-            <Button title="Đăng xuất" variant="secondary" onPress={() => signOut()} />
+            <Button
+              title="Cài đặt shop"
+              variant="secondary"
+              onPress={() => router.push('/shop/settings')}
+            />
+            <Button title="Đăng xuất" variant="ghost" onPress={() => signOut()} />
           </View>
         </View>
       ) : (
@@ -83,7 +88,7 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontFamily: Font.bold, fontSize: 20, color: Palette.white },
   who: { gap: 2 },
-  actions: {},
+  actions: { gap: 10 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
   line: { textAlign: 'center' },
   cta: { marginTop: 8, alignSelf: 'stretch', paddingHorizontal: 16 },

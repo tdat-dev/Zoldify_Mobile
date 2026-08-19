@@ -153,7 +153,16 @@ export default function SellScreen() {
             style={styles.multiline}
           />
 
-          {errorMsg ? <Text variant="caption" style={styles.err}>{errorMsg}</Text> : null}
+          {errorMsg ? (
+            <View style={styles.errBox}>
+              <Text variant="caption" style={styles.err}>{errorMsg}</Text>
+              <Button
+                title="Cài đặt shop"
+                variant="secondary"
+                onPress={() => router.push('/shop/settings')}
+              />
+            </View>
+          ) : null}
         </View>
       </ScrollView>
 
@@ -210,6 +219,7 @@ const styles = StyleSheet.create({
   chipTextOn: { color: Palette.brand, fontFamily: Font.semibold },
   multiline: { minHeight: 96, textAlignVertical: 'top', paddingTop: 10 },
   err: { color: Palette.dangerFg, marginTop: 6 },
+  errBox: { gap: 10 },
   footer: {
     paddingHorizontal: 16,
     paddingTop: 12,
