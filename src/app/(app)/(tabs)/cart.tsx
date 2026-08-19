@@ -1,5 +1,2 @@
-import { TabPlaceholder } from '@/features/shared/tab-placeholder';
-
-export default function CartTab() {
-  return <TabPlaceholder title="Giỏ hàng" note="Đăng nhập để lưu giỏ hàng và thanh toán." />;
-}
+// Route mỏng: logic sống trong features/. Xem docs/ARCHITECTURE.md.
+export { default } from '@/features/cart/screens/cart-screen';

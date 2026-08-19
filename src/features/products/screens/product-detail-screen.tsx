@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -7,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProduct } from '@/features/products/api';
+import { useAddToCart } from '@/features/cart/api';
+import { useAuthStore } from '@/features/auth/store';
 import { useRequireAuth } from '@/features/auth/use-require-auth';
 import { formatVnd } from '@/lib/format';
 import { mediaUrl } from '@/lib/media';
@@ -25,9 +28,50 @@ export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const requireAuth = useRequireAuth();
+  const guest = useAuthStore((s) => s.status) !== 'signedIn';
+  const addToCart = useAddToCart();
+  const [mode, setMode] = useState<null | 'add' | 'buy'>(null);
+  const [added, setAdded] = useState(false);
+  const [errMsg, setErrMsg] = useState<string | null>(null);
   const { data: product, isPending, isError, refetch } = useProduct(Number(id));
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
+  const cartError = (e: unknown) => {
+    const msg = (e as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+    setErrMsg(typeof msg === 'string' ? msg : 'Chưa thêm được vào giỏ. Thử lại nhé.');
+  };
+
+  const onAdd = () => {
+    if (guest) return requireAuth();
+    setErrMsg(null);
+    setMode('add');
+    addToCart.mutate(
+      { product_id: product!.id },
+      {
+        onSuccess: () => {
+          setAdded(true);
+          setTimeout(() => setAdded(false), 1500);
+        },
+        onError: cartError,
+        onSettled: () => setMode(null),
+      },
+    );
+  };
+
+  const onBuy = () => {
+    if (guest) return requireAuth();
+    setErrMsg(null);
+    setMode('buy');
+    addToCart.mutate(
+      { product_id: product!.id },
+      {
+        onSuccess: () => router.push('/cart'),
+        onError: cartError,
+        onSettled: () => setMode(null),
+      },
+    );
+  };
 
   if (isPending) {
     return (
@@ -111,12 +155,29 @@ export default function ProductDetailScreen() {
         </View>
       </ScrollView>
 
+      {errMsg ? (
+        <View style={styles.errBar}>
+          <Text variant="caption" style={styles.errText}>{errMsg}</Text>
+        </View>
+      ) : null}
+
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.footerBtn}>
-          <Button title="Thêm vào giỏ" variant="secondary" onPress={() => requireAuth()} />
+          <Button
+            title={added ? 'Đã thêm ✓' : 'Thêm vào giỏ'}
+            variant="secondary"
+            loading={mode === 'add'}
+            disabled={mode !== null}
+            onPress={onAdd}
+          />
         </View>
         <View style={styles.footerBtn}>
-          <Button title="Mua ngay" onPress={() => requireAuth()} />
+          <Button
+            title="Mua ngay"
+            loading={mode === 'buy'}
+            disabled={mode !== null}
+            onPress={onBuy}
+          />
         </View>
       </View>
     </View>
@@ -175,4 +236,10 @@ const styles = StyleSheet.create({
     backgroundColor: Palette.white,
   },
   footerBtn: { flex: 1 },
+  errBar: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: Palette.dangerBg,
+  },
+  errText: { color: Palette.dangerFg, textAlign: 'center' },
 });
