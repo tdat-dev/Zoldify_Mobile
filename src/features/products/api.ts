@@ -71,12 +71,29 @@ export function useCreateProduct() {
   });
 }
 
-/** Tìm kiếm theo từ khoá `q`. Chỉ gọi khi từ khoá đủ dài (>= 2 ký tự). */
-export function useProductSearch(q: string) {
-  const query = q.trim();
+/**
+ * Tìm kiếm: theo từ khoá `q` (>= 2 ký tự) VÀ/HOẶC theo tầm tiền. Chạy khi có
+ * ít nhất một trong hai — để mở "/search?price_max=100000" (không từ khoá) vẫn
+ * ra kết quả, đúng như bộ lọc giá bên web.
+ */
+export function useProductSearch(input: {
+  q?: string;
+  price_min?: number;
+  price_max?: number;
+}) {
+  const q = (input.q ?? '').trim();
+  const hasPrice = input.price_min != null || input.price_max != null;
+  const active = q.length >= 2 || hasPrice;
+
+  const filters: ProductFilters = {
+    ...(q.length >= 2 ? { q } : {}),
+    ...(input.price_min != null ? { price_min: input.price_min } : {}),
+    ...(input.price_max != null ? { price_max: input.price_max } : {}),
+  };
+
   return useQuery({
-    queryKey: productKeys.list(1, 20, { q: query }),
-    queryFn: () => fetchProducts(1, 20, { q: query }),
-    enabled: query.length >= 2,
+    queryKey: productKeys.list(1, 20, filters),
+    queryFn: () => fetchProducts(1, 20, filters),
+    enabled: active,
   });
 }

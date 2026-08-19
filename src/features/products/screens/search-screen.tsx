@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProductSearch } from '@/features/products/api';
+import { labelForPrice } from '@/features/products/price-scopes';
 import { ProductCard } from '@/features/products/components/product-card';
 
 /** Trả về giá trị đã trễ `ms` mili-giây để không gọi API mỗi lần gõ phím. */
@@ -18,16 +19,38 @@ function useDebounced(value: string, ms = 350) {
   return debounced;
 }
 
-/** Tìm kiếm sản phẩm theo từ khoá — nối API thật (?q=). */
+/** Đổi param URL (string | string[] | undefined) thành số, rỗng -> undefined. */
+function numParam(v: string | string[] | undefined): number | undefined {
+  const s = Array.isArray(v) ? v[0] : v;
+  if (s == null || s === '') return undefined;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/**
+ * Tìm kiếm — theo từ khoá (?q=) VÀ/HOẶC theo tầm tiền (?price_min/?price_max
+ * do "Mọi giá" ở header truyền sang). Có tầm tiền thì chạy ngay dù chưa gõ chữ.
+ */
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ price_min?: string; price_max?: string }>();
+  const priceMin = numParam(params.price_min);
+  const priceMax = numParam(params.price_max);
+  const hasPrice = priceMin != null || priceMax != null;
+
   const [text, setText] = useState('');
   const q = useDebounced(text, 350);
-  const active = q.trim().length >= 2;
-  const { data, isFetching, isError } = useProductSearch(q);
+  const active = q.trim().length >= 2 || hasPrice;
+
+  const { data, isFetching, isError } = useProductSearch({
+    q,
+    price_min: priceMin,
+    price_max: priceMax,
+  });
   const results = data?.result ?? [];
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const clearPrice = () => router.replace('/search');
 
   return (
     <View style={styles.root}>
@@ -45,7 +68,7 @@ export default function SearchScreen() {
             onChangeText={setText}
             placeholder="Tìm sản phẩm trên Zoldify"
             placeholderTextColor={Palette.inkFaint}
-            autoFocus
+            autoFocus={!hasPrice}
             returnKeyType="search"
             autoCapitalize="none"
           />
@@ -56,6 +79,16 @@ export default function SearchScreen() {
           ) : null}
         </View>
       </View>
+
+      {/* Chip tầm tiền đang lọc — bấm ✕ để bỏ lọc. */}
+      {hasPrice ? (
+        <View style={styles.filterBar}>
+          <Pressable style={styles.chip} onPress={clearPrice}>
+            <Text style={styles.chipText}>{labelForPrice(priceMin, priceMax)}</Text>
+            <Text style={styles.chipX}>✕</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {!active ? (
         <View style={styles.center}>
@@ -75,7 +108,9 @@ export default function SearchScreen() {
         <View style={styles.center}>
           <Text variant="heading">Không tìm thấy</Text>
           <Text variant="bodyMuted" style={styles.hint}>
-            Không có kết quả cho “{q.trim()}”.
+            {q.trim().length >= 2
+              ? `Không có kết quả cho “${q.trim()}”.`
+              : 'Không có món nào trong tầm tiền này.'}
           </Text>
         </View>
       ) : (
@@ -140,6 +175,24 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, fontFamily: Font.regular, fontSize: 14, color: Palette.ink, paddingVertical: 0 },
   clear: { fontFamily: Font.medium, fontSize: 16, color: Palette.inkFaint },
+  filterBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingTop: 10,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 30,
+    paddingHorizontal: 12,
+    borderRadius: Radius.control,
+    borderWidth: 1,
+    borderColor: Palette.brand,
+    backgroundColor: Palette.brandTint,
+  },
+  chipText: { fontFamily: Font.semibold, fontSize: 13, color: Palette.brand },
+  chipX: { fontFamily: Font.medium, fontSize: 12, color: Palette.brand },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, padding: 24 },
   hint: { textAlign: 'center' },
   list: { padding: 12, gap: 18 },
