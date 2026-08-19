@@ -21,10 +21,19 @@ const schema = z.object({
   API_ORIGIN: z
     .string()
     .regex(/^https?:\/\/.+/, 'phải là URL dạng http(s)://...'),
+  // Gốc phục vụ ảnh /media/*. Trong kiến trúc này backend KHÔNG serve /media
+  // (ảnh upload là URL R2 đầy đủ; ảnh seed/demo do web frontend serve). Mặc
+  // định trỏ về API_ORIGIN để không vỡ; dev trỏ sang web (vd :3001) để thấy
+  // ảnh demo, prod trỏ về domain web/CDN phục vụ /media.
+  MEDIA_ORIGIN: z
+    .string()
+    .regex(/^https?:\/\/.+/, 'phải là URL dạng http(s)://...'),
 });
 
+const apiOrigin = process.env.EXPO_PUBLIC_API_ORIGIN ?? DEV_FALLBACK;
 const parsed = schema.safeParse({
-  API_ORIGIN: process.env.EXPO_PUBLIC_API_ORIGIN ?? DEV_FALLBACK,
+  API_ORIGIN: apiOrigin,
+  MEDIA_ORIGIN: process.env.EXPO_PUBLIC_MEDIA_ORIGIN ?? apiOrigin,
 });
 
 if (!parsed.success) {

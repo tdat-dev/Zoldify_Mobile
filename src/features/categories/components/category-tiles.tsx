@@ -1,10 +1,11 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
-import { useCategories } from '@/features/categories/api';
+import { useCategories, type Category } from '@/features/categories/api';
 import { mediaUrl } from '@/lib/media';
 
 /**
@@ -13,6 +14,41 @@ import { mediaUrl } from '@/lib/media';
  * là hình tròn (ảnh danh mục hoặc CHỮ CÁI ĐẦU khi chưa có ảnh — không để ô xám
  * rỗng) + tên + số món.
  */
+/** Một ô danh mục — ảnh thiếu/hỏng thì rơi về chữ cái đầu (không để ô trống). */
+function CategoryCell({ c }: { c: Category }) {
+  const uri = mediaUrl(c.image);
+  const [failed, setFailed] = useState(false);
+  const count = Number(c.product_count);
+  const initial = (c.name ?? '?').trim().charAt(0).toUpperCase();
+
+  return (
+    <Pressable
+      style={styles.cell}
+      onPress={() =>
+        router.push({ pathname: '/category/[id]', params: { id: c.id, name: c.name } })
+      }>
+      <View style={styles.thumb}>
+        {uri && !failed ? (
+          <Image
+            source={uri}
+            style={styles.thumbImg}
+            contentFit="cover"
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <Text style={styles.initial}>{initial}</Text>
+        )}
+      </View>
+      <Text variant="caption" numberOfLines={2} style={styles.name}>
+        {c.name}
+      </Text>
+      {Number.isFinite(count) && count > 0 ? (
+        <Text style={styles.count}>{count} món</Text>
+      ) : null}
+    </Pressable>
+  );
+}
+
 export function CategoryTiles() {
   const { data } = useCategories();
   if (!data || data.length === 0) return null;
@@ -21,33 +57,9 @@ export function CategoryTiles() {
     <View style={styles.card}>
       <Text style={styles.title}>DANH MỤC</Text>
       <View style={styles.grid}>
-        {data.map((c) => {
-          const uri = mediaUrl(c.image);
-          const count = Number(c.product_count);
-          const initial = (c.name ?? '?').trim().charAt(0).toUpperCase();
-          return (
-            <Pressable
-              key={c.id}
-              style={styles.cell}
-              onPress={() =>
-                router.push({ pathname: '/category/[id]', params: { id: c.id, name: c.name } })
-              }>
-              <View style={styles.thumb}>
-                {uri ? (
-                  <Image source={uri} style={styles.thumbImg} contentFit="cover" />
-                ) : (
-                  <Text style={styles.initial}>{initial}</Text>
-                )}
-              </View>
-              <Text variant="caption" numberOfLines={2} style={styles.name}>
-                {c.name}
-              </Text>
-              {Number.isFinite(count) && count > 0 ? (
-                <Text style={styles.count}>{count} món</Text>
-              ) : null}
-            </Pressable>
-          );
-        })}
+        {data.map((c) => (
+          <CategoryCell key={c.id} c={c} />
+        ))}
       </View>
     </View>
   );

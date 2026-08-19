@@ -9,6 +9,13 @@ import { env } from './env';
  */
 export const API_ORIGIN = env.API_ORIGIN;
 
+/**
+ * Gốc phục vụ ảnh `/media/*` — tách khỏi API vì backend không serve media.
+ * Ảnh upload trả về URL R2 đầy đủ (bỏ qua gốc này); chỉ path tương đối
+ * `/media/...` mới ghép với gốc này. Xem `lib/media.ts`.
+ */
+export const MEDIA_ORIGIN = env.MEDIA_ORIGIN;
+
 /** Gốc cho mọi request REST. Service chỉ cần viết '/products', '/orders'. */
 export const API_URL = `${API_ORIGIN}/api/v1`;
 
