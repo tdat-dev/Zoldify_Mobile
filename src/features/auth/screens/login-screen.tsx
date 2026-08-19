@@ -24,7 +24,12 @@ export default function LoginScreen() {
   const onSubmit = () => {
     login.mutate(
       { email: email.trim(), password },
-      { onSuccess: () => signIn() },
+      {
+        onSuccess: () => {
+          signIn();
+          router.replace('/'); // đóng luồng auth, về feed sản phẩm
+        },
+      },
     );
   };
 

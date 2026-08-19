@@ -37,6 +37,12 @@ export default function WelcomeScreen() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.topBar}>
         <Wordmark size={30} />
+        <Pressable
+          hitSlop={12}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+          accessibilityLabel="Đóng">
+          <Text style={styles.close}>✕</Text>
+        </Pressable>
       </View>
 
       <FlatList
@@ -82,7 +88,15 @@ export default function WelcomeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Palette.surface },
-  topBar: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 4 },
+  topBar: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  close: { fontFamily: 'BeVietnamPro_500Medium', fontSize: 20, color: '#64748B' },
   slide: { flex: 1, justifyContent: 'center', paddingHorizontal: 24, paddingBottom: 24 },
   copy: { marginTop: 44 },
   body: { marginTop: 12, fontSize: 16, lineHeight: 24 },

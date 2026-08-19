@@ -27,6 +27,11 @@ import { queryClient } from '@/lib/api/query-client';
 // module (chạy lúc import), không đặt trong component.
 SplashScreen.preventAutoHideAsync();
 
+/** Mở app vào vùng duyệt sản phẩm, không phải màn đăng nhập. */
+export const unstable_settings = {
+  initialRouteName: '(app)',
+};
+
 /**
  * Lưới an toàn cuối cùng: render lỗi thay vì app trắng/crash. Expo Router
  * tự bắt lỗi render trong cây con và hiện component này. Các luồng nhạy
@@ -47,24 +52,20 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 }
 
 /**
- * Cổng đăng nhập khai báo. Không tự `router.replace`: lật `guard` là Expo
- * Router tự điều hướng về nhóm hợp lệ và dọn lịch sử. Đây là bảo vệ phía
- * client cho UX — server vẫn phải tự chặn mọi request.
+ * Mô hình ecommerce: mở app là vào thẳng vùng duyệt (app) — khách chưa
+ * đăng nhập vẫn xem/tìm sản phẩm được (backend để /products @Public). Nhóm
+ * (auth) chỉ được đẩy lên khi khách chủ động đăng nhập hoặc chạm một hành
+ * động cần tài khoản (mua/bán/giỏ/chat). Không còn Stack.Protected chặn.
  */
 function RootNavigator({ appReady }: { appReady: boolean }) {
   const status = useAuthStore((s) => s.status);
-  const signedIn = status === 'signedIn';
   const hydrated = status !== 'hydrating' && appReady;
 
   return (
     <>
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Protected guard={signedIn}>
-          <Stack.Screen name="(app)" />
-        </Stack.Protected>
-        <Stack.Protected guard={!signedIn}>
-          <Stack.Screen name="(auth)" />
-        </Stack.Protected>
+        <Stack.Screen name="(app)" />
+        <Stack.Screen name="(auth)" />
       </Stack>
 
       {/*

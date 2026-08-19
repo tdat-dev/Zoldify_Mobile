@@ -32,6 +32,7 @@ export default function PasskeyScreen() {
         onSuccess: async () => {
           await signIn();
           reset();
+          router.replace('/'); // vào feed sản phẩm
         },
         onError: () => setFailed(true),
       },
