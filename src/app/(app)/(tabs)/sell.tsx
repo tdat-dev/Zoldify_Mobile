@@ -1,5 +1,2 @@
-import { TabPlaceholder } from '@/features/shared/tab-placeholder';
-
-export default function SellTab() {
-  return <TabPlaceholder title="Đăng bán" note="Đăng nhập để đăng bán món của bạn." />;
-}
+// Route mỏng: logic sống trong features/. Xem docs/ARCHITECTURE.md.
+export { default } from '@/features/products/screens/sell-screen';

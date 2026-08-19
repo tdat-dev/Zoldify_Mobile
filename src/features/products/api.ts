@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import http from '@/lib/api/client';
-import type { ApiResponse, Paginated, Product } from '@/api';
+import type { ApiResponse, CreateProductDto, Paginated, Product } from '@/api';
 
 /** Bộ lọc danh sách sản phẩm — khớp query param backend nhận. */
 export interface ProductFilters {
@@ -56,6 +56,18 @@ export function useProduct(id: number) {
     queryKey: productKeys.detail(id),
     queryFn: () => fetchProduct(id),
     enabled: Number.isFinite(id),
+  });
+}
+
+/** Đăng bán: tạo sản phẩm mới (cần đăng nhập). Làm mới feed sau khi tạo. */
+export function useCreateProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: CreateProductDto) => {
+      const res = await http.post<ApiResponse<Product>>('/products', dto);
+      return res.data.data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.lists() }),
   });
 }
 
