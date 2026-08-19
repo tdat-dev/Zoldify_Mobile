@@ -100,8 +100,13 @@ export default function CartScreen() {
 
   const busy = updateQty.isPending || remove.isPending;
 
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
   const header = (
     <View style={[styles.headerBar, { paddingTop: insets.top + 10 }]}>
+      <Pressable hitSlop={10} onPress={back} accessibilityLabel="Quay lại">
+        <View style={styles.chevron} />
+      </Pressable>
       <Text variant="title">Giỏ hàng</Text>
     </View>
   );
@@ -195,11 +200,23 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Palette.surfacePage },
   headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     backgroundColor: Palette.white,
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: Palette.line,
+  },
+  chevron: {
+    width: 11,
+    height: 11,
+    borderLeftWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: Palette.ink,
+    transform: [{ rotate: '45deg' }],
+    marginLeft: 4,
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
   line: { textAlign: 'center' },

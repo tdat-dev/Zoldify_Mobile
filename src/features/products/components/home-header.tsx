@@ -10,11 +10,9 @@ import { useCartCount } from '@/features/cart/api';
 import { PRICE_SCOPES, type PriceScope } from '@/features/products/price-scopes';
 
 /**
- * Header trang chủ — MỘT TẦNG, nền sáng, đúng bản web mới
- * (components/Header.tsx): bỏ chrome tối kiểu Amazon. Hàng trên là logo +
- * cụm tiện ích (Đăng bán đặc, chuông, tài khoản, GIỎ HÀNG lên trên cùng kèm
- * badge THẬT). Hàng dưới là ô tìm kiếm; "Mọi giá" là dropdown lọc THẬT: chọn
- * một tầm tiền sẽ mở /search với price_min/price_max.
+ * Header trang chủ — gọn: MỘT hàng gồm ô tìm kiếm (có "Mọi giá" lọc thật) +
+ * Tin nhắn + Giỏ hàng (badge thật). Bỏ logo, nút Đăng bán, chuông, tài khoản
+ * — những việc đó đã có ở thanh dưới, không cần lặp trên đầu.
  */
 type FeatherName = React.ComponentProps<typeof Feather>['name'];
 
@@ -22,7 +20,7 @@ function IconButton({
   name,
   onPress,
   badge,
-  size = 22,
+  size = 23,
 }: {
   name: FeatherName;
   onPress: () => void;
@@ -56,40 +54,26 @@ export function HomeHeader() {
 
   return (
     <View style={[styles.wrap, { paddingTop: insets.top + 8 }]}>
-      <View style={styles.topRow}>
-        <Text style={styles.wordmark}>Zoldify</Text>
-
-        <View style={styles.actions}>
-          {/* Đăng bán = nút đặc, ngang hàng tiện ích — nửa còn lại của sàn C2C. */}
-          <Pressable style={styles.sellBtn} onPress={() => router.push('/sell')} hitSlop={4}>
-            <Feather name="plus" size={20} color={Palette.white} />
+      <View style={styles.row}>
+        {/* Ô tìm kiếm: "Mọi giá" mở dropdown lọc thật, phần còn lại mở tìm kiếm. */}
+        <View style={styles.search}>
+          <Pressable style={styles.scope} onPress={() => setScopeOpen(true)} hitSlop={6}>
+            <Text style={styles.scopeText}>Mọi giá</Text>
+            <Feather name="chevron-down" size={14} color={Palette.inkFaint} />
           </Pressable>
-          <IconButton name="bell" onPress={() => router.push('/notifications')} />
-          <IconButton name="user" onPress={() => router.push('/account')} />
-          <IconButton
-            name="shopping-cart"
-            onPress={() => router.push('/cart')}
-            badge={cartCount}
-          />
+          <Pressable style={styles.searchTap} onPress={() => openSearch()}>
+            <Text style={styles.placeholder} numberOfLines={1}>
+              Tìm đồ cũ: máy tính, xe đạp…
+            </Text>
+            <Feather name="search" size={18} color={Palette.inkMuted} style={styles.searchIcon} />
+          </Pressable>
         </View>
+
+        <IconButton name="message-circle" onPress={() => router.push('/messages')} />
+        <IconButton name="shopping-cart" onPress={() => router.push('/cart')} badge={cartCount} />
       </View>
 
-      {/* Ô tìm kiếm: "Mọi giá" nằm trong hộp bên trái (mở dropdown lọc thật),
-          phần còn lại mở màn tìm kiếm. */}
-      <View style={styles.search}>
-        <Pressable style={styles.scope} onPress={() => setScopeOpen(true)} hitSlop={6}>
-          <Text style={styles.scopeText}>Mọi giá</Text>
-          <Feather name="chevron-down" size={14} color={Palette.inkFaint} />
-        </Pressable>
-        <Pressable style={styles.searchTap} onPress={() => openSearch()}>
-          <Text style={styles.placeholder} numberOfLines={1}>
-            Tìm đồ cũ: máy tính, xe đạp, đồ gia dụng…
-          </Text>
-          <Feather name="search" size={18} color={Palette.inkMuted} style={styles.searchIcon} />
-        </Pressable>
-      </View>
-
-      {/* Dropdown tầm tiền — sheet dưới đáy, hairline, phẳng đúng doctrine sổ kê. */}
+      {/* Dropdown tầm tiền — sheet dưới đáy, phẳng đúng doctrine sổ kê. */}
       <Modal
         visible={scopeOpen}
         transparent
@@ -119,29 +103,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Palette.line,
   },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  wordmark: {
-    fontFamily: Font.extrabold,
-    fontSize: 22,
-    color: Palette.brand,
-    letterSpacing: -0.5,
-    paddingLeft: 4,
-  },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  sellBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.control,
-    backgroundColor: Palette.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 4,
-  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   iconBtn: {
     width: 40,
     height: 40,
@@ -151,8 +113,8 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    right: 4,
-    top: 3,
+    right: 3,
+    top: 2,
     minWidth: 17,
     height: 17,
     paddingHorizontal: 4,
@@ -163,6 +125,7 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontFamily: Font.bold, fontSize: 10, color: Palette.white },
   search: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'stretch',
     height: 44,
