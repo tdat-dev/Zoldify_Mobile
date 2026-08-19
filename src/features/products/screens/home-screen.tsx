@@ -8,7 +8,6 @@ import { useProducts } from '@/features/products/api';
 import { ProductCard } from '@/features/products/components/product-card';
 import { HomeHeader } from '@/features/products/components/home-header';
 import { QuickLinks } from '@/features/products/components/quick-links';
-import { CategoryTiles } from '@/features/categories/components/category-tiles';
 
 /**
  * Trang chủ ecommerce — đúng ngôn ngữ web mới: header MỘT TẦNG nền sáng (logo
@@ -65,7 +64,6 @@ export default function HomeScreen() {
         ListHeaderComponent={
           <View>
             <QuickLinks />
-            <CategoryTiles />
             <Text variant="heading" style={styles.sectionTitle}>Mới đăng</Text>
           </View>
         }
