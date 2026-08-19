@@ -17,7 +17,7 @@ export default function AccountScreen() {
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <Text variant="title">Tài khoản</Text>
+        <Text variant="title">Tôi</Text>
       </View>
 
       {status === 'signedIn' && user ? (
