@@ -104,5 +104,5 @@ const styles = StyleSheet.create({
   head: { marginTop: 8, marginBottom: 24 },
   sub: { marginTop: 8 },
   form: { gap: 16 },
-  error: { color: '#DC2626' },
+  error: { color: '#B32322' },
 });

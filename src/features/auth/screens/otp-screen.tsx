@@ -74,6 +74,6 @@ const styles = StyleSheet.create({
   head: { marginTop: 8, marginBottom: 28 },
   sub: { marginTop: 8 },
   email: { color: '#0F172A' },
-  error: { color: '#DC2626', marginTop: 14 },
+  error: { color: '#B32322', marginTop: 14 },
   resend: { flexDirection: 'row', alignItems: 'center', marginTop: 22 },
 });

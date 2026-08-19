@@ -3,14 +3,14 @@ import { Text as RNText, StyleSheet, type TextProps } from 'react-native';
 import { Font, Palette } from './theme';
 
 /**
- * Chữ của Zoldify. Mọi text đi qua đây để chắc chắn dùng Be Vietnam Pro
- * (dấu tiếng Việt đẹp) và tôn ti cỡ chữ nhất quán. Hierarchy bằng cỡ + độ
- * đậm của font, không phụ thuộc fontWeight (RN + font tuỳ biến hay lệch).
+ * Chữ Zoldify — thang chữ PORT từ web (display 28 / h1 22 / h2 18 / h3 15 /
+ * body 14 / small 13 / caption 11.5). Be Vietnam Pro, dấu tiếng Việt đẹp.
  */
 export type TextVariant =
   | 'display'
   | 'title'
   | 'heading'
+  | 'subheading'
   | 'body'
   | 'bodyMuted'
   | 'label'
@@ -26,54 +26,13 @@ export function Text({
 }
 
 const styles = StyleSheet.create({
-  display: {
-    fontFamily: Font.extrabold,
-    fontSize: 34,
-    lineHeight: 40,
-    letterSpacing: -0.5,
-    color: Palette.ink,
-  },
-  title: {
-    fontFamily: Font.bold,
-    fontSize: 26,
-    lineHeight: 32,
-    letterSpacing: -0.3,
-    color: Palette.ink,
-  },
-  heading: {
-    fontFamily: Font.bold,
-    fontSize: 19,
-    lineHeight: 26,
-    color: Palette.ink,
-  },
-  body: {
-    fontFamily: Font.regular,
-    fontSize: 16,
-    lineHeight: 24,
-    color: Palette.ink,
-  },
-  bodyMuted: {
-    fontFamily: Font.regular,
-    fontSize: 15,
-    lineHeight: 23,
-    color: Palette.muted,
-  },
-  label: {
-    fontFamily: Font.semibold,
-    fontSize: 14,
-    lineHeight: 20,
-    color: Palette.ink,
-  },
-  caption: {
-    fontFamily: Font.regular,
-    fontSize: 13,
-    lineHeight: 18,
-    color: Palette.muted,
-  },
-  link: {
-    fontFamily: Font.semibold,
-    fontSize: 15,
-    lineHeight: 20,
-    color: Palette.brand,
-  },
+  display: { fontFamily: Font.bold, fontSize: 28, lineHeight: 34, letterSpacing: -0.4, color: Palette.ink },
+  title: { fontFamily: Font.bold, fontSize: 22, lineHeight: 28, letterSpacing: -0.2, color: Palette.ink },
+  heading: { fontFamily: Font.bold, fontSize: 18, lineHeight: 24, color: Palette.ink },
+  subheading: { fontFamily: Font.semibold, fontSize: 15, lineHeight: 20, color: Palette.ink },
+  body: { fontFamily: Font.regular, fontSize: 14, lineHeight: 22, color: Palette.ink },
+  bodyMuted: { fontFamily: Font.regular, fontSize: 14, lineHeight: 22, color: Palette.inkMuted },
+  label: { fontFamily: Font.semibold, fontSize: 13, lineHeight: 18, color: Palette.ink },
+  caption: { fontFamily: Font.semibold, fontSize: 11.5, lineHeight: 16, color: Palette.inkMuted },
+  link: { fontFamily: Font.semibold, fontSize: 14, lineHeight: 20, color: Palette.brand },
 });

@@ -81,5 +81,5 @@ const styles = StyleSheet.create({
   head: { marginTop: 8, marginBottom: 28 },
   sub: { marginTop: 8 },
   form: { gap: 18 },
-  error: { color: '#DC2626' },
+  error: { color: '#B32322' },
 });

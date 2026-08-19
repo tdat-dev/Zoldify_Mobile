@@ -15,13 +15,12 @@ interface Props extends Omit<PressableProps, 'children' | 'style'> {
   title: string;
   variant?: Variant;
   loading?: boolean;
-  /** Icon nhỏ đặt trước nhãn (không bắt buộc). */
   leading?: React.ReactNode;
 }
 
 /**
- * Nút chuẩn Zoldify. Cao 52, bo tròn, chữ đậm. Ba cấp độ nhấn mạnh:
- * primary (xanh brand), secondary (viền), ghost (chỉ chữ).
+ * Nút Zoldify — phẳng, góc 4px (không pill). primary (brand đặc), secondary
+ * (viền hairline), ghost (chỉ chữ).
  */
 export function Button({
   title,
@@ -55,8 +54,7 @@ export function Button({
           <Text
             style={[
               styles.label,
-              variant === 'primary' ? styles.labelOnBrand : styles.labelBrandOrInk,
-              variant === 'secondary' && { color: Palette.ink },
+              { color: variant === 'primary' ? Palette.white : variant === 'secondary' ? Palette.ink : Palette.brand },
             ]}>
             {title}
           </Text>
@@ -68,20 +66,18 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    height: 52,
-    borderRadius: Radius.lg,
+    height: 48,
+    borderRadius: Radius.control,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   primary: { backgroundColor: Palette.brand },
-  secondary: { backgroundColor: Palette.white, borderWidth: 1, borderColor: Palette.line },
+  secondary: { backgroundColor: Palette.white, borderWidth: 1, borderColor: Palette.lineStrong },
   ghost: { backgroundColor: 'transparent' },
-  pressed: { opacity: 0.85, transform: [{ scale: 0.99 }] },
-  primaryDisabled: { backgroundColor: '#AFC2E6' },
+  pressed: { opacity: 0.88 },
+  primaryDisabled: { backgroundColor: '#A9BEE2' },
   otherDisabled: { opacity: 0.5 },
-  label: { fontFamily: Font.bold, fontSize: 16, lineHeight: 20 },
-  labelOnBrand: { color: Palette.white },
-  labelBrandOrInk: { color: Palette.brand },
+  label: { fontFamily: Font.bold, fontSize: 15, lineHeight: 20 },
 });

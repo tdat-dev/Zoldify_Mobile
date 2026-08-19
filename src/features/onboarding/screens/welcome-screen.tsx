@@ -87,7 +87,7 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Palette.surface },
+  root: { flex: 1, backgroundColor: Palette.surfacePage },
   topBar: {
     paddingHorizontal: 24,
     paddingTop: 8,

@@ -13,14 +13,10 @@ import { Font, Palette, Radius } from './theme';
 interface Props extends TextInputProps {
   label?: string;
   error?: string;
-  /** Hiện nút ẩn/hiện với ô mật khẩu. */
   secure?: boolean;
 }
 
-/**
- * Ô nhập chuẩn Zoldify: nhãn trên, viền dịu, đổi xanh brand khi focus, chữ
- * lỗi đỏ ở dưới. Ô mật khẩu có nút hiện/ẩn.
- */
+/** Ô nhập Zoldify: nhãn trên, viền hairline góc 4px, focus đổi brand. */
 export function TextField({ label, error, secure, style, ...rest }: Props) {
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(true);
@@ -41,7 +37,7 @@ export function TextField({ label, error, secure, style, ...rest }: Props) {
         ]}>
         <TextInput
           style={[styles.input, style]}
-          placeholderTextColor={Palette.muted}
+          placeholderTextColor={Palette.inkFaint}
           secureTextEntry={secure ? hidden : false}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
@@ -67,26 +63,26 @@ export function TextField({ label, error, secure, style, ...rest }: Props) {
 }
 
 const styles = StyleSheet.create({
-  label: { marginBottom: 8 },
+  label: { marginBottom: 6 },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 52,
-    borderRadius: Radius.md,
+    minHeight: 48,
+    borderRadius: Radius.control,
     borderWidth: 1,
-    borderColor: Palette.line,
+    borderColor: Palette.lineStrong,
     backgroundColor: Palette.white,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
   },
-  fieldFocused: { borderColor: Palette.brand, backgroundColor: Palette.white },
-  fieldError: { borderColor: Palette.danger },
+  fieldFocused: { borderColor: Palette.brand },
+  fieldError: { borderColor: Palette.dangerFg },
   input: {
     flex: 1,
     fontFamily: Font.regular,
-    fontSize: 16,
+    fontSize: 14,
     color: Palette.ink,
-    paddingVertical: 14,
+    paddingVertical: 13,
   },
   toggle: { marginLeft: 12 },
-  error: { color: Palette.danger, marginTop: 6 },
+  error: { color: Palette.dangerFg, marginTop: 6 },
 });

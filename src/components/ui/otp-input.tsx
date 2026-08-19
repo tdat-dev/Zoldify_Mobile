@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   box: {
     flex: 1,
     height: 58,
-    borderRadius: Radius.md,
+    borderRadius: Radius.control,
     borderWidth: 1,
     borderColor: Palette.line,
     backgroundColor: Palette.white,

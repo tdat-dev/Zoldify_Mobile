@@ -46,7 +46,7 @@ export function Screen({ children, onBack, onClose, title, footer, scroll }: Pro
               </Pressable>
             ) : onClose ? (
               <Pressable hitSlop={12} onPress={onClose}>
-                <Text variant="link" style={{ color: Palette.muted }}>
+                <Text variant="link" style={{ color: Palette.inkMuted }}>
                   Huỷ
                 </Text>
               </Pressable>
@@ -78,7 +78,7 @@ export function Screen({ children, onBack, onClose, title, footer, scroll }: Pro
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Palette.surface },
+  root: { flex: 1, backgroundColor: Palette.surfacePage },
   flex: { flex: 1 },
   header: {
     height: 52,

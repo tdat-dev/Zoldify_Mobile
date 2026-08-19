@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     gap: 12,
   },
-  email: { flex: 1, color: Palette.muted },
+  email: { flex: 1, color: Palette.inkMuted },
   divider: { height: 1, backgroundColor: Palette.line, marginVertical: 28 },
   already: { marginBottom: 12 },
 });

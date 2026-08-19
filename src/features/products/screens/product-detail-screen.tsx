@@ -5,12 +5,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
-import { Palette } from '@/components/ui/theme';
+import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProduct } from '@/features/products/api';
 import { useRequireAuth } from '@/features/auth/use-require-auth';
 import { formatVnd } from '@/lib/format';
 
-/** Chi tiết sản phẩm — khách xem thoải mái; Mua/Giỏ mới cần đăng nhập. */
+const CONDITION_LABEL: Record<string, string> = {
+  new: 'Mới',
+  like_new: 'Như mới',
+  good: 'Tốt',
+  fair: 'Khá',
+  used: 'Đã dùng',
+  refurbished: 'Tân trang',
+};
+
+/** Chi tiết sản phẩm — token web: giá đỏ, góc 4px, badge tình trạng. */
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
@@ -39,11 +48,14 @@ export default function ProductDetailScreen() {
     );
   }
 
+  const fresh = product.condition === 'new' || product.condition === 'like_new';
+  const condLabel = CONDITION_LABEL[product.condition] ?? product.condition;
+
   return (
     <View style={styles.root}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
         <View style={styles.imageWrap}>
-          <Image source={product.image} style={styles.image} contentFit="cover" transition={180} />
+          <Image source={product.image} style={styles.image} contentFit="cover" transition={160} />
           <Pressable style={[styles.backBtn, { top: insets.top + 8 }]} hitSlop={10} onPress={back}>
             <View style={styles.chevron} />
           </Pressable>
@@ -51,35 +63,39 @@ export default function ProductDetailScreen() {
 
         <View style={styles.body}>
           <View style={styles.chips}>
-            {product.condition ? (
-              <View style={styles.chip}>
-                <Text style={styles.chipText}>{product.condition}</Text>
+            {condLabel ? (
+              <View
+                style={[
+                  styles.chip,
+                  { backgroundColor: fresh ? Palette.successBg : Palette.neutralBg },
+                ]}>
+                <Text
+                  style={[
+                    styles.chipText,
+                    { color: fresh ? Palette.successFg : Palette.neutralFg },
+                  ]}>
+                  {condLabel}
+                </Text>
               </View>
             ) : null}
             {product.is_freeship ? (
-              <View style={[styles.chip, styles.chipSuccess]}>
-                <Text style={[styles.chipText, { color: Palette.success }]}>Freeship</Text>
+              <View style={[styles.chip, { backgroundColor: Palette.brandTint }]}>
+                <Text style={[styles.chipText, { color: Palette.brand }]}>Freeship</Text>
               </View>
             ) : null}
           </View>
 
-          <Text variant="title" style={styles.name}>
-            {product.name}
-          </Text>
+          <Text variant="title" style={styles.name}>{product.name}</Text>
           <Text style={styles.price}>{formatVnd(product.price)}</Text>
 
           <View style={styles.metaRow}>
             {product.brand ? <Text variant="caption">Hãng: {product.brand}</Text> : null}
-            {product.sold_count > 0 ? (
-              <Text variant="caption">Đã bán {product.sold_count}</Text>
-            ) : null}
+            {product.sold_count > 0 ? <Text variant="caption">Đã bán {product.sold_count}</Text> : null}
           </View>
 
           <View style={styles.divider} />
 
-          <Text variant="heading" style={styles.descHead}>
-            Mô tả
-          </Text>
+          <Text variant="heading" style={styles.descHead}>Mô tả</Text>
           <Text variant="body" style={styles.desc}>
             {product.description || 'Người bán chưa thêm mô tả.'}
           </Text>
@@ -88,9 +104,7 @@ export default function ProductDetailScreen() {
             <>
               <View style={styles.divider} />
               <Text variant="caption">Người bán</Text>
-              <Text variant="label" style={styles.seller}>
-                {product.seller.full_name}
-              </Text>
+              <Text variant="subheading" style={styles.seller}>{product.seller.full_name}</Text>
             </>
           ) : null}
         </View>
@@ -98,11 +112,7 @@ export default function ProductDetailScreen() {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.footerBtn}>
-          <Button
-            title="Thêm vào giỏ"
-            variant="secondary"
-            onPress={() => requireAuth()}
-          />
+          <Button title="Thêm vào giỏ" variant="secondary" onPress={() => requireAuth()} />
         </View>
         <View style={styles.footerBtn}>
           <Button title="Mua ngay" onPress={() => requireAuth()} />
@@ -113,19 +123,19 @@ export default function ProductDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Palette.surface },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: Palette.surface },
+  root: { flex: 1, backgroundColor: Palette.surfacePage },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: Palette.surfacePage },
   pad: { paddingHorizontal: 24 },
   retry: { alignSelf: 'stretch', paddingHorizontal: 24, gap: 8 },
-  imageWrap: { aspectRatio: 1, backgroundColor: Palette.brandLight },
+  imageWrap: { aspectRatio: 1, backgroundColor: Palette.surfaceSunken },
   image: { width: '100%', height: '100%' },
   backBtn: {
     position: 'absolute',
-    left: 16,
+    left: 12,
     width: 38,
     height: 38,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: Radius.control,
+    backgroundColor: 'rgba(255,255,255,0.94)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -138,25 +148,29 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '45deg' }],
     marginLeft: 4,
   },
-  body: { padding: 20 },
+  body: { padding: 16 },
   chips: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  chip: { backgroundColor: Palette.brandLight, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 },
-  chipSuccess: { backgroundColor: '#E7F6EC' },
-  chipText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 12, color: Palette.brand },
+  chip: { borderRadius: Radius.control, paddingHorizontal: 8, paddingVertical: 4 },
+  chipText: { fontFamily: Font.semibold, fontSize: 12 },
   name: { marginBottom: 8 },
-  price: { fontFamily: 'BeVietnamPro_800ExtraBold', fontSize: 26, color: Palette.brand },
-  metaRow: { flexDirection: 'row', gap: 16, marginTop: 10 },
-  divider: { height: 1, backgroundColor: Palette.line, marginVertical: 20 },
-  descHead: { marginBottom: 8 },
+  price: {
+    fontFamily: Font.extrabold,
+    fontSize: 26,
+    color: Palette.price,
+    fontVariant: ['tabular-nums'],
+  },
+  metaRow: { flexDirection: 'row', gap: 16, marginTop: 8 },
+  divider: { height: 1, backgroundColor: Palette.lineStrong, marginVertical: 16 },
+  descHead: { marginBottom: 6 },
   desc: { color: Palette.ink },
   seller: { marginTop: 4 },
   footer: {
     flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 20,
+    gap: 10,
+    paddingHorizontal: 16,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Palette.line,
+    borderTopColor: Palette.lineStrong,
     backgroundColor: Palette.white,
   },
   footerBtn: { flex: 1 },

@@ -2,17 +2,17 @@ import { router } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandMark } from '@/components/ui/brand-mark';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
-import { Palette } from '@/components/ui/theme';
+import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProducts } from '@/features/products/api';
 import { ProductCard } from '@/features/products/components/product-card';
 import { useAuthStore } from '@/features/auth/store';
 
 /**
- * Trang chủ ecommerce: mở app là thấy sản phẩm luôn (khách chưa đăng nhập
- * vẫn duyệt được). Nút "Đăng nhập" ở góc chỉ dành cho khi cần.
+ * Trang chủ ecommerce: header chrome tối (thương hiệu + tìm kiếm + đăng
+ * nhập) trên nền tối, feed sản phẩm trên nền xám nhạt — đúng ngôn ngữ web.
+ * Khách chưa đăng nhập vẫn duyệt được.
  */
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -21,23 +21,28 @@ export default function HomeScreen() {
   const user = useAuthStore((s) => s.user);
 
   const header = (
-    <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-      <View style={styles.brandRow}>
-        <BrandMark size={30} />
+    <View style={[styles.chrome, { paddingTop: insets.top + 8 }]}>
+      <View style={styles.topRow}>
         <Text style={styles.wordmark}>Zoldify</Text>
+        {status === 'signedIn' && user ? (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {user.full_name?.trim()?.[0]?.toUpperCase() ?? 'Z'}
+            </Text>
+          </View>
+        ) : (
+          <Pressable hitSlop={8} onPress={() => router.push('/welcome')}>
+            <Text style={styles.loginText}>Đăng nhập</Text>
+          </Pressable>
+        )}
       </View>
 
-      {status === 'signedIn' && user ? (
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {user.full_name?.trim()?.[0]?.toUpperCase() ?? 'Z'}
-          </Text>
-        </View>
-      ) : (
-        <Pressable style={styles.loginBtn} onPress={() => router.push('/welcome')}>
-          <Text style={styles.loginText}>Đăng nhập</Text>
-        </Pressable>
-      )}
+      {/* Ô tìm kiếm (khung; màn tìm kiếm làm sau). */}
+      <Pressable style={styles.search}>
+        <View style={styles.magCircle} />
+        <View style={styles.magHandle} />
+        <Text style={styles.searchPlaceholder}>Tìm sản phẩm trên Zoldify</Text>
+      </Pressable>
     </View>
   );
 
@@ -47,9 +52,7 @@ export default function HomeScreen() {
         {header}
         <View style={styles.fill}>
           <ActivityIndicator size="large" color={Palette.brand} />
-          <Text variant="bodyMuted" style={styles.hint}>
-            Đang tải sản phẩm…
-          </Text>
+          <Text variant="bodyMuted" style={styles.hint}>Đang tải sản phẩm…</Text>
         </View>
       </View>
     );
@@ -85,9 +88,7 @@ export default function HomeScreen() {
         refreshing={isRefetching}
         onRefresh={refetch}
         ListHeaderComponent={
-          <Text variant="heading" style={styles.sectionTitle}>
-            Mới đăng
-          </Text>
+          <Text variant="heading" style={styles.sectionTitle}>Mới đăng</Text>
         }
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -101,41 +102,57 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Palette.surface },
-  header: {
+  root: { flex: 1, backgroundColor: Palette.surfacePage },
+  chrome: { backgroundColor: Palette.chrome, paddingHorizontal: 16, paddingBottom: 12 },
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    backgroundColor: Palette.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.line,
+    marginBottom: 12,
   },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  wordmark: { fontFamily: 'BeVietnamPro_800ExtraBold', fontSize: 20, color: Palette.ink, letterSpacing: -0.5 },
-  loginBtn: {
-    borderWidth: 1,
-    borderColor: Palette.brand,
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  loginText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: 14, color: Palette.brand },
+  wordmark: { fontFamily: Font.extrabold, fontSize: 20, color: Palette.white, letterSpacing: -0.4 },
+  loginText: { fontFamily: Font.semibold, fontSize: 14, color: Palette.white },
   avatar: {
-    width: 38,
-    height: 38,
+    width: 34,
+    height: 34,
     borderRadius: 999,
-    backgroundColor: Palette.brand,
+    borderWidth: 1,
+    borderColor: Palette.lineOnDark,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: 16, color: Palette.white },
+  avatarText: { fontFamily: Font.bold, fontSize: 15, color: Palette.white },
+  search: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 40,
+    borderRadius: Radius.control,
+    backgroundColor: Palette.white,
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  magCircle: {
+    width: 13,
+    height: 13,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: Palette.inkFaint,
+  },
+  magHandle: {
+    position: 'absolute',
+    left: 22,
+    top: 24,
+    width: 6,
+    height: 2,
+    backgroundColor: Palette.inkFaint,
+    transform: [{ rotate: '45deg' }],
+  },
+  searchPlaceholder: { fontFamily: Font.regular, fontSize: 13.5, color: Palette.inkFaint },
   fill: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
   hint: { textAlign: 'center' },
   retry: { marginTop: 8, alignSelf: 'stretch', paddingHorizontal: 24 },
-  list: { padding: 16, gap: 14 },
-  column: { gap: 14 },
-  sectionTitle: { marginBottom: 4 },
+  list: { padding: 12, gap: 18 },
+  column: { gap: 12 },
+  sectionTitle: { marginBottom: 2 },
   empty: { paddingVertical: 48, alignItems: 'center' },
 });
