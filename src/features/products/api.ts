@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import http from '@/lib/api/client';
 import type { ApiResponse, CreateProductDto, Paginated, Product } from '@/api';
@@ -47,6 +52,20 @@ export function useProducts(page = 1, limit = 20, filters?: ProductFilters) {
   return useQuery({
     queryKey: productKeys.list(page, limit, filters),
     queryFn: () => fetchProducts(page, limit, filters),
+  });
+}
+
+/**
+ * Feed "Dạo chợ": danh sách cuộn vô hạn. Đọc `meta.current/pages` để biết còn
+ * trang. Mỗi trang là { result, meta }; component tự phẳng `pages`.
+ */
+export function useInfiniteProducts(limit = 10, filters?: ProductFilters) {
+  return useInfiniteQuery({
+    queryKey: [...productKeys.lists(), 'infinite', { limit, ...filters }] as const,
+    queryFn: ({ pageParam }) => fetchProducts(pageParam, limit, filters),
+    initialPageParam: 1,
+    getNextPageParam: (last) =>
+      last.meta.current < last.meta.pages ? last.meta.current + 1 : undefined,
   });
 }
 

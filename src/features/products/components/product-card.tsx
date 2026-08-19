@@ -10,14 +10,37 @@ import type { Product } from '@/api';
 import { formatVnd } from '@/lib/format';
 import { mediaUrl } from '@/lib/media';
 
+const CONDITION_LABEL: Record<string, string> = {
+  new: 'Mới',
+  like_new: 'Như mới',
+  good: 'Tốt',
+  fair: 'Khá',
+  used: 'Đã dùng',
+  refurbished: 'Tân trang',
+};
+
 /**
- * Ô hàng — theo ItemTile của web: ảnh vuông, tên cắt 2 dòng, giá ĐỎ. Ảnh
- * thiếu/hỏng thì hiện ô dự phòng có icon (không để mảng xám trơn trông như lỗi).
+ * Ô hàng kiểu CHỢ ĐỒ CŨ — theo ItemTile web nhưng khoe tín hiệu tin tưởng:
+ * chip TÌNH TRẠNG (đặc sản đồ cũ) + Freeship trên ảnh, "đã bán · lượt xem" dưới
+ * giá, và phủ "ĐÃ BÁN" khi món đã bán (mỗi món là DUY NHẤT). Ảnh thiếu -> ô icon.
  */
 export function ProductCard({ product }: { product: Product }) {
   const uri = mediaUrl(product.image);
   const [failed, setFailed] = useState(false);
   const showImage = !!uri && !failed;
+
+  const sold = product.status === 'sold';
+  const fresh = product.condition === 'new' || product.condition === 'like_new';
+  const condLabel = product.condition ? CONDITION_LABEL[product.condition] ?? product.condition : null;
+
+  const soldCount = product.sold_count ?? 0;
+  const viewCount = product.view_count ?? 0;
+  const proof =
+    soldCount > 0
+      ? `Đã bán ${soldCount}${viewCount > 0 ? ` · ${viewCount} xem` : ''}`
+      : viewCount > 0
+        ? `${viewCount} lượt xem`
+        : null;
 
   return (
     <Pressable
@@ -28,7 +51,7 @@ export function ProductCard({ product }: { product: Product }) {
         {showImage ? (
           <Image
             source={uri}
-            style={styles.image}
+            style={[styles.image, sold && styles.imageSold]}
             contentFit="cover"
             transition={160}
             onError={() => setFailed(true)}
@@ -38,12 +61,41 @@ export function ProductCard({ product }: { product: Product }) {
             <Feather name="image" size={26} color={Palette.inkFaint} />
           </View>
         )}
+
+        {/* Chip tình trạng — góc trái, đặc sản đồ cũ. */}
+        {condLabel ? (
+          <View
+            style={[
+              styles.cond,
+              { backgroundColor: fresh ? Palette.successBg : Palette.neutralBg },
+            ]}>
+            <Text
+              style={[styles.condText, { color: fresh ? Palette.successFg : Palette.neutralFg }]}>
+              {condLabel}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Freeship — góc phải. */}
+        {product.is_freeship && !sold ? (
+          <View style={styles.free}>
+            <Text style={styles.freeText}>Freeship</Text>
+          </View>
+        ) : null}
+
+        {/* Món là DUY NHẤT: bán rồi thì phủ "ĐÃ BÁN" thay vì ẩn. */}
+        {sold ? (
+          <View style={styles.soldBand}>
+            <Text style={styles.soldText}>ĐÃ BÁN</Text>
+          </View>
+        ) : null}
       </View>
 
       <Text variant="body" numberOfLines={2} style={styles.name}>
         {product.name}
       </Text>
-      <Text style={styles.price}>{formatVnd(product.price)}</Text>
+      <Text style={[styles.price, sold && styles.priceSold]}>{formatVnd(product.price)}</Text>
+      {proof ? <Text style={styles.proof}>{proof}</Text> : null}
     </Pressable>
   );
 }
@@ -57,11 +109,38 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   image: { width: '100%', height: '100%' },
+  imageSold: { opacity: 0.55 },
   placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  name: {
-    marginTop: 8,
-    minHeight: 44, // 2 dòng, giữ các thẻ cao bằng nhau
+  cond: {
+    position: 'absolute',
+    left: 6,
+    top: 6,
+    borderRadius: Radius.control,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
   },
+  condText: { fontFamily: Font.semibold, fontSize: 10.5 },
+  free: {
+    position: 'absolute',
+    right: 6,
+    top: 6,
+    borderRadius: Radius.control,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    backgroundColor: Palette.brandTint,
+  },
+  freeText: { fontFamily: Font.semibold, fontSize: 10.5, color: Palette.brand },
+  soldBand: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: '42%',
+    paddingVertical: 5,
+    backgroundColor: 'rgba(25,32,41,0.62)',
+    alignItems: 'center',
+  },
+  soldText: { fontFamily: Font.bold, fontSize: 13, color: Palette.white, letterSpacing: 1 },
+  name: { marginTop: 8, minHeight: 44 },
   price: {
     marginTop: 2,
     fontFamily: Font.bold,
@@ -69,4 +148,6 @@ const styles = StyleSheet.create({
     color: Palette.price,
     fontVariant: ['tabular-nums'],
   },
+  priceSold: { color: Palette.inkMuted },
+  proof: { marginTop: 3, fontFamily: Font.regular, fontSize: 11.5, color: Palette.inkFaint },
 });
