@@ -19,6 +19,9 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: Palette.brand,
         tabBarInactiveTintColor: Palette.inkMuted,
+        // Luôn xếp NHÃN DƯỚI ICON. Không ép thì bản web tự đổi sang "nhãn cạnh
+        // icon" khi rộng, và vòng tròn "+" nổi sẽ đè lên chữ "Đăng bán".
+        tabBarLabelPosition: 'below-icon',
         tabBarStyle: {
           backgroundColor: Palette.white,
           borderTopWidth: 1,
