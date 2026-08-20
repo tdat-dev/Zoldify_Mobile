@@ -2,15 +2,16 @@ import Feather from '@expo/vector-icons/Feather';
 import { Tabs } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { Text } from '@/components/ui/text';
 import { Font, Palette } from '@/components/ui/theme';
 
 /**
- * Thanh dưới: Trang chủ · Tìm kiếm · ĐĂNG BÁN (icon tròn nổi giữa) · Thông báo
- * · Tôi. Giỏ hàng & Tin nhắn nằm trên header, không lặp ở đây.
+ * Thanh dưới: Trang chủ · Tìm kiếm · ĐĂNG BÁN · Thông báo · Tôi.
+ * Giỏ hàng & Tin nhắn nằm trên header, không lặp ở đây.
  *
- * Nút giữa: vòng tròn 46px NỔI bằng absolute trong một slot 26px (bằng icon
- * thường), nên KHÔNG làm cao hàng → nhãn các tab không bị cắt (lỗi trên web).
+ * Nút "Đăng bán" = vòng tròn ĐẶC màu brand ở đúng ô icon (KHÔNG nổi/absolute).
+ * Bản nổi absolute từng đè chữ / bị cắt trên react-native-web ở Safari iOS
+ * (safe-area). Vòng tròn đặc, trong luồng, chiều cao theo safe-area → không
+ * bao giờ đè hay cắt trên mọi nền. Trên app native có thể cho nổi lại sau.
  */
 export default function TabsLayout() {
   return (
@@ -19,8 +20,8 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: Palette.brand,
         tabBarInactiveTintColor: Palette.inkMuted,
-        // Luôn xếp NHÃN DƯỚI ICON. Không ép thì bản web tự đổi sang "nhãn cạnh
-        // icon" khi rộng, và vòng tròn "+" nổi sẽ đè lên chữ "Đăng bán".
+        // KHÔNG ép height/padding — để react-navigation tự tính theo icon+nhãn
+        // và tự cộng safe-area; ép cứng là cắt nhãn (đã trải nghiệm nhiều lần).
         tabBarLabelPosition: 'below-icon',
         tabBarStyle: {
           backgroundColor: Palette.white,
@@ -48,13 +49,10 @@ export default function TabsLayout() {
         options={{
           title: 'Đăng bán',
           tabBarIcon: () => (
-            <View style={styles.sellSlot}>
-              <View style={styles.sellCircle}>
-                <Feather name="plus" size={26} color={Palette.white} />
-              </View>
+            <View style={styles.sellDot}>
+              <Feather name="plus" size={22} color={Palette.white} />
             </View>
           ),
-          tabBarLabel: () => <Text style={styles.sellLabel}>Đăng bán</Text>,
         }}
       />
       <Tabs.Screen
@@ -76,21 +74,13 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  // Slot bằng icon thường (26px) → hàng không bị cao lên → nhãn không bị cắt.
-  sellSlot: { width: 26, height: 26, alignItems: 'center', justifyContent: 'center' },
-  // Vòng tròn nổi: absolute, đáy neo trong slot, cao 46 nên nhô lên khỏi thanh.
-  sellCircle: {
-    position: 'absolute',
-    bottom: -2,
-    width: 46,
-    height: 46,
+  // Vòng tròn đặc, kích thước ~icon thường (không làm cao hàng, không tràn).
+  sellDot: {
+    width: 32,
+    height: 32,
     borderRadius: 999,
     backgroundColor: Palette.brand,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: Palette.white,
-    boxShadow: '0px 3px 8px rgba(20,30,60,0.20)',
   },
-  sellLabel: { fontFamily: Font.semibold, fontSize: 11, color: Palette.brand, marginTop: 2 },
 });
