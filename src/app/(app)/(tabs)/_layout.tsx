@@ -9,9 +9,8 @@ import { Font, Palette } from '@/components/ui/theme';
  * Thanh dưới: Trang chủ · Tìm kiếm · ĐĂNG BÁN (icon tròn nổi giữa) · Thông báo
  * · Tôi. Giỏ hàng & Tin nhắn nằm trên header, không lặp ở đây.
  *
- * Nút giữa nổi bằng cách dịch RIÊNG icon lên (translateY) — không dùng
- * tabBarButton tuỳ biến, nhờ đó nhãn vẫn nằm đúng hàng như các tab khác và
- * không bị đè/cắt (lỗi thấy trên web trước đây).
+ * Nút giữa: vòng tròn 46px NỔI bằng absolute trong một slot 26px (bằng icon
+ * thường), nên KHÔNG làm cao hàng → nhãn các tab không bị cắt (lỗi trên web).
  */
 export default function TabsLayout() {
   return (
@@ -24,12 +23,8 @@ export default function TabsLayout() {
           backgroundColor: Palette.white,
           borderTopWidth: 1,
           borderTopColor: Palette.line,
-          height: 66,
-          paddingTop: 8,
-          paddingBottom: 10,
         },
         tabBarLabelStyle: { fontFamily: Font.semibold, fontSize: 11 },
-        tabBarItemStyle: { paddingTop: 2 },
       }}>
       <Tabs.Screen
         name="index"
@@ -50,8 +45,10 @@ export default function TabsLayout() {
         options={{
           title: 'Đăng bán',
           tabBarIcon: () => (
-            <View style={styles.sellCircle}>
-              <Feather name="plus" size={26} color={Palette.white} />
+            <View style={styles.sellSlot}>
+              <View style={styles.sellCircle}>
+                <Feather name="plus" size={26} color={Palette.white} />
+              </View>
             </View>
           ),
           tabBarLabel: () => <Text style={styles.sellLabel}>Đăng bán</Text>,
@@ -76,22 +73,21 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  // Dịch icon lên cho nổi khỏi thanh; nhãn "Đăng bán" vẫn ở đúng hàng nhãn.
+  // Slot bằng icon thường (26px) → hàng không bị cao lên → nhãn không bị cắt.
+  sellSlot: { width: 26, height: 26, alignItems: 'center', justifyContent: 'center' },
+  // Vòng tròn nổi: absolute, đáy neo trong slot, cao 46 nên nhô lên khỏi thanh.
   sellCircle: {
-    width: 48,
-    height: 48,
+    position: 'absolute',
+    bottom: -2,
+    width: 46,
+    height: 46,
     borderRadius: 999,
     backgroundColor: Palette.brand,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: Palette.white,
-    transform: [{ translateY: -16 }],
-    shadowColor: '#141E3C',
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
+    boxShadow: '0px 3px 8px rgba(20,30,60,0.20)',
   },
-  sellLabel: { fontFamily: Font.semibold, fontSize: 11, color: Palette.brand },
+  sellLabel: { fontFamily: Font.semibold, fontSize: 11, color: Palette.brand, marginTop: 2 },
 });
