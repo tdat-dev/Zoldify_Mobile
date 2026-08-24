@@ -1,20 +1,22 @@
 import Feather from '@expo/vector-icons/Feather';
-import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { HeartButton } from '@/components/ui/heart-button';
+import { ImageGallery } from '@/components/ui/image-gallery';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProduct } from '@/features/products/api';
+import { RelatedRail } from '@/features/products/components/related-rail';
 import { useAddToCart, useCartCount } from '@/features/cart/api';
 import { useAuthStore } from '@/features/auth/store';
 import { useRequireAuth } from '@/features/auth/use-require-auth';
 import { formatVnd } from '@/lib/format';
-import { mediaUrl } from '@/lib/media';
 
 const CONDITION_LABEL: Record<string, string> = {
   new: 'Mới',
@@ -131,13 +133,23 @@ export default function ProductDetailScreen() {
 
   const fresh = product.condition === 'new' || product.condition === 'like_new';
   const condLabel = CONDITION_LABEL[product.condition] ?? product.condition;
+  const images = product.images?.length ? product.images : product.image ? [product.image] : [];
+  const seller = product.seller;
+  const joinedYear = seller ? new Date(seller.created_at).getFullYear() : null;
+
+  const onMessage = () => {
+    if (guest) return requireAuth();
+    router.push('/messages');
+  };
 
   return (
     <View style={styles.root}>
       {topBar}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
-        <View style={styles.imageWrap}>
-          <Image source={mediaUrl(product.image)} style={styles.image} contentFit="cover" transition={160} />
+        <View>
+          <ImageGallery images={images} />
+          {/* Lưu (tim) nổi trên ảnh — hành vi lõi khi lướt đồ cũ. */}
+          <HeartButton productId={product.id} floating style={styles.heart} />
         </View>
 
         <View style={styles.body}>
@@ -170,6 +182,35 @@ export default function ProductDetailScreen() {
           <View style={styles.metaRow}>
             {product.brand ? <Text variant="caption">Hãng: {product.brand}</Text> : null}
             {product.sold_count > 0 ? <Text variant="caption">Đã bán {product.sold_count}</Text> : null}
+            {product.view_count > 0 ? <Text variant="caption">{product.view_count} lượt xem</Text> : null}
+          </View>
+
+          {/* Người bán — đồ cũ mua vì TIN người bán; hiện dữ liệu thật + lối nhắn. */}
+          {seller ? (
+            <View style={styles.sellerCard}>
+              <Avatar name={seller.full_name} uri={seller.avatar} size={44} />
+              <View style={styles.sellerInfo}>
+                <Text variant="subheading" numberOfLines={1}>{seller.full_name}</Text>
+                <Text variant="caption">
+                  {joinedYear ? `Tham gia từ ${joinedYear}` : 'Người bán trên Zoldify'}
+                </Text>
+              </View>
+              <Pressable style={styles.msgBtn} onPress={onMessage} accessibilityRole="button">
+                <Feather name="message-circle" size={15} color={Palette.brand} />
+                <Text style={styles.msgText}>Nhắn</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          <View style={styles.divider} />
+
+          {/* Thông tin món — tách rõ tình trạng/hãng/mã, đặc trưng đồ cũ. */}
+          <Text variant="heading" style={styles.descHead}>Thông tin</Text>
+          <View style={styles.infoList}>
+            <InfoRow label="Tình trạng" value={condLabel} />
+            {product.brand ? <InfoRow label="Thương hiệu" value={product.brand} /> : null}
+            {product.spec ? <InfoRow label="Thông số" value={product.spec} /> : null}
+            <InfoRow label="Giao hàng" value={product.is_freeship ? 'Miễn phí vận chuyển' : 'Tính phí theo đơn'} />
           </View>
 
           <View style={styles.divider} />
@@ -178,15 +219,22 @@ export default function ProductDetailScreen() {
           <Text variant="body" style={styles.desc}>
             {product.description || 'Người bán chưa thêm mô tả.'}
           </Text>
-
-          {product.seller ? (
-            <>
-              <View style={styles.divider} />
-              <Text variant="caption">Người bán</Text>
-              <Text variant="subheading" style={styles.seller}>{product.seller.full_name}</Text>
-            </>
-          ) : null}
         </View>
+
+        {seller ? (
+          <RelatedRail
+            title="Thêm từ shop này"
+            filters={{ seller_id: seller.id }}
+            excludeId={product.id}
+          />
+        ) : null}
+        {product.category ? (
+          <RelatedRail
+            title="Sản phẩm tương tự"
+            filters={{ category_id: product.category.id }}
+            excludeId={product.id}
+          />
+        ) : null}
       </ScrollView>
 
       {errMsg ? (
@@ -218,13 +266,22 @@ export default function ProductDetailScreen() {
   );
 }
 
+/** Một dòng thông tin món: nhãn xám bên trái, giá trị bên phải. */
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.infoRow}>
+      <Text variant="caption" style={styles.infoLabel}>{label}</Text>
+      <Text variant="label" style={styles.infoValue} numberOfLines={2}>{value}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Palette.surfacePage },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: Palette.surfacePage },
   pad: { paddingHorizontal: 24 },
   retry: { alignSelf: 'stretch', paddingHorizontal: 24, gap: 8 },
-  imageWrap: { aspectRatio: 1, backgroundColor: Palette.surfaceSunken },
-  image: { width: '100%', height: '100%' },
+  heart: { position: 'absolute', top: 12, right: 12 },
   topbar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -279,11 +336,38 @@ const styles = StyleSheet.create({
     color: Palette.price,
     fontVariant: ['tabular-nums'],
   },
-  metaRow: { flexDirection: 'row', gap: 16, marginTop: 8 },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 4, marginTop: 8 },
   divider: { height: 1, backgroundColor: Palette.lineStrong, marginVertical: 16 },
-  descHead: { marginBottom: 6 },
+  descHead: { marginBottom: 8 },
   desc: { color: Palette.ink },
-  seller: { marginTop: 4 },
+  sellerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 16,
+    padding: 12,
+    borderRadius: Radius.control,
+    borderWidth: 1,
+    borderColor: Palette.line,
+    backgroundColor: Palette.white,
+  },
+  sellerInfo: { flex: 1, gap: 2 },
+  msgBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    height: 36,
+    borderRadius: Radius.control,
+    borderWidth: 1,
+    borderColor: Palette.brand,
+    backgroundColor: Palette.brandTint,
+  },
+  msgText: { fontFamily: Font.semibold, fontSize: 13, color: Palette.brand },
+  infoList: { gap: 10 },
+  infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  infoLabel: { width: 96 },
+  infoValue: { flex: 1, color: Palette.ink },
   footer: {
     flexDirection: 'row',
     gap: 10,
