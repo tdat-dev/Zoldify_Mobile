@@ -78,7 +78,13 @@ function CartRow({
         </Text>
         <Text style={styles.rowPrice}>{formatVnd(item.product?.price)}</Text>
         <View style={styles.rowFooter}>
-          <QtyStepper value={item.quantity} onChange={onQty} disabled={busy} />
+          {/* Đồ cũ thường là món DUY NHẤT (stock 1) — ẩn bộ +/− cho khỏi giống
+              sàn nhiều số lượng; chỉ hiện khi người bán có >1 cùng món. */}
+          {(item.product?.stock ?? 1) > 1 ? (
+            <QtyStepper value={item.quantity} onChange={onQty} disabled={busy} />
+          ) : (
+            <Text style={styles.unique}>Món duy nhất</Text>
+          )}
           <Pressable hitSlop={8} onPress={onRemove} disabled={busy}>
             <Text style={styles.remove}>Xoá</Text>
           </Pressable>
@@ -244,6 +250,7 @@ const styles = StyleSheet.create({
   },
   rowFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   remove: { fontFamily: Font.medium, fontSize: 13, color: Palette.inkMuted },
+  unique: { fontFamily: Font.semibold, fontSize: 12, color: Palette.inkMuted },
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
