@@ -20,6 +20,7 @@ import { Pressable, Text, View, useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { useAuthStore } from '@/features/auth/store';
+import { useWishlistStore } from '@/features/wishlist/store';
 import { setOnSessionExpired } from '@/lib/api/client';
 import { queryClient } from '@/lib/api/query-client';
 
@@ -84,6 +85,7 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const hydrate = useAuthStore((s) => s.hydrate);
   const sessionExpired = useAuthStore((s) => s.sessionExpired);
+  const hydrateWishlist = useWishlistStore((s) => s.hydrate);
 
   const [fontsLoaded] = useFonts({
     BeVietnamPro_400Regular,
@@ -96,6 +98,8 @@ export default function RootLayout() {
   useEffect(() => {
     // Đọc token lúc mở app, xác định phiên.
     hydrate();
+    // Đọc danh sách đã lưu (wishlist) cục bộ để tim hiện đúng ngay từ đầu.
+    hydrateWishlist();
 
     // Tầng mạng không tự điều hướng; 401 -> xoá phiên, cổng đăng nhập tự
     // đẩy về (auth). client.ts không cần biết gì về router.
@@ -103,7 +107,7 @@ export default function RootLayout() {
       queryClient.clear();
       sessionExpired();
     });
-  }, [hydrate, sessionExpired]);
+  }, [hydrate, hydrateWishlist, sessionExpired]);
 
   return (
     <QueryClientProvider client={queryClient}>
