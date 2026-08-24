@@ -1,6 +1,5 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -96,7 +95,6 @@ export default function CartScreen() {
   const { data: items, isPending } = useCart();
   const updateQty = useUpdateCartQty();
   const remove = useRemoveCartItem();
-  const [checkoutNote, setCheckoutNote] = useState(false);
 
   const busy = updateQty.isPending || remove.isPending;
 
@@ -121,7 +119,7 @@ export default function CartScreen() {
             Đăng nhập để lưu giỏ hàng và thanh toán.
           </Text>
           <View style={styles.cta}>
-            <Button title="Đăng nhập / Tạo tài khoản" onPress={() => router.push('/welcome')} />
+            <Button title="Đăng nhập" onPress={() => router.push('/login')} />
           </View>
         </View>
       </View>
@@ -186,12 +184,8 @@ export default function CartScreen() {
           <Text variant="bodyMuted">Tạm tính</Text>
           <Text style={styles.total}>{formatVnd(total)}</Text>
         </View>
-        {checkoutNote ? (
-          <Text variant="caption" style={styles.note}>
-            Thanh toán đang được hoàn thiện — sẽ mở ở bước tiếp theo.
-          </Text>
-        ) : null}
-        <Button title="Thanh toán" onPress={() => setCheckoutNote(true)} />
+        <Text variant="caption" style={styles.note}>Phí vận chuyển tính ở bước thanh toán.</Text>
+        <Button title="Thanh toán" onPress={() => router.push('/checkout')} />
       </View>
     </View>
   );
