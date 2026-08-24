@@ -15,22 +15,36 @@ import { googleAvailable } from '@/lib/firebase-config';
 import { useAuthStore } from '@/features/auth/store';
 import { useOnboardingStore } from '@/features/onboarding/store';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 /** Đăng nhập bằng email + mật khẩu (thật). Email điền sẵn nếu tới từ luồng. */
 export default function LoginScreen() {
   const draftEmail = useOnboardingStore((s) => s.email);
   const [email, setEmail] = useState(draftEmail);
   const [password, setPassword] = useState('');
+  const [emailTouched, setEmailTouched] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
   const login = useLogin();
   const signIn = useAuthStore((s) => s.signIn);
 
-  const disabled = !email.trim() || !password || login.isPending;
+  const emailTrim = email.trim();
+  const emailValid = EMAIL_RE.test(emailTrim);
+  // Chỉ báo lỗi định dạng khi người dùng đã rời ô (đừng mắng lúc đang gõ dở).
+  const emailError = emailTouched && emailTrim.length > 0 && !emailValid ? 'Email chưa đúng định dạng.' : undefined;
+
+  const disabled = !emailValid || !password || login.isPending;
+
+  // Xoá lỗi server cũ ngay khi người dùng sửa lại — để lỗi không dính lì.
+  const clearServerError = () => {
+    if (login.isError) login.reset();
+  };
 
   const onSubmit = () => {
-    if (disabled) return;
+    setEmailTouched(true);
+    if (!emailValid || !password || login.isPending) return;
     login.mutate(
-      { email: email.trim(), password },
+      { email: emailTrim, password },
       {
         onSuccess: () => {
           signIn();
@@ -41,12 +55,11 @@ export default function LoginScreen() {
   };
 
   // Phân biệt "sai thông tin" (server trả lỗi) với "mất mạng" (không có response)
-  // — người mất mạng mà bị mắng "sai mật khẩu" sẽ gõ lại vô ích.
-  const errorMsg = login.isError
-    ? (login.error as { response?: unknown })?.response
-      ? 'Email hoặc mật khẩu chưa đúng. Kiểm tra lại nhé.'
-      : 'Mất kết nối. Kiểm tra mạng rồi thử lại nhé.'
-    : null;
+  // — người mất mạng mà bị mắng "sai mật khẩu" sẽ gõ lại vô ích. Lỗi sai thông
+  // tin gắn ngay dưới ô mật khẩu; lỗi mạng để banner riêng.
+  const hasResponse = !!(login.error as { response?: unknown })?.response;
+  const credError = login.isError && hasResponse ? 'Email hoặc mật khẩu chưa đúng. Kiểm tra lại nhé.' : undefined;
+  const networkError = login.isError && !hasResponse ? 'Mất kết nối. Kiểm tra mạng rồi thử lại nhé.' : null;
 
   return (
     <Screen scroll onBack={() => router.back()}>
@@ -68,7 +81,13 @@ export default function LoginScreen() {
         <TextField
           label="Email"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(t) => {
+            setEmail(t);
+            clearServerError();
+          }}
+          onBlur={() => setEmailTouched(true)}
+          error={emailError}
+          valid={emailValid}
           placeholder="ban@truong.edu.vn"
           keyboardType="email-address"
           autoCapitalize="none"
@@ -84,7 +103,11 @@ export default function LoginScreen() {
           ref={passwordRef}
           label="Mật khẩu"
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(t) => {
+            setPassword(t);
+            clearServerError();
+          }}
+          error={credError}
           placeholder="Nhập mật khẩu"
           secure
           autoCapitalize="none"
@@ -102,10 +125,12 @@ export default function LoginScreen() {
           <Text variant="link">Quên mật khẩu?</Text>
         </Pressable>
 
-        {errorMsg ? (
-          <Text variant="caption" style={styles.error}>
-            {errorMsg}
-          </Text>
+        {networkError ? (
+          <View style={styles.banner}>
+            <Text variant="caption" style={styles.error}>
+              {networkError}
+            </Text>
+          </View>
         ) : null}
       </View>
 
@@ -134,6 +159,12 @@ const styles = StyleSheet.create({
   form: { gap: 16 },
   forgotRow: { alignSelf: 'flex-end', minHeight: 36, justifyContent: 'center' },
   error: { color: Palette.dangerFg },
+  banner: {
+    backgroundColor: Palette.dangerBg,
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
   cta: { marginTop: 8 },
   altRow: {
     flexDirection: 'row',

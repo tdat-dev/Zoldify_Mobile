@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, StyleSheet, View, type TextInput } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { OtpInput } from '@/components/ui/otp-input';
@@ -26,11 +26,21 @@ export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmNew, setConfirmNew] = useState('');
+  const [newTouched, setNewTouched] = useState(false);
+  const [confirmTouched, setConfirmTouched] = useState(false);
 
+  const confirmRef = useRef<TextInput>(null);
   const send = useSendForgotPasswordOtp();
   const reset = useResetPassword();
 
   const emailOk = EMAIL_RE.test(email.trim());
+  const newValid = newPassword.length >= 6;
+  const confirmValid = confirmNew.length > 0 && confirmNew === newPassword;
+  const newError = newTouched && newPassword.length > 0 && !newValid ? 'Mật khẩu tối thiểu 6 ký tự.' : undefined;
+  const confirmError =
+    confirmTouched && confirmNew.length > 0 && confirmNew !== newPassword ? 'Mật khẩu nhập lại chưa khớp.' : undefined;
+  const canReset = otp.length >= 6 && newValid && confirmValid;
 
   const sendOtp = () => {
     if (!emailOk || send.isPending) return;
@@ -38,7 +48,9 @@ export default function ForgotPasswordScreen() {
   };
 
   const doReset = () => {
-    if (otp.length < 6 || newPassword.length < 6 || reset.isPending) return;
+    setNewTouched(true);
+    setConfirmTouched(true);
+    if (!canReset || reset.isPending) return;
     reset.mutate(
       { email: email.trim(), otp, newPassword },
       {
@@ -65,20 +77,42 @@ export default function ForgotPasswordScreen() {
             label="Mật khẩu mới"
             value={newPassword}
             onChangeText={setNewPassword}
+            onBlur={() => setNewTouched(true)}
+            error={newError}
+            valid={newValid}
             placeholder="Tạo mật khẩu mới"
+            secure
+            autoCapitalize="none"
+            autoComplete="new-password"
+            textContentType="newPassword"
+            returnKeyType="next"
+            onSubmitEditing={() => confirmRef.current?.focus()}
+            submitBehavior="submit"
+            hint={newValid ? undefined : 'Tối thiểu 6 ký tự'}
+          />
+          <TextField
+            ref={confirmRef}
+            label="Nhập lại mật khẩu mới"
+            value={confirmNew}
+            onChangeText={setConfirmNew}
+            onBlur={() => setConfirmTouched(true)}
+            error={confirmError}
+            valid={confirmValid}
+            placeholder="Gõ lại mật khẩu mới"
             secure
             autoCapitalize="none"
             autoComplete="new-password"
             textContentType="newPassword"
             returnKeyType="go"
             onSubmitEditing={doReset}
-            hint="Tối thiểu 6 ký tự"
           />
 
           {reset.isError ? (
-            <Text variant="caption" style={styles.error}>
-              Mã chưa đúng hoặc đã hết hạn. Thử lại nhé.
-            </Text>
+            <View style={styles.banner}>
+              <Text variant="caption" style={styles.error}>
+                Mã chưa đúng hoặc đã hết hạn. Thử lại nhé.
+              </Text>
+            </View>
           ) : null}
         </View>
 
@@ -86,7 +120,7 @@ export default function ForgotPasswordScreen() {
           title="Đặt lại mật khẩu"
           onPress={doReset}
           loading={reset.isPending}
-          disabled={otp.length < 6 || newPassword.length < 6 || reset.isPending}
+          disabled={!canReset || reset.isPending}
           style={styles.cta}
         />
 
@@ -115,6 +149,7 @@ export default function ForgotPasswordScreen() {
           label="Email"
           value={email}
           onChangeText={setEmail}
+          valid={emailOk}
           placeholder="ban@truong.edu.vn"
           keyboardType="email-address"
           autoCapitalize="none"
@@ -127,9 +162,11 @@ export default function ForgotPasswordScreen() {
         />
 
         {send.isError ? (
-          <Text variant="caption" style={styles.error}>
-            Chưa gửi được mã. Kiểm tra lại email hoặc thử lại sau.
-          </Text>
+          <View style={styles.banner}>
+            <Text variant="caption" style={styles.error}>
+              Chưa gửi được mã. Kiểm tra lại email hoặc thử lại sau.
+            </Text>
+          </View>
         ) : null}
       </View>
 
@@ -156,6 +193,12 @@ const styles = StyleSheet.create({
   brandSpace: { height: 24 },
   form: { gap: 18 },
   error: { color: Palette.dangerFg },
+  banner: {
+    backgroundColor: Palette.dangerBg,
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
   cta: { marginTop: 24 },
   resend: {
     flexDirection: 'row',
