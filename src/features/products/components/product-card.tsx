@@ -7,17 +7,9 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import type { Product } from '@/api';
+import { CONDITION_LABEL, isFreshCondition } from '@/features/products/filters';
 import { formatVnd } from '@/lib/format';
 import { mediaUrl } from '@/lib/media';
-
-const CONDITION_LABEL: Record<string, string> = {
-  new: 'Mới',
-  like_new: 'Như mới',
-  good: 'Tốt',
-  fair: 'Khá',
-  used: 'Đã dùng',
-  refurbished: 'Tân trang',
-};
 
 /**
  * Ô hàng kiểu CHỢ ĐỒ CŨ — theo ItemTile web nhưng khoe tín hiệu tin tưởng:
@@ -30,7 +22,7 @@ export function ProductCard({ product }: { product: Product }) {
   const showImage = !!uri && !failed;
 
   const sold = product.status === 'sold';
-  const fresh = product.condition === 'new' || product.condition === 'like_new';
+  const fresh = isFreshCondition(product.condition);
   const condLabel = product.condition ? CONDITION_LABEL[product.condition] ?? product.condition : null;
 
   const soldCount = product.sold_count ?? 0;

@@ -15,6 +15,7 @@ export interface ProductFilters {
   seller_id?: number;
   price_min?: number;
   price_max?: number;
+  condition?: string;
   sort?: string;
 }
 
@@ -99,15 +100,21 @@ export function useProductSearch(input: {
   q?: string;
   price_min?: number;
   price_max?: number;
+  condition?: string;
+  sort?: string;
 }) {
   const q = (input.q ?? '').trim();
   const hasPrice = input.price_min != null || input.price_max != null;
-  const active = q.length >= 2 || hasPrice;
+  // Chạy khi có từ khoá HOẶC bất kỳ bộ lọc nào (giá/tình trạng) — sort không tự
+  // kích hoạt vì sắp xếp một tập rỗng vẫn là rỗng.
+  const active = q.length >= 2 || hasPrice || input.condition != null;
 
   const filters: ProductFilters = {
     ...(q.length >= 2 ? { q } : {}),
     ...(input.price_min != null ? { price_min: input.price_min } : {}),
     ...(input.price_max != null ? { price_max: input.price_max } : {}),
+    ...(input.condition ? { condition: input.condition } : {}),
+    ...(input.sort ? { sort: input.sort } : {}),
   };
 
   return useQuery({

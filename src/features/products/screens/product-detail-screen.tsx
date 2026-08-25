@@ -12,20 +12,12 @@ import { ImageGallery } from '@/components/ui/image-gallery';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProduct } from '@/features/products/api';
+import { CONDITION_LABEL, isFreshCondition } from '@/features/products/filters';
 import { RelatedRail } from '@/features/products/components/related-rail';
 import { useAddToCart, useCartCount } from '@/features/cart/api';
 import { useAuthStore } from '@/features/auth/store';
 import { useRequireAuth } from '@/features/auth/use-require-auth';
 import { formatVnd } from '@/lib/format';
-
-const CONDITION_LABEL: Record<string, string> = {
-  new: 'Mới',
-  like_new: 'Như mới',
-  good: 'Tốt',
-  fair: 'Khá',
-  used: 'Đã dùng',
-  refurbished: 'Tân trang',
-};
 
 /** Chi tiết sản phẩm — token web: giá đỏ, góc 4px, badge tình trạng. */
 export default function ProductDetailScreen() {
@@ -131,7 +123,7 @@ export default function ProductDetailScreen() {
     );
   }
 
-  const fresh = product.condition === 'new' || product.condition === 'like_new';
+  const fresh = isFreshCondition(product.condition);
   const condLabel = CONDITION_LABEL[product.condition] ?? product.condition;
   const images = product.images?.length ? product.images : product.image ? [product.image] : [];
   const seller = product.seller;

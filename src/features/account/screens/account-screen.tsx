@@ -1,11 +1,33 @@
-import { router } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { router, type Href } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
-import { Font, Palette } from '@/components/ui/theme';
+import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useAuthStore } from '@/features/auth/store';
+
+/** Một dòng lối tắt trong Tài khoản — icon + nhãn + chevron, phẳng hairline. */
+function MenuRow({
+  icon,
+  label,
+  onPress,
+  first,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  first?: boolean;
+}) {
+  return (
+    <Pressable style={[styles.row, first && styles.rowFirst]} onPress={onPress}>
+      <Ionicons name={icon} size={20} color={Palette.inkMuted} />
+      <Text variant="body" style={styles.rowLabel}>{label}</Text>
+      <Ionicons name="chevron-forward" size={18} color={Palette.inkFaint} />
+    </Pressable>
+  );
+}
 
 /** Tab Tài khoản: khách -> mời đăng nhập; đã đăng nhập -> tên + đăng xuất. */
 export default function AccountScreen() {
@@ -34,12 +56,13 @@ export default function AccountScreen() {
             </View>
           </View>
 
+          <View style={styles.menu}>
+            <MenuRow icon="receipt-outline" label="Đơn mua" first onPress={() => router.push('/orders')} />
+            <MenuRow icon="heart-outline" label="Đã lưu" onPress={() => router.push('/saved' as Href)} />
+            <MenuRow icon="storefront-outline" label="Cài đặt shop" onPress={() => router.push('/shop/settings')} />
+          </View>
+
           <View style={styles.actions}>
-            <Button
-              title="Cài đặt shop"
-              variant="secondary"
-              onPress={() => router.push('/shop/settings')}
-            />
             <Button title="Đăng xuất" variant="ghost" onPress={() => signOut()} />
           </View>
         </View>
@@ -50,7 +73,7 @@ export default function AccountScreen() {
             Đăng nhập để mua bán, theo dõi đơn và nhắn với người bán.
           </Text>
           <View style={styles.cta}>
-            <Button title="Đăng nhập / Tạo tài khoản" onPress={() => router.push('/welcome')} />
+            <Button title="Đăng nhập" onPress={() => router.push('/login')} />
           </View>
         </View>
       )}
@@ -88,6 +111,24 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontFamily: Font.bold, fontSize: 20, color: Palette.white },
   who: { gap: 2 },
+  menu: {
+    backgroundColor: Palette.white,
+    borderWidth: 1,
+    borderColor: Palette.line,
+    borderRadius: Radius.card,
+    overflow: 'hidden',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    borderTopWidth: 1,
+    borderTopColor: Palette.line,
+  },
+  rowFirst: { borderTopWidth: 0 },
+  rowLabel: { flex: 1 },
   actions: { gap: 10 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
   line: { textAlign: 'center' },

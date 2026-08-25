@@ -6,8 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProductSearch } from '@/features/products/api';
-import { labelForPrice } from '@/features/products/price-scopes';
+import { FilterBar } from '@/features/products/components/filter-bar';
 import { ProductCard } from '@/features/products/components/product-card';
+import { EMPTY_QUERY, type ProductQuery } from '@/features/products/filters';
 
 /** Trả về giá trị đã trễ `ms` mili-giây để không gọi API mỗi lần gõ phím. */
 function useDebounced(value: string, ms = 350) {
@@ -36,21 +37,30 @@ export default function SearchScreen() {
   const params = useLocalSearchParams<{ price_min?: string; price_max?: string }>();
   const priceMin = numParam(params.price_min);
   const priceMax = numParam(params.price_max);
-  const hasPrice = priceMin != null || priceMax != null;
+
+  // Bộ lọc seed từ URL (nút "Mọi giá" ở header truyền sang), sau đó FilterBar
+  // tự quản. Chỉ đọc param một lần khi mount.
+  const [query, setQuery] = useState<ProductQuery>({
+    ...EMPTY_QUERY,
+    price_min: priceMin,
+    price_max: priceMax,
+  });
 
   const [text, setText] = useState('');
   const q = useDebounced(text, 350);
-  const active = q.trim().length >= 2 || hasPrice;
+  const hasFilter = query.price_min != null || query.price_max != null || query.condition != null;
+  const active = q.trim().length >= 2 || hasFilter;
 
   const { data, isFetching, isError } = useProductSearch({
     q,
-    price_min: priceMin,
-    price_max: priceMax,
+    price_min: query.price_min,
+    price_max: query.price_max,
+    condition: query.condition,
+    sort: query.sort,
   });
   const results = data?.result ?? [];
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
-  const clearPrice = () => router.replace('/search');
 
   return (
     <View style={styles.root}>
@@ -68,7 +78,7 @@ export default function SearchScreen() {
             onChangeText={setText}
             placeholder="Tìm sản phẩm trên Zoldify"
             placeholderTextColor={Palette.inkFaint}
-            autoFocus={!hasPrice}
+            autoFocus={!hasFilter}
             returnKeyType="search"
             autoCapitalize="none"
           />
@@ -80,15 +90,7 @@ export default function SearchScreen() {
         </View>
       </View>
 
-      {/* Chip tầm tiền đang lọc — bấm ✕ để bỏ lọc. */}
-      {hasPrice ? (
-        <View style={styles.filterBar}>
-          <Pressable style={styles.chip} onPress={clearPrice}>
-            <Text style={styles.chipText}>{labelForPrice(priceMin, priceMax)}</Text>
-            <Text style={styles.chipX}>✕</Text>
-          </Pressable>
-        </View>
-      ) : null}
+      <FilterBar value={query} onChange={setQuery} />
 
       {!active ? (
         <View style={styles.center}>
@@ -175,24 +177,6 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, fontFamily: Font.regular, fontSize: 14, color: Palette.ink, paddingVertical: 0 },
   clear: { fontFamily: Font.medium, fontSize: 16, color: Palette.inkFaint },
-  filterBar: {
-    flexDirection: 'row',
-    paddingHorizontal: 12,
-    paddingTop: 10,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    height: 30,
-    paddingHorizontal: 12,
-    borderRadius: Radius.control,
-    borderWidth: 1,
-    borderColor: Palette.brand,
-    backgroundColor: Palette.brandTint,
-  },
-  chipText: { fontFamily: Font.semibold, fontSize: 13, color: Palette.brand },
-  chipX: { fontFamily: Font.medium, fontSize: 12, color: Palette.brand },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, padding: 24 },
   hint: { textAlign: 'center' },
   list: { padding: 12, gap: 18 },
