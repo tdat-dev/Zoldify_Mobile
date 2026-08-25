@@ -30,6 +30,8 @@ interface AuthState {
   signOut: () => Promise<void>;
   /** Phiên hết hạn (interceptor 401 đã xoá token) — chỉ cập nhật state. */
   sessionExpired: () => void;
+  /** Lấy lại profile sau khi tự sửa hồ sơ, để UI phản ánh ngay. */
+  refreshProfile: () => Promise<void>;
 }
 
 /** Có token thì lấy profile để chốt signedIn; hỏng thì coi như signedOut. */
@@ -71,5 +73,14 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   sessionExpired: () => {
     set({ status: 'signedOut', user: null });
+  },
+
+  refreshProfile: async () => {
+    try {
+      const user = await authApi.profile();
+      set({ user });
+    } catch {
+      // Lấy lại hồ sơ hỏng không đổi trạng thái đăng nhập — giữ user cũ.
+    }
   },
 }));

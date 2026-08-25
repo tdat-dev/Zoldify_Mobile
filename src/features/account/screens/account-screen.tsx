@@ -3,6 +3,7 @@ import { router, type Href } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
@@ -47,21 +48,19 @@ export default function AccountScreen() {
 
       {status === 'signedIn' && user ? (
         <View style={styles.body}>
-          <View style={styles.identity}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {user.full_name?.trim()?.[0]?.toUpperCase() ?? 'Z'}
-              </Text>
-            </View>
+          <Pressable style={styles.identity} onPress={() => router.push('/profile/edit' as Href)}>
+            <Avatar name={user.full_name} uri={(user as { avatar?: string }).avatar} size={48} />
             <View style={styles.who}>
               <Text variant="subheading">{user.full_name}</Text>
               <Text variant="caption">{user.email}</Text>
             </View>
-          </View>
+            <Ionicons name="chevron-forward" size={18} color={Palette.inkFaint} />
+          </Pressable>
 
           <View style={styles.menu}>
             <MenuRow icon="receipt-outline" label="Đơn mua" first onPress={() => router.push('/orders')} />
             <MenuRow icon="heart-outline" label="Đã lưu" onPress={() => router.push('/saved' as Href)} />
+            <MenuRow icon="location-outline" label="Địa chỉ của tôi" onPress={() => router.push('/addresses' as Href)} />
             {/* Buyer chưa bán: mời bắt đầu bán (cùng dẫn tới cài đặt shop lần đầu). */}
             {!isSeller ? (
               <MenuRow icon="pricetags-outline" label="Bắt đầu bán hàng" onPress={() => router.push('/shop/settings')} />
@@ -77,6 +76,10 @@ export default function AccountScreen() {
               </View>
             </View>
           ) : null}
+
+          <View style={styles.menu}>
+            <MenuRow icon="lock-closed-outline" label="Đổi mật khẩu" first onPress={() => router.push('/change-password' as Href)} />
+          </View>
 
           <View style={styles.actions}>
             <Button title="Đăng xuất" variant="ghost" onPress={() => signOut()} />
@@ -117,16 +120,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     padding: 16,
   },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 999,
-    backgroundColor: Palette.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { fontFamily: Font.bold, fontSize: 20, color: Palette.white },
-  who: { gap: 2 },
+  who: { flex: 1, gap: 2 },
   menu: {
     backgroundColor: Palette.white,
     borderWidth: 1,

@@ -18,6 +18,24 @@ export const authKeys = {
   profile: () => [...authKeys.all, 'profile'] as const,
 };
 
+/** Hồ sơ đầy đủ trả về từ /auth/profile & PATCH (rộng hơn AuthUserDto sinh tự động). */
+export interface ProfileUser {
+  id: number;
+  full_name: string;
+  email: string;
+  role: string;
+  avatar?: string | null;
+  phone_number?: string | null;
+  gender?: string | null;
+}
+
+export interface ProfileInput {
+  full_name?: string;
+  avatar?: string;
+  phone_number?: string;
+  gender?: string;
+}
+
 /** Lời gọi API auth ở dạng hàm — dùng khi cần gọi ngoài React (bootstrap...). */
 export const authApi = {
   /** Đăng nhập rồi cất luôn token, nơi gọi không phải tự nhớ làm việc đó. */
@@ -33,6 +51,18 @@ export const authApi = {
     return res.data.data;
   },
 
+  /**
+   * Đăng nhập/đăng ký bằng Google: gửi Firebase idToken (lấy sau khi Google
+   * Sign-In → firebase signInWithCredential) cho backend. Backend verify token,
+   * tự tạo tài khoản nếu chưa có, trả JWT như login thường. Cất token luôn.
+   */
+  async firebaseLogin(idToken: string): Promise<LoginResponse> {
+    const res = await http.post<ApiResponse<LoginResponse>>('/auth/firebase', { idToken });
+    const data = res.data.data;
+    await tokenStore.save(data.access_token, data.refresh_token);
+    return data;
+  },
+
   /** Bước 1 đăng ký OTP: gửi mã xác thực về email. */
   async sendRegisterOtp(dto: SendRegisterOtpDto): Promise<void> {
     await http.post<ApiResponse<MessageResponse>>('/auth/register/send-otp', dto);
@@ -46,9 +76,37 @@ export const authApi = {
     await http.post<ApiResponse<MessageResponse>>('/auth/register/verify-otp', dto);
   },
 
+  /** Quên mật khẩu — bước 1: gửi OTP về email. */
+  async sendForgotPasswordOtp(email: string): Promise<void> {
+    await http.post<ApiResponse<MessageResponse>>('/auth/forgot-password/send-otp', { email });
+  },
+
+  /** Quên mật khẩu — bước 2: xác thực OTP + đặt mật khẩu mới. */
+  async resetPassword(email: string, otp: string, newPassword: string): Promise<void> {
+    await http.post<ApiResponse<MessageResponse>>('/auth/forgot-password/reset', {
+      email,
+      otp,
+      newPassword,
+    });
+  },
+
   async profile(): Promise<AuthUser> {
     const res = await http.get<ApiResponse<AuthUser>>('/auth/profile');
     return res.data.data;
+  },
+
+  /** Tự cập nhật hồ sơ (tên/SĐT/giới tính/avatar) — PATCH /auth/profile. */
+  async updateProfile(input: ProfileInput): Promise<ProfileUser> {
+    const res = await http.patch<ApiResponse<ProfileUser>>('/auth/profile', input);
+    return res.data.data;
+  },
+
+  /** Đổi mật khẩu (đang đăng nhập) — POST /auth/change-password. */
+  async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+    await http.post<ApiResponse<MessageResponse>>('/auth/change-password', {
+      oldPassword,
+      newPassword,
+    });
   },
 
   /**
@@ -90,5 +148,35 @@ export function useSendRegisterOtp() {
 export function useVerifyRegisterOtp() {
   return useMutation({
     mutationFn: (dto: VerifyRegisterOtpDto) => authApi.verifyRegisterOtp(dto),
+  });
+}
+
+/** Quên mật khẩu — gửi OTP. */
+export function useSendForgotPasswordOtp() {
+  return useMutation({
+    mutationFn: (email: string) => authApi.sendForgotPasswordOtp(email),
+  });
+}
+
+/** Quên mật khẩu — đặt lại mật khẩu bằng OTP. */
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: (v: { email: string; otp: string; newPassword: string }) =>
+      authApi.resetPassword(v.email, v.otp, v.newPassword),
+  });
+}
+
+/** Cập nhật hồ sơ của chính mình. */
+export function useUpdateProfile() {
+  return useMutation({
+    mutationFn: (input: ProfileInput) => authApi.updateProfile(input),
+  });
+}
+
+/** Đổi mật khẩu. */
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (v: { oldPassword: string; newPassword: string }) =>
+      authApi.changePassword(v.oldPassword, v.newPassword),
   });
 }

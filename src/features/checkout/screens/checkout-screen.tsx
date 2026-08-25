@@ -24,6 +24,9 @@ const EMPTY_ADDRESS: GhnAddressSelection = {
   shipping_address: '',
   province: '',
   district: '',
+  ward: '',
+  street: '',
+  ghn_province_id: 0,
   ghn_district_id: 0,
   ghn_ward_code: '',
 };

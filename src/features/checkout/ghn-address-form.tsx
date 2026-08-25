@@ -11,22 +11,42 @@ export interface GhnAddressSelection {
   shipping_address: string;
   province: string;
   district: string;
+  ward: string;
+  street: string;
+  ghn_province_id: number;
   ghn_district_id: number;
   ghn_ward_code: string;
+}
+
+/** Giá trị điền sẵn khi SỬA một địa chỉ đã lưu (form thêm mới thì bỏ trống). */
+export interface GhnAddressInitial {
+  receiver_name?: string;
+  receiver_phone?: string;
+  street?: string;
+  ghn_province_id?: number;
+  ghn_district_id?: number;
+  ghn_ward_code?: string;
 }
 
 /**
  * Chọn địa chỉ NHẬN theo danh mục GHN (ProvinceID/DistrictID/WardCode) — bắt
  * buộc để tính phí ship + tạo vận đơn. Mirror GhnAddressPicker của web: cascade
  * tỉnh→quận→phường (đổi cấp trên reset cấp dưới), phát địa chỉ ghép về cha.
+ * Nhận `initial` để dùng lại cho màn SỬA địa chỉ đã lưu.
  */
-export function GhnAddressForm({ onChange }: { onChange: (a: GhnAddressSelection) => void }) {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [street, setStreet] = useState('');
-  const [provinceId, setProvinceId] = useState(0);
-  const [districtId, setDistrictId] = useState(0);
-  const [wardCode, setWardCode] = useState('');
+export function GhnAddressForm({
+  initial,
+  onChange,
+}: {
+  initial?: GhnAddressInitial;
+  onChange: (a: GhnAddressSelection) => void;
+}) {
+  const [name, setName] = useState(initial?.receiver_name ?? '');
+  const [phone, setPhone] = useState(initial?.receiver_phone ?? '');
+  const [street, setStreet] = useState(initial?.street ?? '');
+  const [provinceId, setProvinceId] = useState(initial?.ghn_province_id ?? 0);
+  const [districtId, setDistrictId] = useState(initial?.ghn_district_id ?? 0);
+  const [wardCode, setWardCode] = useState(initial?.ghn_ward_code ?? '');
 
   const { data: provinces = [] } = useProvinces();
   const { data: districts = [], isFetching: dLoading } = useDistricts(provinceId || null);
@@ -48,6 +68,9 @@ export function GhnAddressForm({ onChange }: { onChange: (a: GhnAddressSelection
       shipping_address,
       province: provinceName,
       district: districtName,
+      ward: wardName,
+      street: street.trim(),
+      ghn_province_id: provinceId,
       ghn_district_id: districtId,
       ghn_ward_code: wardCode,
     });
