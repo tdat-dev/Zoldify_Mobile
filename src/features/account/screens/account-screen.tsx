@@ -36,6 +36,9 @@ export default function AccountScreen() {
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
 
+  // Người bán mới có khu quản lý shop; buyer chỉ được mời "bắt đầu bán hàng".
+  const isSeller = user ? ['seller', 'admin', 'moderator'].includes(user.role) : false;
+
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
@@ -59,8 +62,21 @@ export default function AccountScreen() {
           <View style={styles.menu}>
             <MenuRow icon="receipt-outline" label="Đơn mua" first onPress={() => router.push('/orders')} />
             <MenuRow icon="heart-outline" label="Đã lưu" onPress={() => router.push('/saved' as Href)} />
-            <MenuRow icon="storefront-outline" label="Cài đặt shop" onPress={() => router.push('/shop/settings')} />
+            {/* Buyer chưa bán: mời bắt đầu bán (cùng dẫn tới cài đặt shop lần đầu). */}
+            {!isSeller ? (
+              <MenuRow icon="pricetags-outline" label="Bắt đầu bán hàng" onPress={() => router.push('/shop/settings')} />
+            ) : null}
           </View>
+
+          {/* Người bán mới có khu quản lý shop riêng (sau: Đơn bán, Ví/Doanh thu). */}
+          {isSeller ? (
+            <View>
+              <Text variant="label" style={styles.sectionLabel}>Người bán</Text>
+              <View style={styles.menu}>
+                <MenuRow icon="storefront-outline" label="Cài đặt shop" first onPress={() => router.push('/shop/settings')} />
+              </View>
+            </View>
+          ) : null}
 
           <View style={styles.actions}>
             <Button title="Đăng xuất" variant="ghost" onPress={() => signOut()} />
@@ -129,6 +145,7 @@ const styles = StyleSheet.create({
   },
   rowFirst: { borderTopWidth: 0 },
   rowLabel: { flex: 1 },
+  sectionLabel: { marginBottom: 8, marginLeft: 4, color: Palette.inkMuted },
   actions: { gap: 10 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
   line: { textAlign: 'center' },
