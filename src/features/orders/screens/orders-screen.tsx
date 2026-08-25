@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
@@ -62,7 +62,15 @@ export default function OrdersScreen() {
   const insets = useSafeAreaInsets();
   const guest = useAuthStore((s) => s.status) !== 'signedIn';
   const [tab, setTab] = useState('all');
-  const { data: orders, isPending, isError, refetch } = useOrders();
+  const { data: orders, isPending, isError, isFetching, refetch } = useOrders();
+
+  // Tab giữ mount nên không tự refetch — làm mới mỗi lần quay lại tab (trạng thái
+  // đơn do người bán đổi ở server) + cho kéo xuống làm mới thủ công.
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch]),
+  );
 
   if (guest) {
     return <TabPlaceholder title="Đơn mua" note="Đăng nhập để xem đơn hàng của bạn." />;
@@ -123,6 +131,9 @@ export default function OrdersScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <View style={styles.sep} />}
+          refreshControl={
+            <RefreshControl refreshing={isFetching && !isPending} onRefresh={refetch} tintColor={Palette.brand} />
+          }
           renderItem={({ item }) => <OrderCard order={item} />}
         />
       )}

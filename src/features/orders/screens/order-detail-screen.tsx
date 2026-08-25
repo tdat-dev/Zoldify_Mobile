@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -60,6 +61,13 @@ export default function OrderDetailScreen() {
   const { data: order, isPending, isError, refetch } = useOrder(Number(id));
   const cancel = useCancelOrder();
   const confirm = useConfirmReceived();
+
+  // Làm mới khi mở lại — trạng thái/timeline do người bán đổi ở server.
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch]),
+  );
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/orders'));
 
