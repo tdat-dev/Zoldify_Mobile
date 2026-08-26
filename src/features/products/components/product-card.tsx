@@ -8,6 +8,7 @@ import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import type { Product } from '@/api';
 import { CONDITION_LABEL, isFreshCondition } from '@/features/products/filters';
+import { productRating } from '@/features/reviews/mock';
 import { formatVnd } from '@/lib/format';
 import { mediaUrl } from '@/lib/media';
 
@@ -87,7 +88,11 @@ export function ProductCard({ product }: { product: Product }) {
         {product.name}
       </Text>
       <Text style={[styles.price, sold && styles.priceSold]}>{formatVnd(product.price)}</Text>
-      {proof ? <Text style={styles.proof}>{proof}</Text> : null}
+      <View style={styles.proofRow}>
+        <Feather name="star" size={11} color={Palette.pendingFg} />
+        <Text style={styles.rating}>{productRating(product.id).rating.toFixed(1)}</Text>
+        {proof ? <Text style={styles.proof} numberOfLines={1}> · {proof}</Text> : null}
+      </View>
     </Pressable>
   );
 }
@@ -141,5 +146,7 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   priceSold: { color: Palette.inkMuted },
-  proof: { marginTop: 3, fontFamily: Font.regular, fontSize: 11.5, color: Palette.inkFaint },
+  proofRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 },
+  rating: { fontFamily: Font.semibold, fontSize: 11.5, color: Palette.inkMuted },
+  proof: { flex: 1, fontFamily: Font.regular, fontSize: 11.5, color: Palette.inkFaint },
 });

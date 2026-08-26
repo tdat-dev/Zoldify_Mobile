@@ -9,12 +9,14 @@ import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { HeartButton } from '@/components/ui/heart-button';
 import { ImageGallery } from '@/components/ui/image-gallery';
+import { RatingStars } from '@/components/ui/rating';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProduct } from '@/features/products/api';
 import { CONDITION_LABEL, isFreshCondition } from '@/features/products/filters';
 import { RelatedRail } from '@/features/products/components/related-rail';
 import { useStartConversation } from '@/features/chat/api';
+import { productRating, productReviews, sellerStats } from '@/features/reviews/mock';
 import { useAddToCart, useCartCount } from '@/features/cart/api';
 import { useAuthStore } from '@/features/auth/store';
 import { useRequireAuth } from '@/features/auth/use-require-auth';
@@ -131,6 +133,9 @@ export default function ProductDetailScreen() {
   const images = product.images?.length ? product.images : product.image ? [product.image] : [];
   const seller = product.seller;
   const joinedYear = seller ? new Date(seller.created_at).getFullYear() : null;
+  const rating = productRating(product.id);
+  const reviews = productReviews(product.id, 3);
+  const sStats = sellerStats(seller?.id);
 
   const onMessage = () => {
     if (guest) return requireAuth();
@@ -183,6 +188,10 @@ export default function ProductDetailScreen() {
           <Text variant="title" style={styles.name}>{product.name}</Text>
           <Text style={styles.price}>{formatVnd(product.price)}</Text>
 
+          <View style={styles.ratingRow}>
+            <RatingStars value={rating.rating} count={rating.count} size={15} />
+          </View>
+
           <View style={styles.metaRow}>
             {product.brand ? <Text variant="caption">Hãng: {product.brand}</Text> : null}
             {product.sold_count > 0 ? <Text variant="caption">Đã bán {product.sold_count}</Text> : null}
@@ -195,8 +204,10 @@ export default function ProductDetailScreen() {
               <Avatar name={seller.full_name} uri={seller.avatar} size={44} />
               <View style={styles.sellerInfo}>
                 <Text variant="subheading" numberOfLines={1}>{seller.full_name}</Text>
+                <RatingStars value={sStats.rating} count={sStats.reviewCount} size={12} style={styles.sellerRating} />
                 <Text variant="caption">
-                  {joinedYear ? `Tham gia từ ${joinedYear}` : 'Người bán trên Zoldify'}
+                  Đã bán {sStats.soldCount} · {sStats.responseRate}% phản hồi
+                  {joinedYear ? ` · Từ ${joinedYear}` : ''}
                 </Text>
               </View>
               <Pressable style={styles.msgBtn} onPress={onMessage} accessibilityRole="button">
@@ -223,6 +234,29 @@ export default function ProductDetailScreen() {
           <Text variant="body" style={styles.desc}>
             {product.description || 'Người bán chưa thêm mô tả.'}
           </Text>
+
+          <View style={styles.divider} />
+
+          {/* Đánh giá — tín hiệu tin tưởng chính của sàn đồ cũ. */}
+          <View style={styles.reviewHead}>
+            <Text variant="heading">Đánh giá</Text>
+            <RatingStars value={rating.rating} count={rating.count} size={13} />
+          </View>
+          <View style={styles.reviewList}>
+            {reviews.map((rv) => (
+              <View key={rv.id} style={styles.reviewCard}>
+                <View style={styles.reviewTop}>
+                  <Avatar name={rv.author} size={32} />
+                  <View style={styles.reviewWho}>
+                    <Text variant="subheading" style={styles.reviewName}>{rv.author}</Text>
+                    <RatingStars value={rv.rating} size={11} />
+                  </View>
+                  <Text variant="caption" style={styles.reviewTime}>{rv.timeLabel}</Text>
+                </View>
+                <Text variant="body" style={styles.reviewComment}>{rv.comment}</Text>
+              </View>
+            ))}
+          </View>
         </View>
 
         {seller ? (
@@ -340,10 +374,27 @@ const styles = StyleSheet.create({
     color: Palette.price,
     fontVariant: ['tabular-nums'],
   },
+  ratingRow: { marginTop: 8 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 4, marginTop: 8 },
   divider: { height: 1, backgroundColor: Palette.lineStrong, marginVertical: 16 },
   descHead: { marginBottom: 8 },
   desc: { color: Palette.ink },
+  sellerRating: { marginVertical: 2 },
+  reviewHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  reviewList: { gap: 12 },
+  reviewCard: {
+    borderWidth: 1,
+    borderColor: Palette.line,
+    borderRadius: Radius.control,
+    padding: 12,
+    backgroundColor: Palette.white,
+    gap: 8,
+  },
+  reviewTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  reviewWho: { flex: 1, gap: 2 },
+  reviewName: { fontSize: 14 },
+  reviewTime: { color: Palette.inkFaint },
+  reviewComment: { color: Palette.ink },
   sellerCard: {
     flexDirection: 'row',
     alignItems: 'center',
