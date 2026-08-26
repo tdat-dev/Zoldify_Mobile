@@ -13,7 +13,7 @@ import { TextField } from '@/components/ui/text-field';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useAddresses, type Address } from '@/features/addresses/api';
 import { useCart } from '@/features/cart/api';
-import { GhnAddressForm, type GhnAddressSelection } from '@/features/checkout/ghn-address-form';
+import { type GhnAddressSelection } from '@/features/checkout/ghn-address-form';
 import { useCreateOrder, useShippingQuote } from '@/features/orders/api';
 import type { CreateOrderDto } from '@/api';
 import { formatVnd } from '@/lib/format';
@@ -71,9 +71,12 @@ export default function CheckoutScreen() {
 
   const hasSaved = addresses.length > 0;
 
-  // Có địa chỉ đã lưu: chọn mặc định (hoặc cái đầu) khi vào màn.
+  // Tự chọn địa chỉ mặc định (hoặc mới nhất) khi vào màn, khi vừa thêm địa chỉ
+  // từ đây, hoặc khi địa chỉ đang chọn bị xoá.
   useEffect(() => {
-    if (!hasSaved || selectedId !== null) return;
+    if (!hasSaved) return;
+    const stillThere = selectedId !== null && addresses.some((a) => a.id === selectedId);
+    if (stillThere) return;
     const def = addresses.find((a) => a.is_default) ?? addresses[0];
     setSelectedId(def.id);
   }, [hasSaved, addresses, selectedId]);
@@ -175,36 +178,39 @@ export default function CheckoutScreen() {
         contentContainerStyle={styles.body}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-        {/* Địa chỉ nhận — chọn từ sổ địa chỉ nếu đã có, không thì nhập tay. */}
-        <View style={styles.card}>
-          <View style={styles.cardHead}>
-            <Feather name="map-pin" size={16} color={Palette.brand} />
-            <Text variant="heading">Giao tới</Text>
-            {hasSaved ? (
-              <Pressable style={styles.changeBtn} hitSlop={6} onPress={() => setPickerOpen(true)}>
-                <Text style={styles.changeText}>Thay đổi</Text>
-              </Pressable>
-            ) : null}
-          </View>
-
-          {hasSaved ? (
-            addressReady ? (
-              <View style={styles.selected}>
-                <Text variant="subheading">{address.receiver_name} · {address.receiver_phone}</Text>
-                <Text variant="bodyMuted" style={styles.selectedAddr}>{address.shipping_address}</Text>
+        {/* Giao tới — luôn từ sổ địa chỉ (như Amazon/eBay/Etsy): bấm để chọn hoặc
+            thêm mới; địa chỉ nhập ở form Thêm-địa-chỉ được LƯU lại cho lần sau. */}
+        <Pressable
+          style={styles.card}
+          onPress={() => (hasSaved ? setPickerOpen(true) : router.push('/addresses/new'))}>
+          <View style={styles.addrRow}>
+            <Feather name="map-pin" size={18} color={Palette.brand} style={styles.addrPin} />
+            {hasSaved && addressReady ? (
+              <View style={styles.addrBody}>
+                <View style={styles.addrTop}>
+                  <Text variant="subheading" numberOfLines={1} style={styles.addrName}>{address.receiver_name}</Text>
+                  <Text variant="bodyMuted" style={styles.addrPhone}>{address.receiver_phone}</Text>
+                </View>
+                <Text variant="bodyMuted" style={styles.addrLine}>{address.shipping_address}</Text>
                 {!ghnReady ? (
                   <Text variant="caption" style={styles.warn}>
-                    Địa chỉ này thiếu mã vùng GHN — mở "Địa chỉ của tôi" sửa lại để tính được phí ship.
+                    Thiếu mã vùng GHN — sửa địa chỉ để tính được phí ship.
                   </Text>
                 ) : null}
               </View>
             ) : (
-              <Text variant="bodyMuted">Chọn một địa chỉ giao hàng.</Text>
-            )
-          ) : (
-            <GhnAddressForm onChange={setAddress} />
-          )}
-        </View>
+              <View style={styles.addrBody}>
+                <Text variant="subheading">
+                  {hasSaved ? 'Chọn địa chỉ giao hàng' : 'Thêm địa chỉ giao hàng'}
+                </Text>
+                <Text variant="caption" style={styles.addrHint}>
+                  {hasSaved ? 'Chạm để chọn từ sổ địa chỉ.' : 'Chạm để nhập — sẽ được lưu cho lần sau.'}
+                </Text>
+              </View>
+            )}
+            <Feather name="chevron-right" size={18} color={Palette.inkFaint} />
+          </View>
+        </Pressable>
 
         {/* Lời nhắn */}
         <View style={styles.card}>
@@ -396,10 +402,14 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
-  changeBtn: { marginLeft: 'auto' },
-  changeText: { fontFamily: Font.semibold, fontSize: 13, color: Palette.brand },
-  selected: { gap: 4 },
-  selectedAddr: {},
+  addrRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  addrPin: { marginTop: 2, alignSelf: 'flex-start' },
+  addrBody: { flex: 1, gap: 3 },
+  addrTop: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  addrName: { flexShrink: 1 },
+  addrPhone: {},
+  addrLine: { color: Palette.ink },
+  addrHint: { color: Palette.inkFaint },
   backdrop: { flex: 1, backgroundColor: 'rgba(25,32,41,0.4)' },
   sheet: {
     backgroundColor: Palette.white,
