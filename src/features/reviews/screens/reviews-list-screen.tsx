@@ -25,14 +25,16 @@ export default function ReviewsListScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const productId = Number(id);
 
-  const mine = useReviewStore((s) => s.byProduct[productId] ?? []);
+  const reviewMap = useReviewStore((s) => s.byProduct);
+  const mine = reviewMap[productId] ?? [];
   const summary = productRating(productId);
   const breakdown = ratingBreakdown(productId);
   const [filter, setFilter] = useState<Filter>('all');
 
   const all = useMemo<MockReview[]>(
     () => [...mine, ...productReviews(productId, 12)],
-    [mine, productId],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [reviewMap, productId],
   );
   const list = all.filter((r) => {
     if (filter === 'all') return true;

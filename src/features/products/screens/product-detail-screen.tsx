@@ -32,7 +32,7 @@ export default function ProductDetailScreen() {
   const guest = useAuthStore((s) => s.status) !== 'signedIn';
   const me = useAuthStore((s) => s.user);
   const startConv = useStartConversation();
-  const myProductReviews = useReviewStore((s) => s.byProduct[Number(id)] ?? []);
+  const reviewMap = useReviewStore((s) => s.byProduct);
   const addToCart = useAddToCart();
   const [mode, setMode] = useState<null | 'add' | 'buy'>(null);
   const [added, setAdded] = useState(false);
@@ -137,7 +137,7 @@ export default function ProductDetailScreen() {
   const seller = product.seller;
   const joinedYear = seller ? new Date(seller.created_at).getFullYear() : null;
   const rating = productRating(product.id);
-  const myReviews = myProductReviews;
+  const myReviews = reviewMap[product.id] ?? [];
   const reviews = [...myReviews, ...productReviews(product.id, 3)].slice(0, 3);
   const sStats = sellerStats(seller?.id);
 
