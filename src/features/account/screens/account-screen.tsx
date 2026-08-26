@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, type Href } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/avatar';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useAuthStore } from '@/features/auth/store';
+import { RelatedRail } from '@/features/products/components/related-rail';
 
 /** Một dòng lối tắt trong Tài khoản — icon + nhãn + chevron, phẳng hairline. */
 function MenuRow({
@@ -47,7 +48,7 @@ export default function AccountScreen() {
       </View>
 
       {status === 'signedIn' && user ? (
-        <View style={styles.body}>
+        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           <Pressable style={styles.identity} onPress={() => router.push('/profile/edit' as Href)}>
             <Avatar name={user.full_name} uri={(user as { avatar?: string }).avatar} size={48} />
             <View style={styles.who}>
@@ -77,6 +78,11 @@ export default function AccountScreen() {
             </View>
           ) : null}
 
+          {/* Hàng đang bán của tôi — tự ẩn nếu chưa đăng món nào. */}
+          <View style={styles.railWrap}>
+            <RelatedRail title="Hàng đang bán" filters={{ seller_id: user.id }} excludeId={0} />
+          </View>
+
           <View style={styles.menu}>
             <MenuRow icon="lock-closed-outline" label="Đổi mật khẩu" first onPress={() => router.push('/change-password' as Href)} />
           </View>
@@ -84,7 +90,7 @@ export default function AccountScreen() {
           <View style={styles.actions}>
             <Button title="Đăng xuất" variant="ghost" onPress={() => signOut()} />
           </View>
-        </View>
+        </ScrollView>
       ) : (
         <View style={styles.center}>
           <Text variant="heading" style={styles.line}>Chào bạn ở Zoldify</Text>
@@ -140,6 +146,7 @@ const styles = StyleSheet.create({
   rowFirst: { borderTopWidth: 0 },
   rowLabel: { flex: 1 },
   sectionLabel: { marginBottom: 8, marginLeft: 4, color: Palette.inkMuted },
+  railWrap: { marginHorizontal: -16 },
   actions: { gap: 10 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
   line: { textAlign: 'center' },
