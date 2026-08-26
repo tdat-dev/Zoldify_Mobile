@@ -329,27 +329,44 @@ export default function CheckoutScreen() {
               <Ionicons name="close" size={22} color={Palette.inkMuted} />
             </Pressable>
           </View>
-          <ScrollView style={styles.sheetList}>
+          <ScrollView style={styles.sheetList} contentContainerStyle={styles.sheetListInner}>
             {addresses.map((a) => {
               const on = a.id === selectedId;
               return (
-                <Pressable
-                  key={a.id}
-                  style={styles.pickRow}
-                  onPress={() => { setSelectedId(a.id); setPickerOpen(false); }}>
-                  <Ionicons
-                    name={on ? 'radio-button-on' : 'radio-button-off'}
-                    size={20}
-                    color={on ? Palette.brand : Palette.inkFaint}
-                  />
-                  <View style={styles.pickInfo}>
-                    <Text variant="subheading">{a.recipient_name} · {a.phone_number}</Text>
-                    <Text variant="bodyMuted" style={styles.pickAddr}>
-                      {[a.street, a.ward, a.district, a.province].filter(Boolean).join(', ')}
-                    </Text>
-                    {a.is_default ? <Text variant="caption" style={styles.pickDefault}>Mặc định</Text> : null}
-                  </View>
-                </Pressable>
+                <View key={a.id} style={[styles.pickRow, on && styles.pickRowOn]}>
+                  <Pressable
+                    style={styles.pickMain}
+                    onPress={() => { setSelectedId(a.id); setPickerOpen(false); }}>
+                    <Ionicons
+                      name={on ? 'radio-button-on' : 'radio-button-off'}
+                      size={20}
+                      color={on ? Palette.brand : Palette.inkFaint}
+                      style={styles.pickRadio}
+                    />
+                    <View style={styles.pickInfo}>
+                      <View style={styles.pickTop}>
+                        <Text variant="subheading" numberOfLines={1} style={styles.pickName}>{a.recipient_name}</Text>
+                        <Text variant="bodyMuted" style={styles.pickPhone}>{a.phone_number}</Text>
+                        {a.is_default ? (
+                          <View style={styles.pickDefaultTag}>
+                            <Text style={styles.pickDefaultText}>Mặc định</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                      <Text variant="bodyMuted" style={styles.pickAddr}>
+                        {[a.street, a.ward, a.district, a.province].filter(Boolean).join(', ')}
+                      </Text>
+                    </View>
+                  </Pressable>
+                  <Pressable
+                    hitSlop={6}
+                    style={styles.pickEdit}
+                    onPress={() => { setPickerOpen(false); router.push({ pathname: '/addresses/[id]', params: { id: a.id } }); }}
+                    accessibilityLabel={`Sửa địa chỉ của ${a.recipient_name}`}>
+                    <Feather name="edit-2" size={13} color={Palette.brand} />
+                    <Text style={styles.pickEditText}>Sửa</Text>
+                  </Pressable>
+                </View>
               );
             })}
           </ScrollView>
@@ -426,17 +443,33 @@ const styles = StyleSheet.create({
     borderBottomColor: Palette.line,
   },
   sheetList: { paddingHorizontal: 16 },
+  sheetListInner: { paddingVertical: 12, gap: 10 },
   pickRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.line,
+    borderRadius: Radius.control,
+    borderWidth: 1,
+    borderColor: Palette.lineStrong,
+    backgroundColor: Palette.white,
+    paddingRight: 8,
   },
-  pickInfo: { flex: 1, gap: 2 },
+  pickRowOn: { borderColor: Palette.brand, backgroundColor: Palette.brandTint },
+  pickMain: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 12 },
+  pickRadio: { marginTop: 1 },
+  pickInfo: { flex: 1, gap: 3 },
+  pickTop: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+  pickName: { flexShrink: 1 },
+  pickPhone: {},
   pickAddr: {},
-  pickDefault: { color: Palette.brand, fontFamily: Font.semibold },
+  pickDefaultTag: {
+    backgroundColor: Palette.brand,
+    borderRadius: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  pickDefaultText: { fontFamily: Font.semibold, fontSize: 10.5, color: Palette.white },
+  pickEdit: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 12 },
+  pickEditText: { fontFamily: Font.semibold, fontSize: 12.5, color: Palette.brand },
   sheetFooter: { padding: 16, borderTopWidth: 1, borderTopColor: Palette.line },
   noteHead: { marginBottom: 12 },
   noteInput: { minHeight: 60, textAlignVertical: 'top', paddingTop: 10 },
