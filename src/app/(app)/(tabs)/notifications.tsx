@@ -1,5 +1,2 @@
-import { TabPlaceholder } from '@/features/shared/tab-placeholder';
-
-export default function NotificationsTab() {
-  return <TabPlaceholder title="Thông báo" note="Đăng nhập để nhận thông báo đơn hàng, tin nhắn." />;
-}
+// Route mỏng: tab Thông báo. Logic ở features/notifications.
+export { default } from '@/features/notifications/screens/notifications-screen';

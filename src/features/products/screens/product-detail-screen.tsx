@@ -14,6 +14,7 @@ import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProduct } from '@/features/products/api';
 import { CONDITION_LABEL, isFreshCondition } from '@/features/products/filters';
 import { RelatedRail } from '@/features/products/components/related-rail';
+import { useStartConversation } from '@/features/chat/api';
 import { useAddToCart, useCartCount } from '@/features/cart/api';
 import { useAuthStore } from '@/features/auth/store';
 import { useRequireAuth } from '@/features/auth/use-require-auth';
@@ -25,6 +26,8 @@ export default function ProductDetailScreen() {
   const insets = useSafeAreaInsets();
   const requireAuth = useRequireAuth();
   const guest = useAuthStore((s) => s.status) !== 'signedIn';
+  const me = useAuthStore((s) => s.user);
+  const startConv = useStartConversation();
   const addToCart = useAddToCart();
   const [mode, setMode] = useState<null | 'add' | 'buy'>(null);
   const [added, setAdded] = useState(false);
@@ -131,7 +134,16 @@ export default function ProductDetailScreen() {
 
   const onMessage = () => {
     if (guest) return requireAuth();
-    router.push('/messages');
+    if (!seller) return;
+    // Không nhắn cho chính mình — về danh sách hội thoại.
+    if (me?.id === seller.id) return router.push('/messages');
+    startConv.mutate(
+      { seller_id: seller.id, product_id: product!.id },
+      {
+        onSuccess: (c) => router.push({ pathname: '/chat/[id]', params: { id: String(c.id) } }),
+        onError: () => setErrMsg('Chưa mở được tin nhắn. Thử lại nhé.'),
+      },
+    );
   };
 
   return (
