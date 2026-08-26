@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useCancelOrder, useConfirmReceived, useOrder } from '@/features/orders/api';
+import { useReviewStore } from '@/features/reviews/store';
 import { STATUS_META, type OrderStatus } from '@/features/orders/order-status';
 import { formatVnd } from '@/lib/format';
 import { mediaUrl } from '@/lib/media';
@@ -61,6 +62,7 @@ export default function OrderDetailScreen() {
   const { data: order, isPending, isError, refetch } = useOrder(Number(id));
   const cancel = useCancelOrder();
   const confirm = useConfirmReceived();
+  const reviewedMap = useReviewStore((s) => s.byProduct);
 
   // Làm mới khi mở lại — trạng thái/timeline do người bán đổi ở server.
   useFocusEffect(
@@ -102,6 +104,7 @@ export default function OrderDetailScreen() {
   const sellerIds = [...new Set(items.map((i) => i.product?.seller?.id).filter(Boolean))] as number[];
   const canCancel = order.status === 'pending' || order.status === 'confirmed';
   const canReceive = order.status === 'shipping';
+  const canReview = order.status === 'delivered';
 
   const onReceive = () => {
     sellerIds.forEach((sid) => confirm.mutate({ orderId: order.id, sellerId: sid }));
@@ -130,16 +133,35 @@ export default function OrderDetailScreen() {
           <View style={styles.items}>
             {items.map((it) => {
               const uri = mediaUrl(it.product_image);
+              const pid = it.product?.id;
+              const reviewed = pid ? (reviewedMap[pid]?.length ?? 0) > 0 : false;
               return (
-                <View key={it.id} style={styles.itemRow}>
-                  <View style={styles.thumb}>
-                    {uri ? <Image source={uri} style={styles.thumbImg} contentFit="cover" /> : null}
+                <View key={it.id} style={styles.itemGroup}>
+                  <View style={styles.itemRow}>
+                    <View style={styles.thumb}>
+                      {uri ? <Image source={uri} style={styles.thumbImg} contentFit="cover" /> : null}
+                    </View>
+                    <View style={styles.itemBody}>
+                      <Text variant="body" numberOfLines={2}>{it.product_name}</Text>
+                      <Text variant="caption">{formatVnd(it.price)}{it.quantity > 1 ? ` × ${it.quantity}` : ''}</Text>
+                    </View>
+                    <Text style={styles.itemTotal}>{formatVnd(it.subtotal)}</Text>
                   </View>
-                  <View style={styles.itemBody}>
-                    <Text variant="body" numberOfLines={2}>{it.product_name}</Text>
-                    <Text variant="caption">{formatVnd(it.price)}{it.quantity > 1 ? ` × ${it.quantity}` : ''}</Text>
-                  </View>
-                  <Text style={styles.itemTotal}>{formatVnd(it.subtotal)}</Text>
+                  {canReview && pid ? (
+                    reviewed ? (
+                      <View style={styles.reviewedTag}>
+                        <Ionicons name="checkmark-circle" size={14} color={Palette.successFg} />
+                        <Text style={styles.reviewedText}>Đã đánh giá</Text>
+                      </View>
+                    ) : (
+                      <Pressable
+                        style={styles.reviewBtn}
+                        onPress={() => router.push({ pathname: '/write-review/[id]', params: { id: pid } })}>
+                        <Ionicons name="star-outline" size={14} color={Palette.brand} />
+                        <Text style={styles.reviewBtnText}>Đánh giá</Text>
+                      </Pressable>
+                    )
+                  ) : null}
                 </View>
               );
             })}
@@ -238,7 +260,24 @@ const styles = StyleSheet.create({
   stepLabelOn: { color: Palette.brand, fontFamily: Font.semibold },
   cancelled: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 4 },
   items: { gap: 12 },
+  itemGroup: { gap: 8 },
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  reviewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: Radius.control,
+    borderWidth: 1,
+    borderColor: Palette.brand,
+    marginLeft: 64,
+  },
+  reviewBtnText: { fontFamily: Font.semibold, fontSize: 12.5, color: Palette.brand },
+  reviewedTag: { flexDirection: 'row', alignItems: 'center', gap: 5, marginLeft: 64 },
+  reviewedText: { fontFamily: Font.medium, fontSize: 12.5, color: Palette.successFg },
   thumb: { width: 52, height: 52, borderRadius: Radius.control, backgroundColor: Palette.surfaceSunken, overflow: 'hidden' },
   thumbImg: { width: '100%', height: '100%' },
   itemBody: { flex: 1, gap: 2 },

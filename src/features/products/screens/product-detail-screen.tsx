@@ -17,6 +17,8 @@ import { CONDITION_LABEL, isFreshCondition } from '@/features/products/filters';
 import { RelatedRail } from '@/features/products/components/related-rail';
 import { useStartConversation } from '@/features/chat/api';
 import { productRating, productReviews, sellerStats } from '@/features/reviews/mock';
+import { ReviewCard } from '@/features/reviews/components/review-card';
+import { useReviewStore } from '@/features/reviews/store';
 import { useAddToCart, useCartCount } from '@/features/cart/api';
 import { useAuthStore } from '@/features/auth/store';
 import { useRequireAuth } from '@/features/auth/use-require-auth';
@@ -30,6 +32,7 @@ export default function ProductDetailScreen() {
   const guest = useAuthStore((s) => s.status) !== 'signedIn';
   const me = useAuthStore((s) => s.user);
   const startConv = useStartConversation();
+  const myProductReviews = useReviewStore((s) => s.byProduct[Number(id)] ?? []);
   const addToCart = useAddToCart();
   const [mode, setMode] = useState<null | 'add' | 'buy'>(null);
   const [added, setAdded] = useState(false);
@@ -134,7 +137,8 @@ export default function ProductDetailScreen() {
   const seller = product.seller;
   const joinedYear = seller ? new Date(seller.created_at).getFullYear() : null;
   const rating = productRating(product.id);
-  const reviews = productReviews(product.id, 3);
+  const myReviews = myProductReviews;
+  const reviews = [...myReviews, ...productReviews(product.id, 3)].slice(0, 3);
   const sStats = sellerStats(seller?.id);
 
   const onMessage = () => {
@@ -244,19 +248,15 @@ export default function ProductDetailScreen() {
           </View>
           <View style={styles.reviewList}>
             {reviews.map((rv) => (
-              <View key={rv.id} style={styles.reviewCard}>
-                <View style={styles.reviewTop}>
-                  <Avatar name={rv.author} size={32} />
-                  <View style={styles.reviewWho}>
-                    <Text variant="subheading" style={styles.reviewName}>{rv.author}</Text>
-                    <RatingStars value={rv.rating} size={11} />
-                  </View>
-                  <Text variant="caption" style={styles.reviewTime}>{rv.timeLabel}</Text>
-                </View>
-                <Text variant="body" style={styles.reviewComment}>{rv.comment}</Text>
-              </View>
+              <ReviewCard key={rv.id} review={rv} />
             ))}
           </View>
+          <Pressable
+            style={styles.seeAll}
+            onPress={() => router.push({ pathname: '/reviews/[id]', params: { id: product.id } })}>
+            <Text style={styles.seeAllText}>Xem tất cả {rating.count} đánh giá</Text>
+            <Feather name="chevron-right" size={16} color={Palette.brand} />
+          </Pressable>
         </View>
 
         {seller ? (
@@ -382,19 +382,18 @@ const styles = StyleSheet.create({
   sellerRating: { marginVertical: 2 },
   reviewHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   reviewList: { gap: 12 },
-  reviewCard: {
-    borderWidth: 1,
-    borderColor: Palette.line,
+  seeAll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: 12,
+    paddingVertical: 12,
     borderRadius: Radius.control,
-    padding: 12,
-    backgroundColor: Palette.white,
-    gap: 8,
+    borderWidth: 1,
+    borderColor: Palette.lineStrong,
   },
-  reviewTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  reviewWho: { flex: 1, gap: 2 },
-  reviewName: { fontSize: 14 },
-  reviewTime: { color: Palette.inkFaint },
-  reviewComment: { color: Palette.ink },
+  seeAllText: { fontFamily: Font.semibold, fontSize: 13.5, color: Palette.brand },
   sellerCard: {
     flexDirection: 'row',
     alignItems: 'center',
