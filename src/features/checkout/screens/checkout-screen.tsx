@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackChevron } from '@/components/ui/back-chevron';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { Font, Palette, Radius } from '@/components/ui/theme';
+import { useAddresses, type Address } from '@/features/addresses/api';
 import { useCart } from '@/features/cart/api';
 import { GhnAddressForm, type GhnAddressSelection } from '@/features/checkout/ghn-address-form';
 import { useCreateOrder, useShippingQuote } from '@/features/orders/api';
@@ -31,6 +32,22 @@ const EMPTY_ADDRESS: GhnAddressSelection = {
   ghn_ward_code: '',
 };
 
+/** Địa chỉ đã lưu -> dạng GhnAddressSelection để dùng chung luồng tính phí/đặt đơn. */
+function toSelection(a: Address): GhnAddressSelection {
+  return {
+    receiver_name: a.recipient_name,
+    receiver_phone: a.phone_number,
+    shipping_address: [a.street, a.ward, a.district, a.province].filter(Boolean).join(', '),
+    province: a.province,
+    district: a.district,
+    ward: a.ward ?? '',
+    street: a.street,
+    ghn_province_id: a.ghn_province_id ?? 0,
+    ghn_district_id: a.ghn_district_id ?? 0,
+    ghn_ward_code: a.ghn_ward_code ?? '',
+  };
+}
+
 type PayMethod = NonNullable<CreateOrderDto['payment_method']>;
 const PAY_OPTIONS: { value: PayMethod; title: string; desc: string; icon: keyof typeof Feather.glyphMap }[] = [
   { value: 'cod', title: 'Thanh toán khi nhận (COD)', desc: 'Trả tiền mặt khi nhận hàng', icon: 'truck' },
@@ -41,10 +58,29 @@ const PAY_OPTIONS: { value: PayMethod; title: string; desc: string; icon: keyof 
 export default function CheckoutScreen() {
   const insets = useSafeAreaInsets();
   const { data: items = [], isPending } = useCart();
+  const { data: addresses = [] } = useAddresses();
   const [address, setAddress] = useState<GhnAddressSelection>(EMPTY_ADDRESS);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [note, setNote] = useState('');
   const [payment, setPayment] = useState<PayMethod>('cod');
   const [errMsg, setErrMsg] = useState<string | null>(null);
+
+  const hasSaved = addresses.length > 0;
+
+  // Có địa chỉ đã lưu: chọn mặc định (hoặc cái đầu) khi vào màn.
+  useEffect(() => {
+    if (!hasSaved || selectedId !== null) return;
+    const def = addresses.find((a) => a.is_default) ?? addresses[0];
+    setSelectedId(def.id);
+  }, [hasSaved, addresses, selectedId]);
+
+  // Đổ địa chỉ đã chọn vào `address` (nguồn cho tính phí + đặt đơn).
+  useEffect(() => {
+    if (selectedId === null) return;
+    const a = addresses.find((x) => x.id === selectedId);
+    if (a) setAddress(toSelection(a));
+  }, [selectedId, addresses]);
 
   const quote = useShippingQuote();
   const create = useCreateOrder();
@@ -136,13 +172,35 @@ export default function CheckoutScreen() {
         contentContainerStyle={styles.body}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-        {/* Địa chỉ nhận */}
+        {/* Địa chỉ nhận — chọn từ sổ địa chỉ nếu đã có, không thì nhập tay. */}
         <View style={styles.card}>
           <View style={styles.cardHead}>
             <Feather name="map-pin" size={16} color={Palette.brand} />
             <Text variant="heading">Giao tới</Text>
+            {hasSaved ? (
+              <Pressable style={styles.changeBtn} hitSlop={6} onPress={() => setPickerOpen(true)}>
+                <Text style={styles.changeText}>Thay đổi</Text>
+              </Pressable>
+            ) : null}
           </View>
-          <GhnAddressForm onChange={setAddress} />
+
+          {hasSaved ? (
+            addressReady ? (
+              <View style={styles.selected}>
+                <Text variant="subheading">{address.receiver_name} · {address.receiver_phone}</Text>
+                <Text variant="bodyMuted" style={styles.selectedAddr}>{address.shipping_address}</Text>
+                {!ghnReady ? (
+                  <Text variant="caption" style={styles.warn}>
+                    Địa chỉ này thiếu mã vùng GHN — mở "Địa chỉ của tôi" sửa lại để tính được phí ship.
+                  </Text>
+                ) : null}
+              </View>
+            ) : (
+              <Text variant="bodyMuted">Chọn một địa chỉ giao hàng.</Text>
+            )
+          ) : (
+            <GhnAddressForm onChange={setAddress} />
+          )}
         </View>
 
         {/* Lời nhắn */}
@@ -252,6 +310,50 @@ export default function CheckoutScreen() {
         ) : null}
       </ScrollView>
 
+      {/* Bảng chọn địa chỉ đã lưu */}
+      <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setPickerOpen(false)} />
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 8 }]}>
+          <View style={styles.sheetHead}>
+            <Text variant="heading">Chọn địa chỉ</Text>
+            <Pressable hitSlop={8} onPress={() => setPickerOpen(false)} accessibilityLabel="Đóng">
+              <Ionicons name="close" size={22} color={Palette.inkMuted} />
+            </Pressable>
+          </View>
+          <ScrollView style={styles.sheetList}>
+            {addresses.map((a) => {
+              const on = a.id === selectedId;
+              return (
+                <Pressable
+                  key={a.id}
+                  style={styles.pickRow}
+                  onPress={() => { setSelectedId(a.id); setPickerOpen(false); }}>
+                  <Ionicons
+                    name={on ? 'radio-button-on' : 'radio-button-off'}
+                    size={20}
+                    color={on ? Palette.brand : Palette.inkFaint}
+                  />
+                  <View style={styles.pickInfo}>
+                    <Text variant="subheading">{a.recipient_name} · {a.phone_number}</Text>
+                    <Text variant="bodyMuted" style={styles.pickAddr}>
+                      {[a.street, a.ward, a.district, a.province].filter(Boolean).join(', ')}
+                    </Text>
+                    {a.is_default ? <Text variant="caption" style={styles.pickDefault}>Mặc định</Text> : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          <View style={styles.sheetFooter}>
+            <Button
+              title="Thêm địa chỉ mới"
+              variant="secondary"
+              onPress={() => { setPickerOpen(false); router.push('/addresses/new'); }}
+            />
+          </View>
+        </View>
+      </Modal>
+
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.totalRow}>
           <Text variant="bodyMuted">Tổng thanh toán</Text>
@@ -291,6 +393,38 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+  changeBtn: { marginLeft: 'auto' },
+  changeText: { fontFamily: Font.semibold, fontSize: 13, color: Palette.brand },
+  selected: { gap: 4 },
+  selectedAddr: {},
+  backdrop: { flex: 1, backgroundColor: 'rgba(25,32,41,0.4)' },
+  sheet: {
+    backgroundColor: Palette.white,
+    borderTopLeftRadius: Radius.modal,
+    borderTopRightRadius: Radius.modal,
+    maxHeight: '75%',
+  },
+  sheetHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Palette.line,
+  },
+  sheetList: { paddingHorizontal: 16 },
+  pickRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Palette.line,
+  },
+  pickInfo: { flex: 1, gap: 2 },
+  pickAddr: {},
+  pickDefault: { color: Palette.brand, fontFamily: Font.semibold },
+  sheetFooter: { padding: 16, borderTopWidth: 1, borderTopColor: Palette.line },
   noteHead: { marginBottom: 12 },
   noteInput: { minHeight: 60, textAlignVertical: 'top', paddingTop: 10 },
   itemList: { gap: 12 },
