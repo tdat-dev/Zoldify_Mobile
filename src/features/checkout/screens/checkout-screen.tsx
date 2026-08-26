@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -57,7 +57,10 @@ const PAY_OPTIONS: { value: PayMethod; title: string; desc: string; icon: keyof 
 /** Thanh toán: địa chỉ GHN → phí ship theo người bán → tạo đơn (COD/Ví). */
 export default function CheckoutScreen() {
   const insets = useSafeAreaInsets();
-  const { data: items = [], isPending } = useCart();
+  // `only` = mua ngay 1 món: chỉ thanh toán đúng cart item đó, không phải cả giỏ.
+  const { only } = useLocalSearchParams<{ only?: string }>();
+  const { data: cart = [], isPending } = useCart();
+  const items = only ? cart.filter((i) => String(i.id) === String(only)) : cart;
   const { data: addresses = [] } = useAddresses();
   const [address, setAddress] = useState<GhnAddressSelection>(EMPTY_ADDRESS);
   const [selectedId, setSelectedId] = useState<number | null>(null);

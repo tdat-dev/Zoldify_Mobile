@@ -95,10 +95,12 @@ export default function ProductDetailScreen() {
     if (guest) return requireAuth();
     setErrMsg(null);
     setMode('buy');
+    // Mua ngay: thêm vào giỏ rồi vào THẲNG thanh toán, chỉ món này (param `only`).
+    // Đặt xong backend tự xoá cart item nên không đọng trong giỏ.
     addToCart.mutate(
       { product_id: product!.id },
       {
-        onSuccess: () => router.push('/cart'),
+        onSuccess: (item) => router.push({ pathname: '/checkout', params: { only: item.id } }),
         onError: cartError,
         onSettled: () => setMode(null),
       },
