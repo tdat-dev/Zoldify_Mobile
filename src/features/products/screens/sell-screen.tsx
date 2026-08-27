@@ -35,6 +35,7 @@ export default function SellScreen() {
   const [images, setImages] = useState<string[]>([]);
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
+  const [stock, setStock] = useState('1');
   const [brand, setBrand] = useState('');
   const [size, setSize] = useState('');
   const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -73,6 +74,7 @@ export default function SellScreen() {
       const product = await create.mutateAsync({
         name: name.trim(),
         price: Number(price),
+        stock: Math.max(1, Number(stock) || 1),
         category_id: categoryId!,
         condition,
         image: uploaded[0],
@@ -111,8 +113,19 @@ export default function SellScreen() {
           <TextField label="Tên món" value={name} onChangeText={setName} placeholder="VD: Áo khoác gió Uniqlo" error={errors.name} />
 
           <View>
-            <TextField label="Giá (đ)" value={price} onChangeText={setPrice} placeholder="150000" keyboardType="number-pad" error={errors.price} />
-            {!errors.price ? <Text variant="caption" style={styles.hint}>Đặt giá hợp lý để bán nhanh hơn.</Text> : null}
+            <View style={styles.twoCol}>
+              <View style={styles.col}>
+                <TextField label="Giá (đ)" value={price} onChangeText={setPrice} placeholder="150000" keyboardType="number-pad" error={errors.price} />
+              </View>
+              <View style={styles.col}>
+                <TextField label="Số lượng" value={stock} onChangeText={(t) => setStock(t.replace(/[^0-9]/g, ''))} placeholder="1" keyboardType="number-pad" />
+              </View>
+            </View>
+            {!errors.price ? (
+              <Text variant="caption" style={styles.hint}>
+                Đồ cũ thường 1 món; hàng mới nhập đúng số lượng bạn có.
+              </Text>
+            ) : null}
           </View>
 
           <View style={styles.twoCol}>
