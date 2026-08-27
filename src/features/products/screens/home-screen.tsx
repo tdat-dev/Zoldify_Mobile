@@ -9,6 +9,7 @@ import { ProductCard } from '@/features/products/components/product-card';
 import { ProductGridSkeleton } from '@/features/products/components/product-grid-skeleton';
 import { HomeHeader } from '@/features/products/components/home-header';
 import { ProductRail } from '@/features/products/components/product-rail';
+import { FollowingRail } from '@/features/products/components/following-rail';
 import { TrustStrip } from '@/features/products/components/trust-strip';
 import { QuickLinks } from '@/features/products/components/quick-links';
 import { CategoryChips } from '@/features/categories/components/category-chips';
@@ -84,6 +85,7 @@ export default function HomeScreen() {
             <TrustStrip />
             <CategoryChips />
             <ProductRail title="Mới về" sort="newest" />
+            <FollowingRail />
             <ProductRail title="Món được săn" sort="most_viewed" />
             <Text variant="heading" style={styles.sectionTitle}>Dạo chợ</Text>
           </View>
