@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { authApi } from '@/features/auth/api';
+import { disconnectChatSocket } from '@/features/chat/socket';
 import { tokenStore } from '@/lib/auth/token-store';
 import type { AuthUser } from '@/api';
 
@@ -67,11 +68,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await authApi.logout();
     } finally {
+      disconnectChatSocket();
       set({ status: 'signedOut', user: null });
     }
   },
 
   sessionExpired: () => {
+    disconnectChatSocket();
     set({ status: 'signedOut', user: null });
   },
 

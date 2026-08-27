@@ -25,6 +25,7 @@ import {
   useSendMessage,
   type ChatMessage,
 } from '@/features/chat/api';
+import { useChatRealtime } from '@/features/chat/realtime';
 import { timeAgo } from '@/lib/format';
 import { mediaUrl } from '@/lib/media';
 
@@ -52,6 +53,7 @@ export default function ChatThreadScreen() {
   const conv = conversations?.find((c) => c.id === convId);
   const { data: messages, isPending } = useMessages(convId);
   const send = useSendMessage(convId);
+  const realtime = useChatRealtime(convId, conv?.partner_id);
   const markRead = useMarkConversationRead();
 
   const [text, setText] = useState('');
@@ -67,7 +69,8 @@ export default function ChatThreadScreen() {
     const content = text.trim();
     if (!content || send.isPending) return;
     setText('');
-    send.mutate(content);
+    // Ưu tiên gửi qua socket (realtime 2 chiều); socket chưa nối thì fallback REST.
+    if (!realtime.send(content)) send.mutate(content);
   };
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/messages'));
@@ -77,8 +80,13 @@ export default function ChatThreadScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <BackChevron onPress={back} />
         <View style={styles.headerInfo}>
-          <Text variant="subheading" numberOfLines={1}>{conv?.partner_name ?? 'Tin nhắn'}</Text>
-          {conv?.product?.name ? (
+          <View style={styles.nameRow}>
+            <Text variant="subheading" numberOfLines={1} style={styles.nameText}>{conv?.partner_name ?? 'Tin nhắn'}</Text>
+            {realtime.partnerOnline ? <View style={styles.onlineDot} /> : null}
+          </View>
+          {realtime.partnerOnline ? (
+            <Text variant="caption" style={styles.presenceOn}>Đang hoạt động</Text>
+          ) : conv?.product?.name ? (
             <Text variant="caption" numberOfLines={1} style={styles.headerProduct}>Về: {conv.product.name}</Text>
           ) : null}
         </View>
@@ -155,6 +163,10 @@ const styles = StyleSheet.create({
     borderBottomColor: Palette.line,
   },
   headerInfo: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  nameText: { flexShrink: 1 },
+  onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Palette.successFg },
+  presenceOn: { color: Palette.successFg, fontFamily: Font.medium },
   headerProduct: { color: Palette.inkFaint },
   productBar: {
     flexDirection: 'row',

@@ -43,7 +43,8 @@ export function useConversations() {
 
 /**
  * Tin nhắn của một hội thoại. BE trả mới-nhất-trước; ta đảo về cũ→mới để hiển
- * thị (tin mới ở đáy). Poll nhẹ 5s cho cảm giác realtime khi chưa nối socket.
+ * thị (tin mới ở đáy). Realtime chính đi qua socket (useChatRealtime); giữ poll
+ * chậm 20s làm lưới an toàn phòng khi WebSocket rớt/bị chặn.
  */
 export function useMessages(conversationId: number) {
   return useQuery({
@@ -58,7 +59,7 @@ export function useMessages(conversationId: number) {
       );
     },
     enabled: Number.isFinite(conversationId) && conversationId > 0,
-    refetchInterval: 5000,
+    refetchInterval: 20000,
   });
 }
 
