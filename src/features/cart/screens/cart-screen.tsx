@@ -1,9 +1,11 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ListRowSkeleton } from '@/components/ui/list-row-skeleton';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import {
@@ -136,9 +138,7 @@ export default function CartScreen() {
     return (
       <View style={styles.root}>
         {header}
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={Palette.brand} />
-        </View>
+        <ListRowSkeleton count={4} />
       </View>
     );
   }
@@ -153,15 +153,13 @@ export default function CartScreen() {
     return (
       <View style={styles.root}>
         {header}
-        <View style={styles.center}>
-          <Text variant="heading" style={styles.line}>Giỏ hàng trống</Text>
-          <Text variant="bodyMuted" style={styles.line}>
-            Chưa có món nào. Dạo một vòng xem có gì hay không nhé.
-          </Text>
-          <View style={styles.cta}>
-            <Button title="Khám phá sản phẩm" onPress={() => router.push('/')} />
-          </View>
-        </View>
+        <EmptyState
+          icon="shopping-cart"
+          title="Giỏ hàng trống"
+          subtitle="Chưa có món nào. Dạo một vòng xem có gì hay không nhé."
+          actionLabel="Khám phá sản phẩm"
+          onAction={() => router.push('/')}
+        />
       </View>
     );
   }
