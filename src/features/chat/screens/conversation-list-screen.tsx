@@ -1,11 +1,13 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/avatar';
 import { BackChevron } from '@/components/ui/back-chevron';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ListRowSkeleton } from '@/components/ui/list-row-skeleton';
 import { Text } from '@/components/ui/text';
 import { Font, Palette } from '@/components/ui/theme';
 import { useAuthStore } from '@/features/auth/store';
@@ -71,17 +73,18 @@ export default function ConversationListScreen() {
     <View style={styles.root}>
       {header}
       {isPending ? (
-        <View style={styles.center}><ActivityIndicator size="large" color={Palette.brand} /></View>
+        <ListRowSkeleton />
       ) : isError ? (
         <View style={styles.center}>
           <Text variant="heading">Không tải được tin nhắn</Text>
           <View style={styles.cta}><Button title="Thử lại" onPress={() => refetch()} /></View>
         </View>
       ) : (list ?? []).length === 0 ? (
-        <View style={styles.center}>
-          <Text variant="heading" style={styles.line}>Chưa có hội thoại</Text>
-          <Text variant="bodyMuted" style={styles.line}>Nhắn người bán từ trang sản phẩm để bắt đầu.</Text>
-        </View>
+        <EmptyState
+          icon="message-circle"
+          title="Chưa có hội thoại"
+          subtitle="Nhắn người bán từ trang sản phẩm để bắt đầu trao đổi."
+        />
       ) : (
         <FlatList
           data={list}

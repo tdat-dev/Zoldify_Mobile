@@ -5,6 +5,8 @@ import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Vie
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ListRowSkeleton } from '@/components/ui/list-row-skeleton';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useAuthStore } from '@/features/auth/store';
@@ -100,18 +102,18 @@ export default function NotificationsScreen() {
       </View>
 
       {isPending ? (
-        <View style={styles.center}><ActivityIndicator size="large" color={Palette.brand} /></View>
+        <ListRowSkeleton />
       ) : isError ? (
         <View style={styles.center}>
           <Text variant="heading">Không tải được thông báo</Text>
           <View style={styles.cta}><Button title="Thử lại" onPress={() => refetch()} /></View>
         </View>
       ) : items.length === 0 ? (
-        <View style={styles.center}>
-          <Ionicons name="notifications-off-outline" size={44} color={Palette.inkFaint} />
-          <Text variant="heading" style={styles.line}>Chưa có thông báo</Text>
-          <Text variant="bodyMuted" style={styles.line}>Thông báo đơn hàng, tin nhắn sẽ hiện ở đây.</Text>
-        </View>
+        <EmptyState
+          icon="bell"
+          title="Chưa có thông báo"
+          subtitle="Thông báo đơn hàng, tin nhắn sẽ hiện ở đây."
+        />
       ) : (
         <FlatList
           data={items}

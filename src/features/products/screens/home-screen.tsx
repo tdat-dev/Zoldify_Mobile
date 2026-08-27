@@ -6,6 +6,7 @@ import { Text } from '@/components/ui/text';
 import { Palette } from '@/components/ui/theme';
 import { useInfiniteProducts } from '@/features/products/api';
 import { ProductCard } from '@/features/products/components/product-card';
+import { ProductGridSkeleton } from '@/features/products/components/product-grid-skeleton';
 import { HomeHeader } from '@/features/products/components/home-header';
 import { ProductRail } from '@/features/products/components/product-rail';
 import { TrustStrip } from '@/features/products/components/trust-strip';
@@ -37,10 +38,7 @@ export default function HomeScreen() {
       <View style={styles.root}>
         <StatusBar style="light" />
         <HomeHeader />
-        <View style={styles.fill}>
-          <ActivityIndicator size="large" color={Palette.brand} />
-          <Text variant="bodyMuted" style={styles.hint}>Đang tải chợ…</Text>
-        </View>
+        <ProductGridSkeleton count={6} />
       </View>
     );
   }

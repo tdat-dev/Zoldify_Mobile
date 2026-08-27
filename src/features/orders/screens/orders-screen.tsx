@@ -1,10 +1,12 @@
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ListRowSkeleton } from '@/components/ui/list-row-skeleton';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useAuthStore } from '@/features/auth/store';
@@ -102,9 +104,7 @@ export default function OrdersScreen() {
       {tabBar}
 
       {isPending ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={Palette.brand} />
-        </View>
+        <ListRowSkeleton />
       ) : isError ? (
         <View style={styles.center}>
           <Text variant="heading">Không tải được đơn hàng</Text>
@@ -113,17 +113,13 @@ export default function OrdersScreen() {
           </View>
         </View>
       ) : list.length === 0 ? (
-        <View style={styles.center}>
-          <Text variant="heading" style={styles.emptyLine}>Chưa có đơn nào</Text>
-          <Text variant="bodyMuted" style={styles.emptyLine}>
-            {tab === 'all' ? 'Mua món đầu tiên và theo dõi đơn ở đây nhé.' : 'Không có đơn ở trạng thái này.'}
-          </Text>
-          {tab === 'all' ? (
-            <View style={styles.emptyCta}>
-              <Button title="Khám phá sản phẩm" onPress={() => router.push('/')} />
-            </View>
-          ) : null}
-        </View>
+        <EmptyState
+          icon="package"
+          title="Chưa có đơn nào"
+          subtitle={tab === 'all' ? 'Mua món đầu tiên và theo dõi đơn ở đây nhé.' : 'Không có đơn ở trạng thái này.'}
+          actionLabel={tab === 'all' ? 'Khám phá sản phẩm' : undefined}
+          onAction={tab === 'all' ? () => router.push('/') : undefined}
+        />
       ) : (
         <FlatList
           data={list}
