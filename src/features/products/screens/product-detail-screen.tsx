@@ -207,15 +207,27 @@ export default function ProductDetailScreen() {
           {/* Người bán — đồ cũ mua vì TIN người bán; hiện dữ liệu thật + lối nhắn. */}
           {seller ? (
             <View style={styles.sellerCard}>
-              <Avatar name={seller.full_name} uri={seller.avatar} size={44} />
-              <View style={styles.sellerInfo}>
-                <Text variant="subheading" numberOfLines={1}>{seller.full_name}</Text>
-                <RatingStars value={sStats.rating} count={sStats.reviewCount} size={12} style={styles.sellerRating} />
-                <Text variant="caption">
-                  Đã bán {sStats.soldCount} · {sStats.responseRate}% phản hồi
-                  {joinedYear ? ` · Từ ${joinedYear}` : ''}
-                </Text>
-              </View>
+              <Pressable
+                style={styles.sellerTap}
+                onPress={() =>
+                  router.push({
+                    pathname: '/shop/[id]',
+                    params: { id: seller.id, name: seller.full_name, avatar: seller.avatar ?? '' },
+                  })
+                }
+                accessibilityRole="button"
+                accessibilityLabel={`Xem cửa hàng ${seller.full_name}`}>
+                <Avatar name={seller.full_name} uri={seller.avatar} size={44} />
+                <View style={styles.sellerInfo}>
+                  <Text variant="subheading" numberOfLines={1}>{seller.full_name}</Text>
+                  <RatingStars value={sStats.rating} count={sStats.reviewCount} size={12} style={styles.sellerRating} />
+                  <Text variant="caption">
+                    Đã bán {sStats.soldCount} · {sStats.responseRate}% phản hồi
+                    {joinedYear ? ` · Từ ${joinedYear}` : ''}
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={16} color={Palette.inkFaint} />
+              </Pressable>
               <Pressable style={styles.msgBtn} onPress={onMessage} accessibilityRole="button">
                 <Feather name="message-circle" size={15} color={Palette.brand} />
                 <Text style={styles.msgText}>Nhắn</Text>
@@ -407,6 +419,7 @@ const styles = StyleSheet.create({
     borderColor: Palette.line,
     backgroundColor: Palette.white,
   },
+  sellerTap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   sellerInfo: { flex: 1, gap: 2 },
   msgBtn: {
     flexDirection: 'row',
