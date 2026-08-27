@@ -12,6 +12,7 @@ import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useAuthStore } from '@/features/auth/store';
 import { useStartConversation } from '@/features/chat/api';
+import { useFollowCount, useFollowStatus, useToggleFollow } from '@/features/follows/api';
 import { useInfiniteProducts } from '@/features/products/api';
 import { ProductCard } from '@/features/products/components/product-card';
 import { ProductGridSkeleton } from '@/features/products/components/product-grid-skeleton';
@@ -51,6 +52,15 @@ export default function ShopScreen() {
   const joinedYear = fromProduct?.created_at ? new Date(fromProduct.created_at).getFullYear() : null;
   const stats = sellerStats(sellerId);
 
+  const canFollow = !isMe && !!me;
+  const { data: followed } = useFollowStatus(sellerId, canFollow);
+  const { data: fcount } = useFollowCount(sellerId);
+  const toggleFollow = useToggleFollow(sellerId);
+  const onFollow = () => {
+    if (!me) return router.push('/login');
+    toggleFollow.mutate();
+  };
+
   const startChat = useStartConversation();
   const onMessage = () => {
     if (isMe) return router.push('/messages');
@@ -79,9 +89,11 @@ export default function ShopScreen() {
           <View style={styles.heroInfo}>
             <Text variant="heading" numberOfLines={1}>{shopName}</Text>
             <RatingStars value={stats.rating} count={stats.reviewCount} size={13} style={styles.heroStars} />
-            {joinedYear ? (
-              <Text variant="caption" style={styles.joined}>Tham gia từ {joinedYear}</Text>
-            ) : null}
+            <Text variant="caption" style={styles.joined}>
+              {fcount ? `${fcount.follower} người theo dõi` : ''}
+              {fcount && joinedYear ? ' · ' : ''}
+              {joinedYear ? `Tham gia từ ${joinedYear}` : ''}
+            </Text>
           </View>
         </View>
 
@@ -103,14 +115,30 @@ export default function ShopScreen() {
         </View>
 
         {!isMe ? (
-          <Pressable
-            style={styles.msgBtn}
-            onPress={onMessage}
-            disabled={startChat.isPending || items.length === 0}
-            accessibilityRole="button">
-            <Feather name="message-circle" size={16} color={Palette.brand} />
-            <Text style={styles.msgText}>{startChat.isPending ? 'Đang mở…' : 'Nhắn shop'}</Text>
-          </Pressable>
+          <View style={styles.actionRow}>
+            <Pressable
+              style={[styles.followBtn, followed && styles.followBtnOn]}
+              onPress={onFollow}
+              disabled={toggleFollow.isPending}
+              accessibilityRole="button">
+              <Feather
+                name={followed ? 'check' : 'plus'}
+                size={16}
+                color={followed ? Palette.inkMuted : Palette.white}
+              />
+              <Text style={[styles.followText, followed && styles.followTextOn]}>
+                {followed ? 'Đang theo dõi' : 'Theo dõi'}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={styles.msgBtn}
+              onPress={onMessage}
+              disabled={startChat.isPending || items.length === 0}
+              accessibilityRole="button">
+              <Feather name="message-circle" size={16} color={Palette.brand} />
+              <Text style={styles.msgText}>{startChat.isPending ? 'Đang mở…' : 'Nhắn shop'}</Text>
+            </Pressable>
+          </View>
         ) : null}
       </View>
 
@@ -214,7 +242,24 @@ const styles = StyleSheet.create({
   statNum: { fontFamily: Font.extrabold, fontSize: 17, color: Palette.ink, fontVariant: ['tabular-nums'] },
   statLabel: { color: Palette.inkMuted },
   statDivider: { width: 1, alignSelf: 'stretch', backgroundColor: Palette.line, marginVertical: 4 },
+  actionRow: { flexDirection: 'row', gap: 10 },
+  followBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 11,
+    borderRadius: Radius.control,
+    borderWidth: 1,
+    borderColor: Palette.brand,
+    backgroundColor: Palette.brand,
+  },
+  followBtnOn: { backgroundColor: Palette.surfaceCard, borderColor: Palette.lineStrong },
+  followText: { fontFamily: Font.semibold, fontSize: 14, color: Palette.white },
+  followTextOn: { color: Palette.inkMuted },
   msgBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
