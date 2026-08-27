@@ -63,7 +63,7 @@ export function HomeHeader() {
           </Pressable>
           <Pressable style={styles.searchTap} onPress={() => openSearch()}>
             <Text style={styles.placeholder} numberOfLines={1}>
-              Tìm đồ cũ: máy tính, xe đạp…
+              Tìm đồ cũ & mới: máy tính, xe đạp…
             </Text>
             <Feather name="search" size={18} color={Palette.inkMuted} style={styles.searchIcon} />
           </Pressable>

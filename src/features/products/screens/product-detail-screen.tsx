@@ -53,7 +53,7 @@ export default function ProductDetailScreen() {
       <Pressable style={styles.searchPill} onPress={() => router.push('/search')}>
         <Feather name="search" size={16} color={Palette.inkMuted} />
         <Text style={styles.searchPlaceholder} numberOfLines={1}>
-          Tìm đồ cũ trên Zoldify
+          Tìm đồ cũ & mới trên Zoldify
         </Text>
       </Pressable>
       <Pressable style={styles.tbIcon} hitSlop={4} onPress={() => router.push('/messages')}>
