@@ -35,6 +35,7 @@ export default function ProductDetailScreen() {
   const reviewMap = useReviewStore((s) => s.byProduct);
   const addToCart = useAddToCart();
   const [mode, setMode] = useState<null | 'add' | 'buy'>(null);
+  const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const { data: cartCount = 0 } = useCartCount();
@@ -79,7 +80,7 @@ export default function ProductDetailScreen() {
     setErrMsg(null);
     setMode('add');
     addToCart.mutate(
-      { product_id: product!.id },
+      { product_id: product!.id, quantity: qty },
       {
         onSuccess: () => {
           setAdded(true);
@@ -98,7 +99,7 @@ export default function ProductDetailScreen() {
     // Mua ngay: thêm vào giỏ rồi vào THẲNG thanh toán, chỉ món này (param `only`).
     // Đặt xong backend tự xoá cart item nên không đọng trong giỏ.
     addToCart.mutate(
-      { product_id: product!.id },
+      { product_id: product!.id, quantity: qty },
       {
         onSuccess: (item) => router.push({ pathname: '/checkout', params: { only: item.id } }),
         onError: cartError,
@@ -203,6 +204,37 @@ export default function ProductDetailScreen() {
             {product.sold_count > 0 ? <Text variant="caption">Đã bán {product.sold_count}</Text> : null}
             {product.view_count > 0 ? <Text variant="caption">{product.view_count} lượt xem</Text> : null}
           </View>
+
+          {/* Số lượng — sàn bán CẢ đồ cũ (thường 1 món) lẫn mới (nhiều tồn kho).
+              stock>1: cho chọn số lượng; stock<=1: chỉ báo "còn 1". */}
+          {(product.stock ?? 1) > 1 ? (
+            <View style={styles.qtyRow}>
+              <Text variant="subheading">Số lượng</Text>
+              <View style={styles.stepper}>
+                <Pressable
+                  style={styles.stepBtn}
+                  disabled={qty <= 1}
+                  onPress={() => setQty((q) => Math.max(1, q - 1))}
+                  accessibilityLabel="Giảm số lượng">
+                  <Feather name="minus" size={16} color={qty <= 1 ? Palette.inkFaint : Palette.ink} />
+                </Pressable>
+                <Text style={styles.qtyVal}>{qty}</Text>
+                <Pressable
+                  style={styles.stepBtn}
+                  disabled={qty >= (product.stock ?? 1)}
+                  onPress={() => setQty((q) => Math.min(product.stock ?? 1, q + 1))}
+                  accessibilityLabel="Tăng số lượng">
+                  <Feather name="plus" size={16} color={qty >= (product.stock ?? 1) ? Palette.inkFaint : Palette.ink} />
+                </Pressable>
+              </View>
+              <Text variant="caption" style={styles.stockHint}>Còn {product.stock} sản phẩm</Text>
+            </View>
+          ) : (
+            <View style={styles.uniqueRow}>
+              <Feather name="check-circle" size={13} color={Palette.successFg} />
+              <Text variant="caption" style={styles.uniqueText}>Chỉ còn 1 sản phẩm</Text>
+            </View>
+          )}
 
           {/* Người bán — đồ cũ mua vì TIN người bán; hiện dữ liệu thật + lối nhắn. */}
           {seller ? (
@@ -390,6 +422,20 @@ const styles = StyleSheet.create({
   },
   ratingRow: { marginTop: 8 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 4, marginTop: 8 },
+  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14 },
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Palette.lineStrong,
+    borderRadius: Radius.control,
+    overflow: 'hidden',
+  },
+  stepBtn: { width: 34, height: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: Palette.surfaceCard },
+  qtyVal: { width: 40, textAlign: 'center', fontFamily: Font.semibold, fontSize: 15, color: Palette.ink, fontVariant: ['tabular-nums'] },
+  stockHint: { color: Palette.inkFaint },
+  uniqueRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 12 },
+  uniqueText: { color: Palette.inkMuted },
   divider: { height: 1, backgroundColor: Palette.lineStrong, marginVertical: 16 },
   descHead: { marginBottom: 8 },
   desc: { color: Palette.ink },
