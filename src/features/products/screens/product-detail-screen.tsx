@@ -2,7 +2,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { StatusBar } from 'expo-status-bar';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/avatar';
@@ -15,6 +15,7 @@ import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProduct } from '@/features/products/api';
 import { CONDITION_LABEL, isFreshCondition } from '@/features/products/filters';
 import { RelatedRail } from '@/features/products/components/related-rail';
+import { ProductDetailSkeleton } from '@/features/products/components/product-detail-skeleton';
 import { useStartConversation } from '@/features/chat/api';
 import { productRating, productReviews, sellerStats } from '@/features/reviews/mock';
 import { ReviewCard } from '@/features/reviews/components/review-card';
@@ -112,9 +113,7 @@ export default function ProductDetailScreen() {
     return (
       <View style={styles.root}>
         {topBar}
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={Palette.brand} />
-        </View>
+        <ProductDetailSkeleton />
       </View>
     );
   }
