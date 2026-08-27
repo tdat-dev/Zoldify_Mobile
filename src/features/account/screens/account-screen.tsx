@@ -61,6 +61,7 @@ export default function AccountScreen() {
           <View style={styles.menu}>
             <MenuRow icon="receipt-outline" label="Đơn mua" first onPress={() => router.push('/orders')} />
             <MenuRow icon="heart-outline" label="Đã lưu" onPress={() => router.push('/saved' as Href)} />
+            <MenuRow icon="storefront-outline" label="Shop đang theo dõi" onPress={() => router.push('/following' as Href)} />
             <MenuRow icon="location-outline" label="Địa chỉ của tôi" onPress={() => router.push('/addresses' as Href)} />
             {/* Buyer chưa bán: mời bắt đầu bán (cùng dẫn tới cài đặt shop lần đầu). */}
             {!isSeller ? (

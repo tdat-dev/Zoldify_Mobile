@@ -1,7 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import http from '@/lib/api/client';
-import type { ApiResponse } from '@/api';
+import type { ApiResponse, Paginated } from '@/api';
+
+/** Người bán trong danh sách đang theo dõi (map từ User entity của BE). */
+export interface FollowedUser {
+  id: number;
+  full_name?: string;
+  avatar?: string | null;
+  created_at?: string;
+}
 
 /**
  * Theo dõi người bán (BE module `follows`).
@@ -12,7 +20,20 @@ import type { ApiResponse } from '@/api';
 export const followKeys = {
   status: (sellerId: number) => ['follows', 'status', sellerId] as const,
   count: (sellerId: number) => ['follows', 'count', sellerId] as const,
+  following: (userId: number) => ['follows', 'following', userId] as const,
 };
+
+/** Danh sách shop mà `userId` đang theo dõi (trang 1). */
+export function useFollowing(userId?: number) {
+  return useQuery({
+    queryKey: followKeys.following(userId ?? 0),
+    queryFn: async () => {
+      const res = await http.get<ApiResponse<Paginated<FollowedUser>>>(`/follows/${userId}/following`);
+      return res.data.data.result;
+    },
+    enabled: Number.isFinite(userId) && (userId ?? 0) > 0,
+  });
+}
 
 /** Đang theo dõi seller này chưa? Chỉ chạy khi đã đăng nhập + có sellerId. */
 export function useFollowStatus(sellerId: number, enabled = true) {
