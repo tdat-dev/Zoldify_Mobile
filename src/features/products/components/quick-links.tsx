@@ -1,4 +1,4 @@
-import { Image } from 'expo-image';
+import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -6,24 +6,22 @@ import { Text } from '@/components/ui/text';
 import { Palette, Radius } from '@/components/ui/theme';
 
 /**
- * Hàng lối tắt icon — port từ web (components/home/QuickLinks.tsx). Web cắt
- * một sprite 3×2 (768×512) thành 6 ô; ở đây bê nguyên ảnh đó, đặt trong khung
- * 64×64 cắt bằng overflow + offset để giữ đúng hình minh hoạ, đúng thương hiệu.
- *
- * Các đích chưa có màn riêng (đơn mua/ví/tin nhắn) tạm dẫn về Tài khoản (khách
- * sẽ thấy cổng đăng nhập) — thay bằng route thật khi các màn đó xong.
+ * Hàng lối tắt — icon LINE phẳng (Feather) trong ô brand-tint, theo doctrine
+ * "sổ kê": không dùng sprite 3D nhiều màu (đã bỏ — trông như clip-art). Mỗi ô
+ * một hành động chính của chợ đồ cũ.
  */
-const CELL = 64; // cạnh mỗi ô hiển thị
-const SPRITE = require('../../../../assets/images/quick-links.png');
-
-const LINKS = [
-  { label: 'Đăng bán', col: 0, row: 0, href: '/sell' },
-  { label: 'Mới đăng', col: 1, row: 0, href: '/search' },
-  { label: 'Dưới 100k', col: 2, row: 0, href: '/search' },
-  { label: 'Đơn mua', col: 0, row: 1, href: '/account' },
-  { label: 'Ví của tôi', col: 1, row: 1, href: '/account' },
-  { label: 'Tin nhắn', col: 2, row: 1, href: '/account' },
-] as const;
+const LINKS: {
+  label: string;
+  icon: keyof typeof Feather.glyphMap;
+  href: string;
+}[] = [
+  { label: 'Đăng bán', icon: 'plus-circle', href: '/sell' },
+  { label: 'Mới đăng', icon: 'zap', href: '/search' },
+  { label: 'Dưới 100k', icon: 'tag', href: '/search' },
+  { label: 'Đơn mua', icon: 'package', href: '/orders' },
+  { label: 'Ví của tôi', icon: 'credit-card', href: '/account' },
+  { label: 'Tin nhắn', icon: 'message-circle', href: '/messages' },
+];
 
 export function QuickLinks() {
   return (
@@ -36,13 +34,11 @@ export function QuickLinks() {
           <Pressable
             key={l.label}
             style={styles.item}
-            onPress={() => router.push(l.href as never)}>
+            onPress={() => router.push(l.href as never)}
+            accessibilityRole="button"
+            accessibilityLabel={l.label}>
             <View style={styles.thumb}>
-              <Image
-                source={SPRITE}
-                style={[styles.sprite, { left: l.col * -CELL, top: l.row * -CELL }]}
-                contentFit="fill"
-              />
+              <Feather name={l.icon} size={24} color={Palette.brand} />
             </View>
             <Text variant="caption" numberOfLines={1} style={styles.label}>
               {l.label}
@@ -61,14 +57,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginBottom: 12,
   },
-  row: { gap: 2, paddingHorizontal: 6 },
-  item: { width: 84, alignItems: 'center', gap: 6, paddingHorizontal: 2 },
+  row: { gap: 4, paddingHorizontal: 8 },
+  item: { width: 76, alignItems: 'center', gap: 7, paddingHorizontal: 2 },
   thumb: {
-    width: CELL,
-    height: CELL,
+    width: 52,
+    height: 52,
     borderRadius: Radius.control,
-    overflow: 'hidden',
+    backgroundColor: Palette.brandTint,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  sprite: { position: 'absolute', width: CELL * 3, height: CELL * 2 },
   label: { textAlign: 'center', color: Palette.ink },
 });
