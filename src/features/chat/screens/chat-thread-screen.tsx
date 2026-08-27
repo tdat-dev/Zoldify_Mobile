@@ -29,15 +29,21 @@ import { useChatRealtime } from '@/features/chat/realtime';
 import { timeAgo } from '@/lib/format';
 import { mediaUrl } from '@/lib/media';
 
-function Bubble({ msg, mine }: { msg: ChatMessage; mine: boolean }) {
+function Bubble({ msg, mine, receipt }: { msg: ChatMessage; mine: boolean; receipt?: 'sent' | 'seen' }) {
   return (
-    <View style={[styles.bubbleRow, mine ? styles.rowMine : styles.rowTheirs]}>
-      <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
-        {msg.content ? (
-          <Text style={[styles.msgText, mine && styles.msgTextMine]}>{msg.content}</Text>
-        ) : null}
-        <Text style={[styles.msgTime, mine && styles.msgTimeMine]}>{timeAgo(msg.created_at)}</Text>
+    <View>
+      <View style={[styles.bubbleRow, mine ? styles.rowMine : styles.rowTheirs]}>
+        <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
+          {msg.content ? (
+            <Text style={[styles.msgText, mine && styles.msgTextMine]}>{msg.content}</Text>
+          ) : null}
+          <Text style={[styles.msgTime, mine && styles.msgTimeMine]}>{timeAgo(msg.created_at)}</Text>
+        </View>
       </View>
+      {/* Trạng thái đọc: chỉ hiện dưới tin cuối của mình (kiểu Messenger). */}
+      {receipt ? (
+        <Text style={styles.receipt}>{receipt === 'seen' ? 'Đã xem' : 'Đã gửi'}</Text>
+      ) : null}
     </View>
   );
 }
@@ -58,6 +64,15 @@ export default function ChatThreadScreen() {
 
   const [text, setText] = useState('');
   const listRef = useRef<FlatList<ChatMessage>>(null);
+
+  // Tin (thật, không phải tin tạm id âm) cuối cùng do mình gửi -> gắn nhãn Đã xem/Đã gửi.
+  const lastMineId = (() => {
+    const list = messages ?? [];
+    for (let i = list.length - 1; i >= 0; i--) {
+      if (list[i].sender?.id === me?.id && list[i].id > 0) return list[i].id;
+    }
+    return null;
+  })();
 
   // Vào phòng là đánh dấu đã đọc.
   useEffect(() => {
@@ -124,7 +139,16 @@ export default function ChatThreadScreen() {
             ListEmptyComponent={
               <View style={styles.emptyMsg}><Text variant="bodyMuted">Gửi lời chào để bắt đầu nhé.</Text></View>
             }
-            renderItem={({ item }) => <Bubble msg={item} mine={item.sender?.id === me?.id} />}
+            renderItem={({ item }) => {
+              const mine = item.sender?.id === me?.id;
+              return (
+                <Bubble
+                  msg={item}
+                  mine={mine}
+                  receipt={mine && item.id === lastMineId ? (item.is_read ? 'seen' : 'sent') : undefined}
+                />
+              );
+            }}
           />
         )}
 
@@ -194,6 +218,7 @@ const styles = StyleSheet.create({
   msgTextMine: { color: Palette.white },
   msgTime: { fontFamily: Font.regular, fontSize: 10.5, color: Palette.inkFaint, marginTop: 3, alignSelf: 'flex-end' },
   msgTimeMine: { color: 'rgba(255,255,255,0.75)' },
+  receipt: { fontFamily: Font.regular, fontSize: 11, color: Palette.inkFaint, alignSelf: 'flex-end', marginTop: 3, marginRight: 2 },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',

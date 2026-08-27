@@ -23,13 +23,19 @@ interface Props {
   footer?: ReactNode;
   /** Cho phép cuộn nội dung. */
   scroll?: boolean;
+  /**
+   * Căn giữa dọc nội dung khi nó NGẮN hơn màn (form đăng nhập/đăng ký) — nội
+   * dung dài thì tự cuộn từ trên. Chỉ có tác dụng khi scroll=true. Tránh cảnh
+   * nội dung dồn lên đầu để lại khoảng trống chết ở nửa dưới.
+   */
+  center?: boolean;
 }
 
 /**
  * Khung màn hình chung: nền surface, an toàn tai thỏ, header tối giản
  * (quay lại / huỷ / tiêu đề) và vùng footer dính đáy cho nút chính.
  */
-export function Screen({ children, onBack, onClose, title, footer, scroll }: Props) {
+export function Screen({ children, onBack, onClose, title, footer, scroll, center }: Props) {
   const insets = useSafeAreaInsets();
   const hasHeader = !!onBack || !!onClose || !!title;
 
@@ -61,7 +67,7 @@ export function Screen({ children, onBack, onClose, title, footer, scroll }: Pro
 
       {scroll ? (
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, center && styles.centerContent]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           {children}
@@ -97,7 +103,8 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '45deg' }],
     marginLeft: 6,
   },
-  content: { paddingHorizontal: 24 },
+  content: { paddingHorizontal: 24, paddingVertical: 16 },
+  centerContent: { flexGrow: 1, justifyContent: 'center' },
   footer: {
     paddingHorizontal: 24,
     paddingTop: 12,

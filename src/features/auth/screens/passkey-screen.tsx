@@ -118,5 +118,5 @@ const styles = StyleSheet.create({
   },
   title: { textAlign: 'center' },
   body: { textAlign: 'center', marginTop: 12, paddingHorizontal: 8 },
-  error: { color: '#B32322', textAlign: 'center', marginTop: 18 },
+  error: { color: Palette.dangerFg, textAlign: 'center', marginTop: 18 },
 });

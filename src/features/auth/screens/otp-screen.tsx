@@ -6,6 +6,7 @@ import { OtpInput } from '@/components/ui/otp-input';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
+import { Palette } from '@/components/ui/theme';
 import { useSendRegisterOtp, useVerifyRegisterOtp } from '@/features/auth/api';
 import { useOnboardingStore } from '@/features/onboarding/store';
 
@@ -30,16 +31,7 @@ export default function OtpScreen() {
   };
 
   return (
-    <Screen
-      onBack={() => router.back()}
-      footer={
-        <Button
-          title="Xác nhận"
-          onPress={onSubmit}
-          loading={verify.isPending}
-          disabled={otp.length < 6 || verify.isPending}
-        />
-      }>
+    <Screen scroll center onBack={() => router.back()}>
       <View style={styles.head}>
         <Text variant="title">Nhập mã xác thực</Text>
         <Text variant="bodyMuted" style={styles.sub}>
@@ -58,9 +50,17 @@ export default function OtpScreen() {
         </Text>
       ) : null}
 
+      <Button
+        title="Xác nhận"
+        onPress={onSubmit}
+        loading={verify.isPending}
+        disabled={otp.length < 6 || verify.isPending}
+        style={styles.cta}
+      />
+
       <Pressable
         style={styles.resend}
-        hitSlop={8}
+        hitSlop={10}
         disabled={resend.isPending}
         onPress={() => resend.mutate({ email, full_name: fullName })}>
         <Text variant="bodyMuted">Chưa nhận được mã? </Text>
@@ -73,7 +73,14 @@ export default function OtpScreen() {
 const styles = StyleSheet.create({
   head: { marginTop: 8, marginBottom: 28 },
   sub: { marginTop: 8 },
-  email: { color: '#0F172A' },
-  error: { color: '#B32322', marginTop: 14 },
-  resend: { flexDirection: 'row', alignItems: 'center', marginTop: 22 },
+  email: { color: Palette.ink },
+  error: { color: Palette.dangerFg, marginTop: 14 },
+  cta: { marginTop: 28 },
+  resend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 44,
+    marginTop: 16,
+  },
 });

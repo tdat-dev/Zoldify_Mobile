@@ -29,7 +29,7 @@ export function TabPlaceholder({ title, note }: { title: string; note?: string }
               {note ?? `Cần đăng nhập để dùng ${title.toLowerCase()}.`}
             </Text>
             <View style={styles.cta}>
-              <Button title="Đăng nhập" onPress={() => router.push('/welcome')} />
+              <Button title="Đăng nhập" onPress={() => router.push('/login')} />
             </View>
           </>
         ) : (

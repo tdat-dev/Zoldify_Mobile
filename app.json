@@ -9,7 +9,16 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.zoldify.app"
+      "bundleIdentifier": "com.zoldify.app",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.1031347416096-fs98nutveg455ipeh44amtucuq6sl7g3"
+            ]
+          }
+        ]
+      }
     },
     "android": {
       "package": "com.zoldify.app",
@@ -35,7 +44,8 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
