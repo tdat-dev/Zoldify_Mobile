@@ -20,6 +20,7 @@ import { Pressable, Text, View, useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { useAuthStore } from '@/features/auth/store';
+import { usePushNotifications } from '@/features/notifications/push';
 import { useWishlistStore } from '@/features/wishlist/store';
 import { useReviewStore } from '@/features/reviews/store';
 import { setOnSessionExpired } from '@/lib/api/client';
@@ -96,6 +97,9 @@ export default function RootLayout() {
     BeVietnamPro_700Bold,
     BeVietnamPro_800ExtraBold,
   });
+
+  // Push (FCM): đăng ký token khi đăng nhập + điều hướng khi bấm thông báo.
+  usePushNotifications();
 
   useEffect(() => {
     // Đọc token lúc mở app, xác định phiên.

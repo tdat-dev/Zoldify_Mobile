@@ -41,6 +41,10 @@ example
 /ios
 /android
 
+# FCM config (public app config, nhưng không commit key)
+/google-services.json
+/GoogleService-Info.plist
+
 # Claude Code
 .claude/
 **/logs/

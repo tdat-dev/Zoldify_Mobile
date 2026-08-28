@@ -63,6 +63,16 @@ export function useUnreadCount() {
   });
 }
 
+/** Đăng ký token thiết bị (FCM) để nhận push. Gọi sau khi đăng nhập. */
+export async function savePushToken(token: string, platform = 'android') {
+  await http.post('/notifications/push-token', { token, platform });
+}
+
+/** Gỡ token khi đăng xuất để thiết bị thôi nhận push của user cũ. */
+export async function removePushToken(token: string) {
+  await http.delete('/notifications/push-token', { data: { token } });
+}
+
 export function useMarkNotificationRead() {
   const qc = useQueryClient();
   return useMutation({

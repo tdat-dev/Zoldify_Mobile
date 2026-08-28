@@ -22,6 +22,7 @@
     },
     "android": {
       "package": "com.zoldify.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -45,7 +46,13 @@
         }
       ],
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "color": "#2C67C8"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
