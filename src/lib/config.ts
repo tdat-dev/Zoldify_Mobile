@@ -16,6 +16,13 @@ export const API_ORIGIN = env.API_ORIGIN;
  */
 export const MEDIA_ORIGIN = env.MEDIA_ORIGIN;
 
+/**
+ * Gốc web storefront (zoldify.com) — dùng cho link CHIA SẺ ra ngoài app để
+ * người nhận mở được trên trình duyệt (route web là `/product/:id`). Cùng host
+ * với media nên tái dùng MEDIA_ORIGIN; ở prod `.env.local` trỏ về zoldify.com.
+ */
+export const WEB_ORIGIN = MEDIA_ORIGIN;
+
 /** Gốc cho mọi request REST. Service chỉ cần viết '/products', '/orders'. */
 export const API_URL = `${API_ORIGIN}/api/v1`;
 

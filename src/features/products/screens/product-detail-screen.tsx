@@ -24,6 +24,7 @@ import { useAddToCart, useCartCount } from '@/features/cart/api';
 import { useAuthStore } from '@/features/auth/store';
 import { useRequireAuth } from '@/features/auth/use-require-auth';
 import { formatVnd } from '@/lib/format';
+import { shareProduct } from '@/lib/share';
 
 /** Chi tiết sản phẩm — token web: giá đỏ, góc 4px, badge tình trạng. */
 export default function ProductDetailScreen() {
@@ -165,6 +166,15 @@ export default function ProductDetailScreen() {
           <ImageGallery images={images} />
           {/* Lưu (tim) nổi trên ảnh — hành vi lõi khi lướt đồ cũ. */}
           <HeartButton productId={product.id} floating style={styles.heart} />
+          {/* Chia sẻ ra ngoài (link web) — cạnh trái tim. */}
+          <Pressable
+            style={styles.share}
+            hitSlop={8}
+            onPress={() => shareProduct(product)}
+            accessibilityRole="button"
+            accessibilityLabel="Chia sẻ sản phẩm">
+            <Feather name="share-2" size={18} color={Palette.ink} />
+          </Pressable>
         </View>
 
         <View style={styles.body}>
@@ -365,6 +375,17 @@ const styles = StyleSheet.create({
   pad: { paddingHorizontal: 24 },
   retry: { alignSelf: 'stretch', paddingHorizontal: 24, gap: 8 },
   heart: { position: 'absolute', top: 12, right: 12 },
+  share: {
+    position: 'absolute',
+    top: 12,
+    right: 54,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   topbar: {
     flexDirection: 'row',
     alignItems: 'center',
