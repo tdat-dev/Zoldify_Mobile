@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Font, Palette } from '@/components/ui/theme';
 import { useAuthStore } from '@/features/auth/store';
+import { useUnreadCount } from '@/features/notifications/api';
 
 /**
  * Tab chỉ dùng được khi đã đăng nhập. Khách chạm vào → bung THẲNG form
@@ -37,6 +38,8 @@ interface TabBarProps {
 function TabBar({ state, descriptors, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
   const guest = useAuthStore((s) => s.status) !== 'signedIn';
+  // Số thông báo chưa đọc → chấm số trên tab Thông báo (khách không hỏi).
+  const unread = useUnreadCount(!guest).data ?? 0;
 
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
@@ -94,6 +97,11 @@ function TabBar({ state, descriptors, navigation }: TabBarProps) {
             accessibilityState={focused ? { selected: true } : {}}>
             <View style={styles.icon}>
               {options.tabBarIcon?.({ focused, color, size: 24 })}
+              {route.name === 'notifications' && unread > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{unread > 99 ? '99+' : String(unread)}</Text>
+                </View>
+              ) : null}
             </View>
             <Text style={[styles.label, { color }]} numberOfLines={1}>
               {label}
@@ -157,6 +165,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   icon: { height: 26, alignItems: 'center', justifyContent: 'center' },
+  // Chấm số chưa đọc, nổi góc trên-phải chuông. Đỏ cảnh báo, viền trắng để tách.
+  badge: {
+    position: 'absolute',
+    top: -6,
+    left: 14,
+    minWidth: 17,
+    height: 17,
+    borderRadius: 999,
+    paddingHorizontal: 4,
+    backgroundColor: Palette.price,
+    borderWidth: 1.5,
+    borderColor: Palette.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { fontFamily: Font.bold, fontSize: 10, lineHeight: 12, color: Palette.white },
   // lineHeight 15 cho fontSize 11 → đủ chỗ dấu + chân chữ tiếng Việt.
   // alignSelf:stretch để nhãn LẤP đủ bề rộng ô (item alignItems:center không
   // stretch → Text numberOfLines=1 không có bề rộng xác định, Android đo mơ hồ

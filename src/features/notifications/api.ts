@@ -50,8 +50,8 @@ export function useNotifications(limit = 20) {
   });
 }
 
-/** Số thông báo chưa đọc — cho badge trên tab. */
-export function useUnreadCount() {
+/** Số thông báo chưa đọc — cho badge trên tab. `enabled=false` cho khách (tránh 401). */
+export function useUnreadCount(enabled = true) {
   return useQuery({
     queryKey: notificationKeys.unread(),
     queryFn: async () => {
@@ -60,6 +60,9 @@ export function useUnreadCount() {
       );
       return res.data.data.unread_count;
     },
+    enabled,
+    // Làm tươi định kỳ để badge phản ánh push mới cả khi không mở tab Thông báo.
+    refetchInterval: enabled ? 30000 : false,
   });
 }
 
