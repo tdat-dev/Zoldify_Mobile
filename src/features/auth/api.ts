@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 import http from '@/lib/api/client';
 import { tokenStore } from '@/lib/auth/token-store';
@@ -27,6 +27,8 @@ export interface ProfileUser {
   avatar?: string | null;
   phone_number?: string | null;
   gender?: string | null;
+  /** Đã có mật khẩu chưa (false = tài khoản Google/social, hiện "Đặt mật khẩu"). */
+  has_password?: boolean;
 }
 
 export interface ProfileInput {
@@ -90,8 +92,8 @@ export const authApi = {
     });
   },
 
-  async profile(): Promise<AuthUser> {
-    const res = await http.get<ApiResponse<AuthUser>>('/auth/profile');
+  async profile(): Promise<ProfileUser> {
+    const res = await http.get<ApiResponse<ProfileUser>>('/auth/profile');
     return res.data.data;
   },
 
@@ -101,10 +103,13 @@ export const authApi = {
     return res.data.data;
   },
 
-  /** Đổi mật khẩu (đang đăng nhập) — POST /auth/change-password. */
-  async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+  /**
+   * Đổi/ĐẶT mật khẩu (đang đăng nhập) — POST /auth/change-password.
+   * `oldPassword` bỏ trống khi tài khoản social đặt mật khẩu lần đầu.
+   */
+  async changePassword(oldPassword: string | undefined, newPassword: string): Promise<void> {
     await http.post<ApiResponse<MessageResponse>>('/auth/change-password', {
-      oldPassword,
+      ...(oldPassword ? { oldPassword } : {}),
       newPassword,
     });
   },
@@ -173,10 +178,19 @@ export function useUpdateProfile() {
   });
 }
 
-/** Đổi mật khẩu. */
+/** Đổi/đặt mật khẩu. `oldPassword` bỏ trống khi đặt lần đầu (tài khoản social). */
 export function useChangePassword() {
   return useMutation({
-    mutationFn: (v: { oldPassword: string; newPassword: string }) =>
+    mutationFn: (v: { oldPassword?: string; newPassword: string }) =>
       authApi.changePassword(v.oldPassword, v.newPassword),
+  });
+}
+
+/** Hồ sơ của chính mình (kèm has_password) — cho màn Đổi/Đặt mật khẩu. */
+export function useProfile(enabled = true) {
+  return useQuery({
+    queryKey: authKeys.profile(),
+    queryFn: () => authApi.profile(),
+    enabled,
   });
 }

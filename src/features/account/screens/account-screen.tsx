@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useAuthStore } from '@/features/auth/store';
+import { useProfile } from '@/features/auth/api';
 import { RelatedRail } from '@/features/products/components/related-rail';
 
 /** Một dòng lối tắt trong Tài khoản — icon + nhãn + chevron, phẳng hairline. */
@@ -37,6 +38,9 @@ export default function AccountScreen() {
   const status = useAuthStore((s) => s.status);
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
+  // Đã có mật khẩu chưa → menu hiện "Đặt mật khẩu" cho tài khoản Google.
+  const { data: profile } = useProfile(status === 'signedIn');
+  const hasPassword = profile?.has_password;
 
   // Người bán mới có khu quản lý shop; buyer chỉ được mời "bắt đầu bán hàng".
   const isSeller = user ? ['seller', 'admin', 'moderator'].includes(user.role) : false;
@@ -85,7 +89,7 @@ export default function AccountScreen() {
           </View>
 
           <View style={styles.menu}>
-            <MenuRow icon="lock-closed-outline" label="Đổi mật khẩu" first onPress={() => router.push('/change-password' as Href)} />
+            <MenuRow icon="lock-closed-outline" label={hasPassword === false ? 'Đặt mật khẩu' : 'Đổi mật khẩu'} first onPress={() => router.push('/change-password' as Href)} />
           </View>
 
           <View style={styles.actions}>
