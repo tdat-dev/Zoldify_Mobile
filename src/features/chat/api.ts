@@ -42,6 +42,23 @@ export function useConversations() {
 }
 
 /**
+ * Tổng số hội thoại CÓ tin chưa đọc — cho chấm trên icon Tin nhắn ở header.
+ * Đếm theo hội thoại (như Messenger/Shopee) chứ không cộng dồn từng tin.
+ * `enabled=false` cho khách (tránh 401); poll 30s để bắt tin mới.
+ */
+export function useChatUnreadTotal(enabled = true) {
+  return useQuery({
+    queryKey: [...chatKeys.conversations(), 'unread-total'] as const,
+    queryFn: async () => {
+      const res = await http.get<ApiResponse<{ result: Conversation[] }>>('/chat/conversations');
+      return res.data.data.result.filter((c) => (c.unread_count ?? 0) > 0).length;
+    },
+    enabled,
+    refetchInterval: enabled ? 30000 : false,
+  });
+}
+
+/**
  * Tin nhắn của một hội thoại. BE trả mới-nhất-trước; ta đảo về cũ→mới để hiển
  * thị (tin mới ở đáy). Realtime chính đi qua socket (useChatRealtime); giữ poll
  * chậm 20s làm lưới an toàn phòng khi WebSocket rớt/bị chặn.

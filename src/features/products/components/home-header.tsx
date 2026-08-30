@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useCartCount } from '@/features/cart/api';
+import { useChatUnreadTotal } from '@/features/chat/api';
+import { useAuthStore } from '@/features/auth/store';
 import { PRICE_SCOPES, type PriceScope } from '@/features/products/price-scopes';
 
 /**
@@ -41,7 +43,9 @@ function IconButton({
 
 export function HomeHeader() {
   const insets = useSafeAreaInsets();
+  const guest = useAuthStore((s) => s.status) !== 'signedIn';
   const { data: cartCount = 0 } = useCartCount();
+  const { data: chatUnread = 0 } = useChatUnreadTotal(!guest);
   const [scopeOpen, setScopeOpen] = useState(false);
 
   const openSearch = (scope?: PriceScope) => {
@@ -69,7 +73,7 @@ export function HomeHeader() {
           </Pressable>
         </View>
 
-        <IconButton name="message-circle" onPress={() => router.push('/messages')} />
+        <IconButton name="message-circle" onPress={() => router.push('/messages')} badge={chatUnread} />
         <IconButton name="shopping-cart" onPress={() => router.push('/cart')} badge={cartCount} />
       </View>
 
