@@ -38,21 +38,15 @@ export const googleConfigured = Boolean(FIREBASE_CONFIG.apiKey && GOOGLE_CLIENT_
 /**
  * Có nên HIỆN nút Google ở đây không.
  *
- * Trên WEB, expo-auth-session tạo PKCE bằng WebCrypto — thứ chỉ tồn tại ở
- * "secure origin" (localhost hoặc https). Khi mở app qua LAN `http://<IP>:8081`
- * (test trên điện thoại) thì origin KHÔNG secure → gọi sẽ ném lỗi
- * "Access to the WebCrypto API is restricted to secure origins" và làm hỏng
- * màn. Vậy chỉ hiện nút khi: native (không phải web), hoặc web ở secure origin.
+ * Dùng Google Identity Services NATIVE (@react-native-google-signin) — module
+ * native, KHÔNG chạy trên web. Vậy web luôn ẩn nút.
  *
- * Trên NATIVE, còn loại trừ **Expo Go** (`storeClient`): app chạy dưới danh
- * tính Expo Go (bundle host.exp.Exponent), không phải `com.zoldify.app`, nên
- * redirect OAuth của Google không khớp client ID → không về được. Google gốc
- * chỉ chạy trên **dev build / standalone**.
+ * Trên NATIVE, còn loại trừ **Expo Go** (`storeClient`): Expo Go không nhúng
+ * module native của GSI (và chạy dưới bundle host.exp.Exponent, không phải
+ * `com.zoldify.app`). Google native chỉ chạy trên **dev build / standalone**.
  */
 export function googleAvailable(): boolean {
   if (!googleConfigured) return false;
-  if (Platform.OS === 'web') {
-    return typeof window !== 'undefined' && window.isSecureContext === true;
-  }
+  if (Platform.OS === 'web') return false;
   return Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
 }
