@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import http from '@/lib/api/client';
 import { tokenStore } from '@/lib/auth/token-store';
@@ -180,9 +180,12 @@ export function useUpdateProfile() {
 
 /** Đổi/đặt mật khẩu. `oldPassword` bỏ trống khi đặt lần đầu (tài khoản social). */
 export function useChangePassword() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (v: { oldPassword?: string; newPassword: string }) =>
       authApi.changePassword(v.oldPassword, v.newPassword),
+    // Đặt mật khẩu xong → has_password đổi → làm mới hồ sơ để menu cập nhật nhãn.
+    onSuccess: () => qc.invalidateQueries({ queryKey: authKeys.profile() }),
   });
 }
 
