@@ -106,12 +106,23 @@ export const authApi = {
   /**
    * Đổi/ĐẶT mật khẩu (đang đăng nhập) — POST /auth/change-password.
    * `oldPassword` bỏ trống khi tài khoản social đặt mật khẩu lần đầu.
+   *
+   * BE thu hồi mọi phiên khác (tăng token_version) và cấp TOKEN MỚI cho phiên
+   * này — phải lưu ngay, nếu không request kế tiếp sẽ mang token cũ (đã bị vô
+   * hiệu) → chính mình bị đá ra.
    */
   async changePassword(oldPassword: string | undefined, newPassword: string): Promise<void> {
-    await http.post<ApiResponse<MessageResponse>>('/auth/change-password', {
-      ...(oldPassword ? { oldPassword } : {}),
-      newPassword,
-    });
+    const res = await http.post<ApiResponse<{ access_token?: string; refresh_token?: string }>>(
+      '/auth/change-password',
+      {
+        ...(oldPassword ? { oldPassword } : {}),
+        newPassword,
+      },
+    );
+    const data = res.data.data;
+    if (data?.access_token && data?.refresh_token) {
+      await tokenStore.save(data.access_token, data.refresh_token);
+    }
   },
 
   /**
