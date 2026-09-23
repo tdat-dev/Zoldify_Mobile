@@ -2,9 +2,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
+import { KEYBOARD_GAP } from '@/components/ui/screen';
 import { PhotoUploadGrid } from '@/components/ui/photo-upload-grid';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
@@ -99,7 +101,8 @@ export default function SellScreen() {
         <Text variant="title">Đăng bán</Text>
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
+        bottomOffset={KEYBOARD_GAP}
         contentContainerStyle={styles.body}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
@@ -189,7 +192,7 @@ export default function SellScreen() {
             </View>
           ) : null}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <Button

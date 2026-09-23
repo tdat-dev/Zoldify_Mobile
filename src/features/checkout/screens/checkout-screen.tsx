@@ -4,9 +4,11 @@ import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackChevron } from '@/components/ui/back-chevron';
+import { KEYBOARD_GAP } from '@/components/ui/screen';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
@@ -174,7 +176,8 @@ export default function CheckoutScreen() {
   return (
     <View style={styles.root}>
       {header}
-      <ScrollView
+      <KeyboardAwareScrollView
+        bottomOffset={KEYBOARD_GAP}
         contentContainerStyle={styles.body}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
@@ -317,7 +320,7 @@ export default function CheckoutScreen() {
             <Text variant="caption" style={styles.errText}>{errMsg}</Text>
           </View>
         ) : null}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Bảng chọn địa chỉ đã lưu */}
       <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>

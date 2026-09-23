@@ -4,13 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -122,10 +121,13 @@ export default function ChatThreadScreen() {
         </Pressable>
       ) : null}
 
+      {/* Tự đo vị trí trên màn (automaticOffset); trừ insets.bottom vì thanh nhập
+          đã chừa sẵn khoảng đó — khi bàn phím mở, nó nằm sát mép bàn phím. */}
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={insets.top + 44}>
+        behavior="padding"
+        automaticOffset
+        keyboardVerticalOffset={-insets.bottom}>
         {isPending ? (
           <View style={styles.center}><ActivityIndicator size="large" color={Palette.brand} /></View>
         ) : (

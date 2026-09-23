@@ -2,10 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/avatar';
+import { KEYBOARD_GAP } from '@/components/ui/screen';
 import { BackChevron } from '@/components/ui/back-chevron';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
@@ -113,7 +115,7 @@ export default function ProfileEditScreen() {
   return (
     <View style={styles.root}>
       {header}
-      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView bottomOffset={KEYBOARD_GAP} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Pressable style={styles.avatarWrap} onPress={pickAvatar} disabled={uploading}>
           <Avatar name={name} uri={avatar} size={96} />
           <View style={styles.avatarEdit}>
@@ -155,7 +157,7 @@ export default function ProfileEditScreen() {
         {err ? (
           <View style={styles.errBanner}><Text style={styles.errText}>{err}</Text></View>
         ) : null}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <Button

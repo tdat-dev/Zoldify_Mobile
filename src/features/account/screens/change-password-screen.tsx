@@ -1,9 +1,11 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackChevron } from '@/components/ui/back-chevron';
+import { KEYBOARD_GAP } from '@/components/ui/screen';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
@@ -65,7 +67,7 @@ export default function ChangePasswordScreen() {
         <Text variant="title">{title}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView bottomOffset={KEYBOARD_GAP} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {isSetMode ? (
           <Text variant="bodyMuted" style={styles.note}>
             Tài khoản của bạn đăng nhập bằng Google. Đặt mật khẩu để có thể đăng nhập cả bằng email.
@@ -97,7 +99,7 @@ export default function ChangePasswordScreen() {
         ) : err ? (
           <View style={styles.errBanner}><Text style={styles.errText}>{err}</Text></View>
         ) : null}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <Button

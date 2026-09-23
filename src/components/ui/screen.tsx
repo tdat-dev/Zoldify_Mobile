@@ -1,12 +1,10 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import {
   KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+  KeyboardAwareScrollView,
+  KeyboardStickyView,
+} from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from './text';
@@ -38,11 +36,16 @@ interface Props {
 export function Screen({ children, onBack, onClose, title, footer, scroll, center }: Props) {
   const insets = useSafeAreaInsets();
   const hasHeader = !!onBack || !!onClose || !!title;
+  const [footerHeight, setFooterHeight] = useState(0);
 
+  // Android bật edge-to-edge nên cửa sổ KHÔNG tự co khi bàn phím mở — phải tự
+  // né: màn cuộn thì cuộn ô đang nhập lên trên bàn phím (footer dính theo mép
+  // trên bàn phím, nên chừa thêm chiều cao footer); màn tĩnh thì đệm đáy.
   return (
     <KeyboardAvoidingView
       style={[styles.root, { paddingTop: insets.top }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      behavior="padding"
+      enabled={!scroll}>
       {hasHeader ? (
         <View style={styles.header}>
           <View style={styles.headerSide}>
@@ -66,22 +69,32 @@ export function Screen({ children, onBack, onClose, title, footer, scroll, cente
       ) : null}
 
       {scroll ? (
-        <ScrollView
+        <KeyboardAwareScrollView
+          bottomOffset={KEYBOARD_GAP + footerHeight}
           contentContainerStyle={[styles.content, center && styles.centerContent]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           {children}
-        </ScrollView>
+        </KeyboardAwareScrollView>
       ) : (
         <View style={[styles.content, styles.flex]}>{children}</View>
       )}
 
       {footer ? (
-        <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>{footer}</View>
+        <KeyboardStickyView enabled={!!scroll} offset={{ closed: 0, opened: insets.bottom }}>
+          <View
+            style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}
+            onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}>
+            {footer}
+          </View>
+        </KeyboardStickyView>
       ) : null}
     </KeyboardAvoidingView>
   );
 }
+
+/** Khoảng hở giữa ô đang nhập và mép trên bàn phím. */
+export const KEYBOARD_GAP = 24;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Palette.surfacePage },

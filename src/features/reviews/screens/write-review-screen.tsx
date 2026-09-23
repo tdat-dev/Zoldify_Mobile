@@ -1,10 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackChevron } from '@/components/ui/back-chevron';
+import { KEYBOARD_GAP } from '@/components/ui/screen';
 import { Button } from '@/components/ui/button';
 import { PhotoUploadGrid } from '@/components/ui/photo-upload-grid';
 import { Text } from '@/components/ui/text';
@@ -66,7 +68,7 @@ export default function WriteReviewScreen() {
         <Text variant="title">Viết đánh giá</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView bottomOffset={KEYBOARD_GAP} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {product?.name ? (
           <Text variant="bodyMuted" numberOfLines={1} style={styles.product}>{product.name}</Text>
         ) : null}
@@ -104,7 +106,7 @@ export default function WriteReviewScreen() {
         </View>
 
         {err ? <View style={styles.errBanner}><Text style={styles.errText}>{err}</Text></View> : null}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <Button title={submitting ? 'Đang gửi…' : 'Gửi đánh giá'} onPress={onSubmit} loading={submitting} />
