@@ -42,7 +42,7 @@ example
 /android
 
 # FCM config (public app config, nhưng không commit key)
-/google-services.json
+# /google-services.json  # Tạm bỏ ignore để EAS Build upload được
 /GoogleService-Info.plist
 
 # Claude Code

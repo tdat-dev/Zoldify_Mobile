@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "611359931569",
+    "project_id": "zoldify-d2040",
+    "storage_bucket": "zoldify-d2040.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:611359931569:android:d1fe9197836d4f8b693690",
+        "android_client_info": {
+          "package_name": "com.zoldify.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "611359931569-vi0q77p9uabp0l3p4oqsovt6p9kncsve.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDVWJSGjFA2eztYfXgiwBuWxgk5oTSeW6s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "611359931569-vi0q77p9uabp0l3p4oqsovt6p9kncsve.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
