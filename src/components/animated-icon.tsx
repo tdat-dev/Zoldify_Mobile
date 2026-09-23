@@ -1,9 +1,11 @@
 import { Image } from 'expo-image';
 import * as SplashScreen from 'expo-splash-screen';
 import { useState } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
+
+import { Font } from '@/components/ui/theme';
 
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
 const DURATION = 600;
@@ -33,7 +35,7 @@ export function AnimatedSplashOverlay() {
     },
   });
 
-  const image = <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />;
+  const image = <Text style={styles.zMark}>Z</Text>;
 
   return animate ? (
     <Animated.View
@@ -130,6 +132,12 @@ const styles = StyleSheet.create({
   image: {
     width: 76,
     height: 71,
+  },
+  zMark: {
+    fontFamily: Font.extrabold,
+    fontSize: 68,
+    lineHeight: 76,
+    color: '#FFFFFF',
   },
   background: {
     borderRadius: 40,

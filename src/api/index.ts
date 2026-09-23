@@ -48,6 +48,9 @@ export type LoginResponse = Schemas['LoginResponseDto'];
 export type AuthUser = Schemas['AuthUserDto'];
 export type MessageResponse = Schemas['MessageResponseDto'];
 
+export type SendRegisterOtpDto = Schemas['SendRegisterOtpDto'];
+export type VerifyRegisterOtpDto = Schemas['VerifyRegisterOtpDto'];
+
 export type CreateProductDto = Schemas['CreateProductDto'];
 export type CreateOrderDto = Schemas['CreateOrderDto'];
 export type CreateCartDto = Schemas['CreateCartDto'];
