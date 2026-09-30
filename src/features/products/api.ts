@@ -83,6 +83,7 @@ export function useProduct(id: number) {
 export function useCreateProduct() {
   const qc = useQueryClient();
   return useMutation({
+    meta: { handlesError: true },
     mutationFn: async (dto: CreateProductDto) => {
       const res = await http.post<ApiResponse<Product>>('/products', dto);
       return res.data.data;

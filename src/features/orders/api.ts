@@ -54,6 +54,7 @@ export function useOrder(id: number) {
 /** Báo giá phí ship theo địa chỉ nhận (GHN) — server tính từ pickup người bán. */
 export function useShippingQuote() {
   return useMutation({
+    meta: { handlesError: true },
     mutationFn: async (input: {
       to_district_id: number;
       to_ward_code: string;
@@ -69,6 +70,7 @@ export function useShippingQuote() {
 export function useCreateOrder() {
   const qc = useQueryClient();
   return useMutation({
+    meta: { handlesError: true },
     mutationFn: async (dto: CreateOrderDto) => {
       const res = await http.post<ApiResponse<Order>>('/orders', dto);
       return res.data.data;
