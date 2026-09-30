@@ -14,9 +14,28 @@ export interface ShippingQuoteItem {
   error?: string;
 }
 export interface ShippingQuote {
+  /**
+   * false khi có người bán GHN không tính được phí (phần đó fee = 0 kèm error).
+   * Số 0 lúc đó là "chưa biết", KHÔNG phải miễn phí. Backend cũ không có trường
+   * này, nên nơi dùng vẫn phải xét thêm `items[].error`.
+   */
+  ok?: boolean;
   total: number;
   items: ShippingQuoteItem[];
 }
+
+/** Vận đơn GHN của một người bán trong đơn (GET /orders/:id đính kèm). */
+export interface OrderShipment {
+  id: number;
+  status: 'created' | 'failed' | 'delivered' | 'received';
+  tracking_code: string | null;
+  /** Lý do GHN từ chối, khi status = failed. */
+  error: string | null;
+  seller?: { id: number; full_name?: string };
+}
+
+/** Chi tiết đơn kèm vận đơn (schema OpenAPI chưa khai trường này). */
+export type OrderDetail = Order & { shipments?: OrderShipment[] };
 
 export const orderKeys = {
   all: ['orders'] as const,
@@ -44,7 +63,7 @@ export function useOrder(id: number) {
   return useQuery({
     queryKey: orderKeys.detail(id),
     queryFn: async () => {
-      const res = await http.get<ApiResponse<Order>>(`/orders/${id}`);
+      const res = await http.get<ApiResponse<OrderDetail>>(`/orders/${id}`);
       return res.data.data;
     },
     enabled: Number.isFinite(id),

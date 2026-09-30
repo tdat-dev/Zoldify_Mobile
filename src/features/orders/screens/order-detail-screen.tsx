@@ -105,6 +105,9 @@ export default function OrderDetailScreen() {
   const canCancel = order.status === 'pending' || order.status === 'confirmed';
   const canReceive = order.status === 'shipping';
   const canReview = order.status === 'delivered';
+  // Vận đơn GHN bị từ chối: nói rõ cho người mua thay vì để đơn nằm im ở "Đã
+  // xác nhận" (lỗi H-08 test E2E, đơn ORD-20260930-785).
+  const failedShipment = order.shipments?.find((s) => s.status === 'failed');
 
   const onReceive = () => {
     sellerIds.forEach((sid) => confirm.mutate({ orderId: order.id, sellerId: sid }));
@@ -120,6 +123,16 @@ export default function OrderDetailScreen() {
             {order.tracking_code ? <Text variant="caption">Vận đơn: {order.tracking_code}</Text> : null}
           </View>
           <Timeline status={order.status} />
+          {failedShipment ? (
+            <View style={styles.shipFail}>
+              <Ionicons name="alert-circle-outline" size={16} color={Palette.dangerFg} />
+              <Text variant="caption" style={styles.shipFailText}>
+                Người bán chưa tạo được vận đơn GHN
+                {failedShipment.error ? `: ${failedShipment.error}` : ''}. Đơn sẽ được giao khi
+                người bán tạo lại vận đơn.
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.card}>
@@ -237,6 +250,8 @@ const styles = StyleSheet.create({
   },
   codeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   code: { fontFamily: Font.semibold, color: Palette.inkMuted },
+  shipFail: { flexDirection: 'row', gap: 6, marginTop: 12, alignItems: 'flex-start' },
+  shipFailText: { flex: 1, color: Palette.dangerFg },
   h: { marginBottom: 10 },
   addr: { marginTop: 4 },
   timeline: { flexDirection: 'row', justifyContent: 'space-between' },

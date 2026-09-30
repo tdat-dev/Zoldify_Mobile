@@ -98,6 +98,15 @@ export default function CheckoutScreen() {
     [items],
   );
   const shippingFee = quote.data?.total ?? 0;
+  // GHN không tính được phí thì server trả ok=false (hoặc error theo người
+  // bán). Trước đây app hiện "Miễn phí" và vẫn cho đặt: đơn đi Văn Giang (quận
+  // GHN đã ngừng phục vụ) lên 0đ rồi kẹt ở bước tạo vận đơn (lỗi H-07 test E2E).
+  const feeFailure = quote.data?.items.find((s) => s.error)?.error;
+  const feeError = quote.isError
+    ? 'Chưa tính được phí vận chuyển. Thử lại hoặc chọn địa chỉ khác nhé.'
+    : quote.data && (quote.data.ok === false || feeFailure)
+      ? `GHN chưa giao được tới địa chỉ này (${feeFailure ?? 'không rõ lý do'}). Chọn địa chỉ khác nhé.`
+      : null;
   const grandTotal = subtotal + shippingFee;
 
   const addressReady = !!address.receiver_name && !!address.receiver_phone && !!address.shipping_address;
@@ -291,7 +300,7 @@ export default function CheckoutScreen() {
           <View style={styles.sumRow}>
             <Text variant="bodyMuted">Phí vận chuyển</Text>
             <Text style={styles.sumValue}>
-              {!ghnReady ? 'Chọn địa chỉ' : quote.isPending ? 'Đang tính…' : shippingFee === 0 ? 'Miễn phí' : formatVnd(shippingFee)}
+              {!ghnReady ? 'Chọn địa chỉ' : quote.isPending ? 'Đang tính…' : feeError ? 'Chưa tính được' : shippingFee === 0 ? 'Miễn phí' : formatVnd(shippingFee)}
             </Text>
           </View>
 
@@ -302,7 +311,7 @@ export default function CheckoutScreen() {
               {quote.data.items.map((s) => (
                 <View key={s.seller_id} style={styles.byShopRow}>
                   <Text variant="caption" numberOfLines={1} style={styles.byShopName}>{s.seller_name}</Text>
-                  <Text variant="caption">{s.fee === 0 ? 'Miễn phí' : formatVnd(s.fee)}</Text>
+                  <Text variant="caption">{s.error ? 'Chưa tính được' : s.fee === 0 ? 'Miễn phí' : formatVnd(s.fee)}</Text>
                 </View>
               ))}
             </View>
@@ -312,6 +321,9 @@ export default function CheckoutScreen() {
             <Text variant="caption" style={styles.warn}>
               Một số người bán chưa cài địa chỉ lấy hàng — phí có thể tính lại khi xử lý đơn.
             </Text>
+          ) : null}
+          {feeError && ghnReady && !quote.isPending ? (
+            <Text variant="caption" style={styles.errText}>{feeError}</Text>
           ) : null}
         </View>
 
@@ -392,7 +404,7 @@ export default function CheckoutScreen() {
           title={create.isPending ? 'Đang đặt…' : 'Đặt hàng'}
           onPress={onSubmit}
           loading={create.isPending}
-          disabled={!addressReady || create.isPending}
+          disabled={!addressReady || create.isPending || (ghnReady && !!feeError)}
         />
       </View>
     </View>
