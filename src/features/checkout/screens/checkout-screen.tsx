@@ -105,7 +105,7 @@ export default function CheckoutScreen() {
   const feeError = quote.isError
     ? 'Chưa tính được phí vận chuyển. Thử lại hoặc chọn địa chỉ khác nhé.'
     : quote.data && (quote.data.ok === false || feeFailure)
-      ? `GHN chưa giao được tới địa chỉ này (${feeFailure ?? 'không rõ lý do'}). Chọn địa chỉ khác nhé.`
+      ? `GHN chưa giao được tới địa chỉ này: ${feeFailure ?? 'không rõ lý do'}. Chọn địa chỉ khác nhé.`
       : null;
   const grandTotal = subtotal + shippingFee;
 
@@ -319,7 +319,7 @@ export default function CheckoutScreen() {
 
           {quote.data?.items.some((s) => !s.has_pickup) ? (
             <Text variant="caption" style={styles.warn}>
-              Một số người bán chưa cài địa chỉ lấy hàng — phí có thể tính lại khi xử lý đơn.
+              Một số người bán chưa cài địa chỉ lấy hàng. Phí có thể được tính lại khi xử lý đơn.
             </Text>
           ) : null}
           {feeError && ghnReady && !quote.isPending ? (
