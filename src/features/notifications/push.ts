@@ -78,6 +78,13 @@ function routeFromData(data: Record<string, unknown> | undefined) {
   const orderId = data.order_id ?? data.orderId;
   const productId = data.product_id ?? data.productId;
   if (type === 'order_status') {
+    // Đơn mới gửi cho NGƯỜI BÁN mang view=seller: mở màn Đơn bán, không phải
+    // màn đơn mua (người bán mở đơn mua của người khác thì không có nút nào).
+    if (data.view === 'seller') {
+      return orderId
+        ? { pathname: '/sales/[id]' as const, params: { id: String(orderId) } }
+        : ('/sales' as const);
+    }
     return orderId
       ? { pathname: '/orders/[id]' as const, params: { id: String(orderId) } }
       : ('/orders' as const);

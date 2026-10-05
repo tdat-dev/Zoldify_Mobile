@@ -126,3 +126,85 @@ export function useConfirmReceived() {
     onSuccess: () => qc.invalidateQueries({ queryKey: orderKeys.all }),
   });
 }
+
+/* ── Phía NGƯỜI BÁN (màn Đơn bán, lỗi H-02 test E2E) ─────────────────────── */
+
+export const saleKeys = {
+  all: ['sales'] as const,
+  list: () => [...saleKeys.all, 'list'] as const,
+};
+
+/** Đơn có hàng của tôi (GET /orders?as=seller). Cần đăng nhập. */
+export function useSellerOrders() {
+  const signedIn = useAuthStore((s) => s.status === 'signedIn');
+  return useQuery({
+    queryKey: saleKeys.list(),
+    queryFn: async () => {
+      const res = await http.get<ApiResponse<Paginated<Order>>>('/orders', {
+        params: { currentPage: 1, limit: 50, as: 'seller' },
+      });
+      return res.data.data.result ?? [];
+    },
+    enabled: signedIn,
+  });
+}
+
+/** Làm mới cả danh sách đơn bán lẫn chi tiết đơn sau mỗi thao tác của người bán. */
+function useInvalidateSale() {
+  const qc = useQueryClient();
+  return () => {
+    qc.invalidateQueries({ queryKey: saleKeys.all });
+    qc.invalidateQueries({ queryKey: orderKeys.all });
+  };
+}
+
+/** Người bán xác nhận đơn. Server tạo vận đơn GHN ngay lúc này. */
+export function useConfirmSale() {
+  const done = useInvalidateSale();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await http.patch<ApiResponse<Order>>(`/orders/${id}/status`, { status: 'confirmed' });
+      return id;
+    },
+    onSuccess: done,
+  });
+}
+
+/** Người bán huỷ đơn (khi còn Chờ xác nhận / Đã xác nhận). Server hoàn kho. */
+export function useCancelSale() {
+  const done = useInvalidateSale();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await http.patch<ApiResponse<unknown>>(`/orders/${id}/cancel-sale`);
+      return id;
+    },
+    onSuccess: done,
+  });
+}
+
+/** Tạo lại vận đơn GHN đã bị từ chối (sau khi sửa địa chỉ lấy hàng). */
+export function useRetryShipments() {
+  const done = useInvalidateSale();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await http.post<ApiResponse<OrderShipment[]>>(`/orders/${id}/shipments/retry`);
+      return res.data.data;
+    },
+    onSuccess: done,
+  });
+}
+
+/**
+ * GHN sandbox không có shipper thật: giả lập GHN đã lấy hàng để đơn sang
+ * "Đang giao". Server chỉ cho chạy khi GHN_HOST là sandbox.
+ */
+export function useSimulatePickup() {
+  const done = useInvalidateSale();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await http.patch<ApiResponse<unknown>>(`/orders/${id}/sim-ghn`, { phase: 'shipping' });
+      return id;
+    },
+    onSuccess: done,
+  });
+}
