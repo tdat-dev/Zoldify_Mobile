@@ -100,9 +100,12 @@ export default function SaleDetailScreen() {
 
   const canConfirm = order.status === 'pending';
   const canCancel = order.status === 'pending' || order.status === 'confirmed';
+  // Tạo lại vận đơn / giả lập lấy hàng chỉ có nghĩa khi đơn còn chờ gửi; đơn
+  // đã huỷ vẫn giữ dòng vận đơn lỗi để biết vì sao, nhưng không còn nút.
+  const awaitingShipment = order.status === 'confirmed' || order.status === 'processing';
   const shipFailed = shipment?.status === 'failed';
-  const canPickup =
-    (order.status === 'confirmed' || order.status === 'processing') && shipment?.status === 'created';
+  const canRetry = awaitingShipment && shipFailed;
+  const canPickup = awaitingShipment && shipment?.status === 'created';
 
   // Huỷ không hoàn tác được: hỏi lại trước (cùng lý do với lỗi M-04 bên người mua).
   const askCancel = () =>
@@ -188,7 +191,7 @@ export default function SaleDetailScreen() {
           </View>
         </View>
 
-        {canConfirm || canCancel || shipFailed || canPickup ? (
+        {canConfirm || canCancel || canRetry || canPickup ? (
           <View style={styles.actions}>
             {canConfirm ? (
               <Button
@@ -198,7 +201,7 @@ export default function SaleDetailScreen() {
                 disabled={busy}
               />
             ) : null}
-            {shipFailed ? (
+            {canRetry ? (
               <Button
                 title="Tạo lại vận đơn"
                 onPress={() => retry.mutate(order.id)}

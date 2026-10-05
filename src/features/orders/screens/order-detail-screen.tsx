@@ -106,8 +106,12 @@ export default function OrderDetailScreen() {
   const canReceive = order.status === 'shipping';
   const canReview = order.status === 'delivered';
   // Vận đơn GHN bị từ chối: nói rõ cho người mua thay vì để đơn nằm im ở "Đã
-  // xác nhận" (lỗi H-08 test E2E, đơn ORD-20260930-785).
-  const failedShipment = order.shipments?.find((s) => s.status === 'failed');
+  // xác nhận" (lỗi H-08 test E2E, đơn ORD-20260930-785). Chỉ khi đơn còn chờ
+  // gửi: đơn đã huỷ mà vẫn hứa "sẽ được giao" là nói sai (thấy khi test 05/10).
+  const awaitingShipment = order.status === 'confirmed' || order.status === 'processing';
+  const failedShipment = awaitingShipment
+    ? order.shipments?.find((s) => s.status === 'failed')
+    : undefined;
 
   const onReceive = () => {
     sellerIds.forEach((sid) => confirm.mutate({ orderId: order.id, sellerId: sid }));
