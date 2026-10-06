@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useCancelOrder, useConfirmReceived, useOrder } from '@/features/orders/api';
-import { useReviewStore } from '@/features/reviews/store';
+import { useMyReviewedProducts } from '@/features/reviews/api';
 import { STATUS_META, type OrderStatus } from '@/features/orders/order-status';
 import { formatVnd } from '@/lib/format';
 import { mediaUrl } from '@/lib/media';
@@ -62,7 +62,8 @@ export default function OrderDetailScreen() {
   const { data: order, isPending, isError, refetch } = useOrder(Number(id));
   const cancel = useCancelOrder();
   const confirm = useConfirmReceived();
-  const reviewedMap = useReviewStore((s) => s.byProduct);
+  // Món nào đã đánh giá: hỏi server (trước đây nhớ trên máy, lỗi H-01).
+  const { data: reviewedSet } = useMyReviewedProducts();
 
   // Làm mới khi mở lại — trạng thái/timeline do người bán đổi ở server.
   useFocusEffect(
@@ -151,7 +152,7 @@ export default function OrderDetailScreen() {
             {items.map((it) => {
               const uri = mediaUrl(it.product_image);
               const pid = it.product?.id;
-              const reviewed = pid ? (reviewedMap[pid]?.length ?? 0) > 0 : false;
+              const reviewed = pid ? (reviewedSet?.has(pid) ?? false) : false;
               return (
                 <View key={it.id} style={styles.itemGroup}>
                   <View style={styles.itemRow}>
@@ -173,7 +174,9 @@ export default function OrderDetailScreen() {
                     ) : (
                       <Pressable
                         style={styles.reviewBtn}
-                        onPress={() => router.push({ pathname: '/write-review/[id]', params: { id: pid } })}>
+                        onPress={() =>
+                          router.push({ pathname: '/write-review/[id]', params: { id: pid, orderId: order.id } })
+                        }>
                         <Ionicons name="star-outline" size={14} color={Palette.brand} />
                         <Text style={styles.reviewBtnText}>Đánh giá</Text>
                       </Pressable>

@@ -16,7 +16,7 @@ import { useFollowCount, useFollowStatus, useToggleFollow } from '@/features/fol
 import { useInfiniteProducts } from '@/features/products/api';
 import { ProductCard } from '@/features/products/components/product-card';
 import { ProductGridSkeleton } from '@/features/products/components/product-grid-skeleton';
-import { sellerStats } from '@/features/reviews/mock';
+import { useSellerStats } from '@/features/reviews/api';
 
 /**
  * Trang cửa hàng của một người bán: hồ sơ (avatar/tên/uy tín) + lưới hàng đang
@@ -50,7 +50,9 @@ export default function ShopScreen() {
   const shopName = name || fromProduct?.full_name || 'Cửa hàng';
   const shopAvatar = avatar || fromProduct?.avatar || null;
   const joinedYear = fromProduct?.created_at ? new Date(fromProduct.created_at).getFullYear() : null;
-  const stats = sellerStats(sellerId);
+  // Số thật (lỗi H-01: trước đây sinh ngẫu nhiên, kèm "% phản hồi" bịa).
+  const { data: stats } = useSellerStats(sellerId);
+  const hasReviews = (stats?.review_count ?? 0) > 0;
 
   const canFollow = !isMe && !!me;
   const { data: followed } = useFollowStatus(sellerId, canFollow);
@@ -88,7 +90,9 @@ export default function ShopScreen() {
           <Avatar name={shopName} uri={shopAvatar} size={60} />
           <View style={styles.heroInfo}>
             <Text variant="heading" numberOfLines={1}>{shopName}</Text>
-            <RatingStars value={stats.rating} count={stats.reviewCount} size={13} style={styles.heroStars} />
+            {hasReviews && stats ? (
+              <RatingStars value={stats.rating} count={stats.review_count} size={13} style={styles.heroStars} />
+            ) : null}
             <Text variant="caption" style={styles.joined}>
               {fcount ? `${fcount.follower} người theo dõi` : ''}
               {fcount && joinedYear ? ' · ' : ''}
@@ -99,18 +103,18 @@ export default function ShopScreen() {
 
         <View style={styles.statRow}>
           <View style={styles.statCell}>
-            <Text style={styles.statNum}>{stats.rating.toFixed(1)}</Text>
-            <Text variant="caption" style={styles.statLabel}>Đánh giá</Text>
+            <Text style={styles.statNum}>{hasReviews && stats ? stats.rating.toFixed(1) : '–'}</Text>
+            <Text variant="caption" style={styles.statLabel}>Điểm</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statCell}>
-            <Text style={styles.statNum}>{stats.soldCount}</Text>
+            <Text style={styles.statNum}>{stats?.sold_count ?? 0}</Text>
             <Text variant="caption" style={styles.statLabel}>Đã bán</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statCell}>
-            <Text style={styles.statNum}>{stats.responseRate}%</Text>
-            <Text variant="caption" style={styles.statLabel}>Phản hồi</Text>
+            <Text style={styles.statNum}>{stats?.review_count ?? 0}</Text>
+            <Text variant="caption" style={styles.statLabel}>Lượt đánh giá</Text>
           </View>
         </View>
 
