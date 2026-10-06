@@ -22,7 +22,7 @@ import { useSellerStats } from '@/features/reviews/api';
  * Trang cửa hàng của một người bán: hồ sơ (avatar/tên/uy tín) + lưới hàng đang
  * bán (cuộn vô hạn). BE chưa có endpoint seller công khai (users/:id chặn admin),
  * nên danh tính lấy từ chính sản phẩm của shop; tên/avatar truyền qua param để
- * hiện tức thì. Uy tín (sao/đã bán/%phản hồi) suy tất định từ id — như các màn khác.
+ * hiện tức thì. Uy tín (điểm, lượt đánh giá, đã bán) lấy từ GET /interactions/seller/:id/stats.
  */
 export default function ShopScreen() {
   const insets = useSafeAreaInsets();
