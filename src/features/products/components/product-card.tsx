@@ -8,7 +8,6 @@ import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import type { Product } from '@/api';
 import { CONDITION_LABEL, isFreshCondition } from '@/features/products/filters';
-import { productRating } from '@/features/reviews/mock';
 import { formatVnd } from '@/lib/format';
 import { mediaUrl } from '@/lib/media';
 
@@ -88,11 +87,24 @@ export function ProductCard({ product }: { product: Product }) {
         {product.name}
       </Text>
       <Text style={[styles.price, sold && styles.priceSold]}>{formatVnd(product.price)}</Text>
-      <View style={styles.proofRow}>
-        <Feather name="star" size={11} color={Palette.pendingFg} />
-        <Text style={styles.rating}>{productRating(product.id).rating.toFixed(1)}</Text>
-        {proof ? <Text style={styles.proof} numberOfLines={1}> · {proof}</Text> : null}
-      </View>
+      {/* Sao chỉ hiện khi có đánh giá thật (trước đây số sinh ngẫu nhiên theo id,
+          lỗi H-01): 0 lượt thì không vẽ "0.0", chỉ còn dòng đã bán/lượt xem. */}
+      {(product.review_count ?? 0) > 0 || proof ? (
+        <View style={styles.proofRow}>
+          {(product.review_count ?? 0) > 0 ? (
+            <>
+              <Feather name="star" size={11} color={Palette.pendingFg} />
+              <Text style={styles.rating}>{Number(product.rating_avg ?? 0).toFixed(1)}</Text>
+            </>
+          ) : null}
+          {proof ? (
+            <Text style={styles.proof} numberOfLines={1}>
+              {(product.review_count ?? 0) > 0 ? ' · ' : ''}
+              {proof}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
     </Pressable>
   );
 }

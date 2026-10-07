@@ -12,10 +12,10 @@ import { Text } from '@/components/ui/text';
 import { Palette } from '@/components/ui/theme';
 import { useAuthStore } from '@/features/auth/store';
 import { useFollowing, type FollowedUser } from '@/features/follows/api';
-import { sellerStats } from '@/features/reviews/mock';
+import { useSellerStats } from '@/features/reviews/api';
 
 function ShopRow({ shop }: { shop: FollowedUser }) {
-  const stats = sellerStats(shop.id);
+  const { data: stats } = useSellerStats(shop.id);
   return (
     <Pressable
       style={styles.row}
@@ -28,7 +28,11 @@ function ShopRow({ shop }: { shop: FollowedUser }) {
       <Avatar name={shop.full_name} uri={shop.avatar} size={48} />
       <View style={styles.body}>
         <Text variant="subheading" numberOfLines={1}>{shop.full_name ?? 'Cửa hàng'}</Text>
-        <RatingStars value={stats.rating} count={stats.reviewCount} size={12} style={styles.stars} />
+        {stats && stats.review_count > 0 ? (
+          <RatingStars value={stats.rating} count={stats.review_count} size={12} style={styles.stars} />
+        ) : (
+          <Text variant="caption" style={styles.stars}>Chưa có đánh giá</Text>
+        )}
       </View>
       <Feather name="chevron-right" size={18} color={Palette.inkFaint} />
     </Pressable>

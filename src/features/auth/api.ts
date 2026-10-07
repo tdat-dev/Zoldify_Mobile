@@ -142,6 +142,7 @@ export const authApi = {
 /** Mutation đăng nhập, sẵn dùng trong màn hình. */
 export function useLogin() {
   return useMutation({
+    meta: { handlesError: true },
     mutationFn: (dto: LoginUserDto) => authApi.login(dto),
   });
 }
@@ -149,6 +150,7 @@ export function useLogin() {
 /** Mutation đăng ký (trực tiếp, không OTP). */
 export function useRegister() {
   return useMutation({
+    meta: { handlesError: true },
     mutationFn: (dto: RegisterUserDto) => authApi.register(dto),
   });
 }
@@ -156,6 +158,7 @@ export function useRegister() {
 /** Gửi OTP đăng ký về email. */
 export function useSendRegisterOtp() {
   return useMutation({
+    meta: { handlesError: true },
     mutationFn: (dto: SendRegisterOtpDto) => authApi.sendRegisterOtp(dto),
   });
 }
@@ -163,6 +166,7 @@ export function useSendRegisterOtp() {
 /** Xác thực OTP đăng ký (tạo tài khoản). */
 export function useVerifyRegisterOtp() {
   return useMutation({
+    meta: { handlesError: true },
     mutationFn: (dto: VerifyRegisterOtpDto) => authApi.verifyRegisterOtp(dto),
   });
 }
@@ -170,6 +174,7 @@ export function useVerifyRegisterOtp() {
 /** Quên mật khẩu — gửi OTP. */
 export function useSendForgotPasswordOtp() {
   return useMutation({
+    meta: { handlesError: true },
     mutationFn: (email: string) => authApi.sendForgotPasswordOtp(email),
   });
 }
@@ -177,6 +182,7 @@ export function useSendForgotPasswordOtp() {
 /** Quên mật khẩu — đặt lại mật khẩu bằng OTP. */
 export function useResetPassword() {
   return useMutation({
+    meta: { handlesError: true },
     mutationFn: (v: { email: string; otp: string; newPassword: string }) =>
       authApi.resetPassword(v.email, v.otp, v.newPassword),
   });
@@ -185,6 +191,7 @@ export function useResetPassword() {
 /** Cập nhật hồ sơ của chính mình. */
 export function useUpdateProfile() {
   return useMutation({
+    meta: { handlesError: true },
     mutationFn: (input: ProfileInput) => authApi.updateProfile(input),
   });
 }
@@ -193,6 +200,7 @@ export function useUpdateProfile() {
 export function useChangePassword() {
   const qc = useQueryClient();
   return useMutation({
+    meta: { handlesError: true },
     mutationFn: (v: { oldPassword?: string; newPassword: string }) =>
       authApi.changePassword(v.oldPassword, v.newPassword),
     // Đặt mật khẩu xong → has_password đổi → làm mới hồ sơ để menu cập nhật nhãn.

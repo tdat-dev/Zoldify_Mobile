@@ -5,15 +5,15 @@ import { Avatar } from '@/components/ui/avatar';
 import { RatingStars } from '@/components/ui/rating';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
-import type { MockReview } from '@/features/reviews/mock';
+import type { ReviewView } from '@/features/reviews/api';
 import { mediaUrl } from '@/lib/media';
 
 /** Một thẻ đánh giá — avatar, tên, sao, thời gian, nội dung + ảnh (nếu có). */
-export function ReviewCard({ review }: { review: MockReview }) {
+export function ReviewCard({ review }: { review: ReviewView }) {
   return (
     <View style={styles.card}>
       <View style={styles.top}>
-        <Avatar name={review.author} size={32} />
+        <Avatar name={review.author} uri={review.avatar} size={32} />
         <View style={styles.who}>
           <View style={styles.nameRow}>
             <Text variant="subheading" style={styles.name}>{review.author}</Text>

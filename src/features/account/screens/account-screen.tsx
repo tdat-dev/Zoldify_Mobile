@@ -73,12 +73,13 @@ export default function AccountScreen() {
             ) : null}
           </View>
 
-          {/* Người bán mới có khu quản lý shop riêng (sau: Đơn bán, Ví/Doanh thu). */}
+          {/* Người bán mới có khu quản lý shop riêng (sau: Ví/Doanh thu). */}
           {isSeller ? (
             <View>
               <Text variant="label" style={styles.sectionLabel}>Người bán</Text>
               <View style={styles.menu}>
-                <MenuRow icon="storefront-outline" label="Cài đặt shop" first onPress={() => router.push('/shop/settings')} />
+                <MenuRow icon="cube-outline" label="Đơn bán" first onPress={() => router.push('/sales' as Href)} />
+                <MenuRow icon="storefront-outline" label="Cài đặt shop" onPress={() => router.push('/shop/settings')} />
               </View>
             </View>
           ) : null}

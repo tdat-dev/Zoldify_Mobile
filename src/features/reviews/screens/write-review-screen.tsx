@@ -12,18 +12,25 @@ import { PhotoUploadGrid } from '@/components/ui/photo-upload-grid';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProduct } from '@/features/products/api';
-import { useReviewStore } from '@/features/reviews/store';
+import { useCreateReview } from '@/features/reviews/api';
+import { apiErrorMessage } from '@/lib/api/error-message';
 import { uploadImage } from '@/lib/upload';
 
 const RATING_WORD = ['', 'Tệ', 'Không hài lòng', 'Bình thường', 'Hài lòng', 'Tuyệt vời'];
 
-/** Viết đánh giá cho một sản phẩm (mở sau khi nhận hàng). */
+/**
+ * Viết đánh giá cho một sản phẩm, mở từ chi tiết đơn ĐÃ GIAO (cần `orderId`:
+ * backend chỉ nhận đánh giá gắn với đơn đã giao có món này).
+ *
+ * Trước đây đánh giá chỉ lưu trên máy người viết, không ai khác thấy và mất khi
+ * đổi máy (lỗi H-01 test E2E 30/09). Giờ gửi POST /interactions.
+ */
 export default function WriteReviewScreen() {
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, orderId } = useLocalSearchParams<{ id: string; orderId?: string }>();
   const productId = Number(id);
   const { data: product } = useProduct(productId);
-  const addReview = useReviewStore((s) => s.add);
+  const createReview = useCreateReview();
 
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
@@ -38,6 +45,10 @@ export default function WriteReviewScreen() {
       setErr('Viết vài dòng cảm nhận nhé.');
       return;
     }
+    if (!orderId) {
+      setErr('Mở màn này từ đơn đã nhận hàng để đánh giá nhé.');
+      return;
+    }
     setErr('');
     setSubmitting(true);
     try {
@@ -48,14 +59,16 @@ export default function WriteReviewScreen() {
       } catch {
         uploaded = [];
       }
-      addReview(productId, {
-        author: 'Bạn',
+      await createReview.mutateAsync({
+        product_id: productId,
+        order_id: Number(orderId),
         rating,
         comment: comment.trim(),
-        timeLabel: 'vừa xong',
-        photos: uploaded.length ? uploaded : undefined,
+        images: uploaded.length ? uploaded : undefined,
       });
       back();
+    } catch (e) {
+      setErr(apiErrorMessage(e, 'Chưa gửi được đánh giá. Thử lại nhé.'));
     } finally {
       setSubmitting(false);
     }

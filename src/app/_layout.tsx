@@ -23,7 +23,6 @@ import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { useAuthStore } from '@/features/auth/store';
 import { usePushNotifications } from '@/features/notifications/push';
 import { useWishlistStore } from '@/features/wishlist/store';
-import { useReviewStore } from '@/features/reviews/store';
 import { setOnSessionExpired } from '@/lib/api/client';
 import { queryClient } from '@/lib/api/query-client';
 
@@ -88,8 +87,9 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const hydrate = useAuthStore((s) => s.hydrate);
   const sessionExpired = useAuthStore((s) => s.sessionExpired);
-  const hydrateWishlist = useWishlistStore((s) => s.hydrate);
-  const hydrateReviews = useReviewStore((s) => s.hydrate);
+  const authStatus = useAuthStore((s) => s.status);
+  const userId = useAuthStore((s) => s.user?.id ?? null);
+  const setWishlistOwner = useWishlistStore((s) => s.setOwner);
 
   const [fontsLoaded] = useFonts({
     BeVietnamPro_400Regular,
@@ -105,10 +105,6 @@ export default function RootLayout() {
   useEffect(() => {
     // Đọc token lúc mở app, xác định phiên.
     hydrate();
-    // Đọc danh sách đã lưu (wishlist) cục bộ để tim hiện đúng ngay từ đầu.
-    hydrateWishlist();
-    // Đọc đánh giá người dùng đã gửi (lưu cục bộ) để hiện lại sau khi mở app.
-    hydrateReviews();
 
     // Tầng mạng không tự điều hướng; 401 -> xoá phiên, cổng đăng nhập tự
     // đẩy về (auth). client.ts không cần biết gì về router.
@@ -116,7 +112,15 @@ export default function RootLayout() {
       queryClient.clear();
       sessionExpired();
     });
-  }, [hydrate, hydrateWishlist, sessionExpired]);
+  }, [hydrate, sessionExpired]);
+
+  // Danh sách "đã lưu" đi theo TÀI KHOẢN, không theo máy: đổi người đăng nhập
+  // là đổi danh sách (lỗi H-06 test E2E). Chờ auth đọc xong phiên mới biết là
+  // ai, tránh nạp nhầm danh sách khách rồi mới đổi.
+  useEffect(() => {
+    if (authStatus === 'hydrating') return;
+    void setWishlistOwner(authStatus === 'signedIn' ? userId : null);
+  }, [authStatus, userId, setWishlistOwner]);
 
   return (
     <KeyboardProvider>

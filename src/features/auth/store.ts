@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { authApi } from '@/features/auth/api';
 import { disconnectChatSocket } from '@/features/chat/socket';
+import { queryClient } from '@/lib/api/query-client';
 import { tokenStore } from '@/lib/auth/token-store';
 import type { AuthUser } from '@/api';
 
@@ -70,6 +71,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     } finally {
       disconnectChatSocket();
       set({ status: 'signedOut', user: null });
+      // Bỏ mọi dữ liệu của phiên cũ (đơn, đã đánh giá, số thông báo...). Không
+      // xoá thì truy vấn bị tắt vẫn trả bản cũ: khách thấy số chưa đọc của người
+      // vừa thoát, người đăng nhập sau thoáng thấy dữ liệu người trước.
+      // Xoá SAU khi đổi trạng thái để màn đang mở không tải lại bằng phiên cũ.
+      queryClient.clear();
     }
   },
 

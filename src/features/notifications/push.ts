@@ -7,13 +7,14 @@ import { Platform } from 'react-native';
 import { useAuthStore } from '@/features/auth/store';
 import { Palette } from '@/components/ui/theme';
 import { removePushToken, savePushToken } from './api';
+import { notificationRoute } from './route';
 
 /**
  * Push notification (FCM) cho Zoldify.
  *
  * Luồng: đăng nhập → xin quyền → lấy FCM device token → POST lên BE. BE gửi push
  * qua firebase-admin mỗi khi tạo notification; bấm vào push thì điều hướng theo
- * `data` (type + id) — mirror `routeFor` của màn Thông báo. Đăng xuất thì gỡ token.
+ * `data` (type + id) — dùng chung notificationRoute (route.ts) với màn Thông báo. Đăng xuất thì gỡ token.
  *
  * KHÔNG dùng Expo push service / EAS projectId: BE đã có firebase-admin nên gửi
  * FCM thẳng, đơn giản hơn và không phụ thuộc hạ tầng Expo.
@@ -71,23 +72,9 @@ export async function registerForPush(): Promise<string | null> {
   }
 }
 
-/** Điều hướng từ `data` của push (giá trị là chuỗi do FCM). */
+/** Điều hướng từ `data` của push (FCM đặt cả `type` vào trong data). */
 function routeFromData(data: Record<string, unknown> | undefined) {
-  if (!data) return null;
-  const type = String(data.type ?? '');
-  const orderId = data.order_id ?? data.orderId;
-  const productId = data.product_id ?? data.productId;
-  if (type === 'order_status') {
-    return orderId
-      ? { pathname: '/orders/[id]' as const, params: { id: String(orderId) } }
-      : ('/orders' as const);
-  }
-  if (type === 'message') return '/messages' as const;
-  if (type === 'payment') return '/orders' as const;
-  if (type === 'new_product' && productId) {
-    return { pathname: '/products/[id]' as const, params: { id: String(productId) } };
-  }
-  return null;
+  return data ? notificationRoute(String(data.type ?? ''), data) : null;
 }
 
 /**
