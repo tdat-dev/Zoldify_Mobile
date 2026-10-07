@@ -97,7 +97,7 @@ export default function ReviewsListScreen() {
               <View style={styles.summary}>
                 <View style={styles.summaryLeft}>
                   <Text style={styles.big}>{data.average.toFixed(1)}</Text>
-                  <RatingStars value={data.average} size={14} />
+                  <RatingStars value={data.average} size={14} showValue={false} />
                   <Text variant="caption" style={styles.count}>{data.total} đánh giá</Text>
                 </View>
                 <View style={styles.bars}>
@@ -169,7 +169,8 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   summaryLeft: { alignItems: 'center', gap: 4, justifyContent: 'center' },
-  big: { fontFamily: Font.extrabold, fontSize: 40, color: Palette.ink },
+  // lineHeight riêng: Text mặc định để dòng thấp, số cỡ 40 bị cắt nửa dưới.
+  big: { fontFamily: Font.extrabold, fontSize: 40, lineHeight: 48, color: Palette.ink },
   count: { color: Palette.inkFaint },
   bars: { flex: 1, justifyContent: 'center', gap: 4 },
   barRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

@@ -451,6 +451,7 @@ const styles = StyleSheet.create({
   price: {
     fontFamily: Font.extrabold,
     fontSize: 26,
+    lineHeight: 32,
     color: Palette.price,
     fontVariant: ['tabular-nums'],
   },
