@@ -1,4 +1,17 @@
-import { QueryClient } from '@tanstack/react-query';
+import { MutationCache, QueryClient } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
+import { Alert } from 'react-native';
+
+import { apiErrorMessage } from './error-message';
+
+declare module '@tanstack/react-query' {
+  interface Register {
+    mutationMeta: {
+      /** Màn hình gọi mutation này đã tự hiện lỗi; bộ báo lỗi chung bỏ qua. */
+      handlesError?: boolean;
+    };
+  }
+}
 
 /**
  * Cấu hình TanStack Query cho app di động.
@@ -8,6 +21,18 @@ import { QueryClient } from '@tanstack/react-query';
  * liên tục chứ không để một tab chạy cả ngày.
  */
 export const queryClient = new QueryClient({
+  // Báo lỗi CHUNG cho mọi thao tác ghi. Test E2E 30/09 thấy 36 mutation mà
+  // chỉ vài màn tự hiện lỗi: sửa địa chỉ, huỷ đơn, "Đã nhận hàng", chat,
+  // giỏ, cài đặt shop hỏng thì người dùng chỉ thấy bấm không ăn (lỗi H-09).
+  // Màn nào đã tự báo thì đánh dấu `meta: { handlesError: true }`. 401 để
+  // client.ts xử lý (xoá phiên, về màn đăng nhập), không báo thêm.
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) => {
+      if (mutation.meta?.handlesError) return;
+      if (isAxiosError(error) && error.response?.status === 401) return;
+      Alert.alert('Chưa thực hiện được', apiErrorMessage(error));
+    },
+  }),
   defaultOptions: {
     queries: {
       // Dữ liệu coi là còn tươi trong 1 phút — mở lại app trong vòng đó

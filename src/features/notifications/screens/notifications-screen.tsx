@@ -10,6 +10,7 @@ import { ListRowSkeleton } from '@/components/ui/list-row-skeleton';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useAuthStore } from '@/features/auth/store';
+import { notificationRoute } from '@/features/notifications/route';
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
@@ -30,20 +31,9 @@ const META: Record<NotificationType, { icon: keyof typeof Ionicons.glyphMap; fg:
   system: { icon: 'megaphone-outline', fg: Palette.inkMuted, bg: Palette.surfaceSunken },
 };
 
-/** Điều hướng theo loại thông báo (data mang id kèm theo nếu có). */
+/** Điều hướng theo loại thông báo: dùng chung với push (xem route.ts). */
 function routeFor(n: AppNotification) {
-  const d = n.data ?? {};
-  if (n.type === 'order_status') {
-    const id = d.order_id ?? d.orderId;
-    return id ? { pathname: '/orders/[id]' as const, params: { id: String(id) } } : ('/orders' as const);
-  }
-  if (n.type === 'message') return '/messages' as const;
-  if (n.type === 'payment') return '/orders' as const;
-  if (n.type === 'new_product') {
-    const id = d.product_id ?? d.productId;
-    return id ? { pathname: '/products/[id]' as const, params: { id: String(id) } } : null;
-  }
-  return null;
+  return notificationRoute(n.type, n.data as Record<string, unknown> | null | undefined);
 }
 
 function NotificationRow({ item, onPress }: { item: AppNotification; onPress: () => void }) {

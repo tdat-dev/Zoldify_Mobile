@@ -2,7 +2,7 @@ import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -63,7 +63,7 @@ export default function CheckoutScreen() {
   const { only } = useLocalSearchParams<{ only?: string }>();
   const { data: cart = [], isPending } = useCart();
   const items = only ? cart.filter((i) => String(i.id) === String(only)) : cart;
-  const { data: addresses = [] } = useAddresses();
+  const { data: addresses = [], isSuccess: addressesLoaded } = useAddresses();
   const [address, setAddress] = useState<GhnAddressSelection>(EMPTY_ADDRESS);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -73,8 +73,23 @@ export default function CheckoutScreen() {
 
   const hasSaved = addresses.length > 0;
 
-  // Tự chọn địa chỉ mặc định (hoặc mới nhất) khi vào màn, khi vừa thêm địa chỉ
-  // từ đây, hoặc khi địa chỉ đang chọn bị xoá.
+  // Địa chỉ VỪA THÊM từ màn này (id mới so với lần nạp trước) thì chọn luôn:
+  // người dùng thêm địa chỉ là để giao tới đó. Test máy ảo 05/10: thêm địa chỉ
+  // Thành phố Hưng Yên xong quay về, checkout vẫn giữ địa chỉ Văn Giang cũ (GHN
+  // không giao), phải mở danh sách chọn lại bằng tay. Chỉ so sau khi đã nạp
+  // xong lần đầu, nếu không thì mọi địa chỉ đều thành "mới".
+  const knownIds = useRef<Set<number> | null>(null);
+  useEffect(() => {
+    if (!addressesLoaded) return;
+    const prev = knownIds.current;
+    knownIds.current = new Set(addresses.map((a) => a.id));
+    if (!prev) return;
+    const added = addresses.filter((a) => !prev.has(a.id));
+    if (added.length > 0) setSelectedId(added[added.length - 1].id);
+  }, [addressesLoaded, addresses]);
+
+  // Tự chọn địa chỉ mặc định (hoặc mới nhất) khi vào màn, hoặc khi địa chỉ
+  // đang chọn bị xoá.
   useEffect(() => {
     if (!hasSaved) return;
     const stillThere = selectedId !== null && addresses.some((a) => a.id === selectedId);
@@ -98,6 +113,15 @@ export default function CheckoutScreen() {
     [items],
   );
   const shippingFee = quote.data?.total ?? 0;
+  // GHN không tính được phí thì server trả ok=false (hoặc error theo người
+  // bán). Trước đây app hiện "Miễn phí" và vẫn cho đặt: đơn đi Văn Giang (quận
+  // GHN đã ngừng phục vụ) lên 0đ rồi kẹt ở bước tạo vận đơn (lỗi H-07 test E2E).
+  const feeFailure = quote.data?.items.find((s) => s.error)?.error;
+  const feeError = quote.isError
+    ? 'Chưa tính được phí vận chuyển. Thử lại hoặc chọn địa chỉ khác nhé.'
+    : quote.data && (quote.data.ok === false || feeFailure)
+      ? `GHN chưa giao được tới địa chỉ này: ${feeFailure ?? 'không rõ lý do'}. Chọn địa chỉ khác nhé.`
+      : null;
   const grandTotal = subtotal + shippingFee;
 
   const addressReady = !!address.receiver_name && !!address.receiver_phone && !!address.shipping_address;
@@ -291,7 +315,7 @@ export default function CheckoutScreen() {
           <View style={styles.sumRow}>
             <Text variant="bodyMuted">Phí vận chuyển</Text>
             <Text style={styles.sumValue}>
-              {!ghnReady ? 'Chọn địa chỉ' : quote.isPending ? 'Đang tính…' : shippingFee === 0 ? 'Miễn phí' : formatVnd(shippingFee)}
+              {!ghnReady ? 'Chọn địa chỉ' : quote.isPending ? 'Đang tính…' : feeError ? 'Chưa tính được' : shippingFee === 0 ? 'Miễn phí' : formatVnd(shippingFee)}
             </Text>
           </View>
 
@@ -302,7 +326,7 @@ export default function CheckoutScreen() {
               {quote.data.items.map((s) => (
                 <View key={s.seller_id} style={styles.byShopRow}>
                   <Text variant="caption" numberOfLines={1} style={styles.byShopName}>{s.seller_name}</Text>
-                  <Text variant="caption">{s.fee === 0 ? 'Miễn phí' : formatVnd(s.fee)}</Text>
+                  <Text variant="caption">{s.error ? 'Chưa tính được' : s.fee === 0 ? 'Miễn phí' : formatVnd(s.fee)}</Text>
                 </View>
               ))}
             </View>
@@ -310,8 +334,11 @@ export default function CheckoutScreen() {
 
           {quote.data?.items.some((s) => !s.has_pickup) ? (
             <Text variant="caption" style={styles.warn}>
-              Một số người bán chưa cài địa chỉ lấy hàng — phí có thể tính lại khi xử lý đơn.
+              Một số người bán chưa cài địa chỉ lấy hàng. Phí có thể được tính lại khi xử lý đơn.
             </Text>
+          ) : null}
+          {feeError && ghnReady && !quote.isPending ? (
+            <Text variant="caption" style={styles.errText}>{feeError}</Text>
           ) : null}
         </View>
 
@@ -392,7 +419,7 @@ export default function CheckoutScreen() {
           title={create.isPending ? 'Đang đặt…' : 'Đặt hàng'}
           onPress={onSubmit}
           loading={create.isPending}
-          disabled={!addressReady || create.isPending}
+          disabled={!addressReady || create.isPending || (ghnReady && !!feeError)}
         />
       </View>
     </View>

@@ -17,9 +17,8 @@ import { CONDITION_LABEL, isFreshCondition } from '@/features/products/filters';
 import { RelatedRail } from '@/features/products/components/related-rail';
 import { ProductDetailSkeleton } from '@/features/products/components/product-detail-skeleton';
 import { useStartConversation } from '@/features/chat/api';
-import { productRating, productReviews, sellerStats } from '@/features/reviews/mock';
+import { useProductReviews, useSellerStats } from '@/features/reviews/api';
 import { ReviewCard } from '@/features/reviews/components/review-card';
-import { useReviewStore } from '@/features/reviews/store';
 import { useAddToCart, useCartCount } from '@/features/cart/api';
 import { useAuthStore } from '@/features/auth/store';
 import { useRequireAuth } from '@/features/auth/use-require-auth';
@@ -34,7 +33,6 @@ export default function ProductDetailScreen() {
   const guest = useAuthStore((s) => s.status) !== 'signedIn';
   const me = useAuthStore((s) => s.user);
   const startConv = useStartConversation();
-  const reviewMap = useReviewStore((s) => s.byProduct);
   const addToCart = useAddToCart();
   const [mode, setMode] = useState<null | 'add' | 'buy'>(null);
   const [qty, setQty] = useState(1);
@@ -42,6 +40,10 @@ export default function ProductDetailScreen() {
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const { data: cartCount = 0 } = useCartCount();
   const { data: product, isPending, isError, refetch } = useProduct(Number(id));
+  // Số thật từ backend (lỗi H-01: trước đây sinh ngẫu nhiên trong mock.ts).
+  // Gọi trước các nhánh return sớm để thứ tự hook không đổi.
+  const { data: reviewData } = useProductReviews(Number(id), 3);
+  const { data: sStats } = useSellerStats(product?.seller?.id);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -139,10 +141,8 @@ export default function ProductDetailScreen() {
   const images = product.images?.length ? product.images : product.image ? [product.image] : [];
   const seller = product.seller;
   const joinedYear = seller ? new Date(seller.created_at).getFullYear() : null;
-  const rating = productRating(product.id);
-  const myReviews = reviewMap[product.id] ?? [];
-  const reviews = [...myReviews, ...productReviews(product.id, 3)].slice(0, 3);
-  const sStats = sellerStats(seller?.id);
+  const rating = { rating: Number(product.rating_avg ?? 0), count: product.review_count ?? 0 };
+  const reviews = reviewData?.reviews ?? [];
 
   const onMessage = () => {
     if (guest) return requireAuth();
@@ -204,9 +204,11 @@ export default function ProductDetailScreen() {
           <Text variant="title" style={styles.name}>{product.name}</Text>
           <Text style={styles.price}>{formatVnd(product.price)}</Text>
 
-          <View style={styles.ratingRow}>
-            <RatingStars value={rating.rating} count={rating.count} size={15} />
-          </View>
+          {rating.count > 0 ? (
+            <View style={styles.ratingRow}>
+              <RatingStars value={rating.rating} count={rating.count} size={15} />
+            </View>
+          ) : null}
 
           <View style={styles.metaRow}>
             {product.brand ? <Text variant="caption">Hãng: {product.brand}</Text> : null}
@@ -261,10 +263,16 @@ export default function ProductDetailScreen() {
                 <Avatar name={seller.full_name} uri={seller.avatar} size={44} />
                 <View style={styles.sellerInfo}>
                   <Text variant="subheading" numberOfLines={1}>{seller.full_name}</Text>
-                  <RatingStars value={sStats.rating} count={sStats.reviewCount} size={12} style={styles.sellerRating} />
+                  {sStats && sStats.review_count > 0 ? (
+                    <RatingStars value={sStats.rating} count={sStats.review_count} size={12} style={styles.sellerRating} />
+                  ) : null}
                   <Text variant="caption">
-                    Đã bán {sStats.soldCount} · {sStats.responseRate}% phản hồi
-                    {joinedYear ? ` · Từ ${joinedYear}` : ''}
+                    {[
+                      sStats && sStats.sold_count > 0 ? `Đã bán ${sStats.sold_count}` : null,
+                      joinedYear ? `Từ ${joinedYear}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </Text>
                 </View>
                 <Feather name="chevron-right" size={16} color={Palette.inkFaint} />
@@ -299,19 +307,25 @@ export default function ProductDetailScreen() {
           {/* Đánh giá — tín hiệu tin tưởng chính của sàn đồ cũ. */}
           <View style={styles.reviewHead}>
             <Text variant="heading">Đánh giá</Text>
-            <RatingStars value={rating.rating} count={rating.count} size={13} />
+            {rating.count > 0 ? <RatingStars value={rating.rating} count={rating.count} size={13} /> : null}
           </View>
-          <View style={styles.reviewList}>
-            {reviews.map((rv) => (
-              <ReviewCard key={rv.id} review={rv} />
-            ))}
-          </View>
-          <Pressable
-            style={styles.seeAll}
-            onPress={() => router.push({ pathname: '/reviews/[id]', params: { id: product.id } })}>
-            <Text style={styles.seeAllText}>Xem tất cả {rating.count} đánh giá</Text>
-            <Feather name="chevron-right" size={16} color={Palette.brand} />
-          </Pressable>
+          {rating.count > 0 ? (
+            <>
+              <View style={styles.reviewList}>
+                {reviews.map((rv) => (
+                  <ReviewCard key={rv.id} review={rv} />
+                ))}
+              </View>
+              <Pressable
+                style={styles.seeAll}
+                onPress={() => router.push({ pathname: '/reviews/[id]', params: { id: product.id } })}>
+                <Text style={styles.seeAllText}>Xem tất cả {rating.count} đánh giá</Text>
+                <Feather name="chevron-right" size={16} color={Palette.brand} />
+              </Pressable>
+            </>
+          ) : (
+            <Text variant="bodyMuted">Chưa có đánh giá nào cho món này.</Text>
+          )}
         </View>
 
         {seller ? (
@@ -437,6 +451,7 @@ const styles = StyleSheet.create({
   price: {
     fontFamily: Font.extrabold,
     fontSize: 26,
+    lineHeight: 32,
     color: Palette.price,
     fontVariant: ['tabular-nums'],
   },

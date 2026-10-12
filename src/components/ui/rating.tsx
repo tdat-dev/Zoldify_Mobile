@@ -13,12 +13,15 @@ export function RatingStars({
   value,
   size = 14,
   count,
+  showValue = true,
   style,
 }: {
   value: number;
   size?: number;
   /** Số lượt đánh giá, hiện trong ngoặc nếu có. */
   count?: number;
+  /** Tắt khi điểm đã in to ngay bên cạnh, tránh lặp số. */
+  showValue?: boolean;
   style?: object;
 }) {
   const v = Math.max(0, Math.min(5, value));
@@ -28,10 +31,12 @@ export function RatingStars({
         const name = v >= i + 1 ? 'star' : v >= i + 0.5 ? 'star-half' : 'star-outline';
         return <Ionicons key={i} name={name} size={size} color={Palette.pendingFg} />;
       })}
-      <Text style={[styles.value, { fontSize: size - 1 }]}>
-        {v.toFixed(1)}
-        {count != null ? ` (${count})` : ''}
-      </Text>
+      {showValue ? (
+        <Text style={[styles.value, { fontSize: size - 1 }]}>
+          {v.toFixed(1)}
+          {count != null ? ` (${count})` : ''}
+        </Text>
+      ) : null}
     </View>
   );
 }

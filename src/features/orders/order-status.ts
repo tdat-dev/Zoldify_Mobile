@@ -27,3 +27,16 @@ export const ORDER_TABS: OrderTab[] = [
   { key: 'delivered', label: 'Đã nhận', match: (s) => s === 'delivered' },
   { key: 'cancelled', label: 'Đã huỷ', match: (s) => s === 'cancelled' || s === 'refunded' },
 ];
+
+/**
+ * Tab của màn Đơn bán, chia theo VIỆC người bán phải làm chứ không theo nhãn
+ * trạng thái: "Cần xác nhận" là đơn đang chờ mình, "Cần gửi" là đã xác nhận
+ * nhưng GHN chưa lấy hàng.
+ */
+export const SALE_TABS: OrderTab[] = [
+  { key: 'todo', label: 'Cần xác nhận', match: (s) => s === 'pending' },
+  { key: 'ship', label: 'Cần gửi', match: (s) => s === 'confirmed' || s === 'processing' },
+  { key: 'shipping', label: 'Đang giao', match: (s) => s === 'shipping' },
+  { key: 'done', label: 'Đã giao', match: (s) => s === 'delivered' },
+  { key: 'cancelled', label: 'Đã huỷ', match: (s) => s === 'cancelled' || s === 'refunded' },
+];

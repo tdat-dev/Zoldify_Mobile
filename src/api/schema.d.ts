@@ -404,6 +404,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/push-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["NotificationsController_registerPushToken_v1"];
+        delete: operations["NotificationsController_unregisterPushToken_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notifications/unread-count": {
         parameters: {
             query?: never;
@@ -484,6 +500,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/shipping-quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["OrdersController_shippingQuote_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/stats": {
         parameters: {
             query?: never;
@@ -532,6 +564,70 @@ export interface paths {
         patch: operations["OrdersController_updateStatus_v1"];
         trace?: never;
     };
+    "/api/v1/orders/{id}/sim-ghn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["OrdersController_simGhn_v1"];
+        trace?: never;
+    };
+    "/api/v1/orders/{id}/shipments/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["OrdersController_retryShipments_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/admin/settle-shipments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["OrdersController_settleShipments_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{id}/shipments/{sellerId}/received": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["OrdersController_confirmReceived_v1"];
+        trace?: never;
+    };
     "/api/v1/orders/{id}/cancel": {
         parameters: {
             query?: never;
@@ -564,6 +660,22 @@ export interface paths {
         patch: operations["OrdersController_cancelSale_v1"];
         trace?: never;
     };
+    "/api/v1/orders/ghn-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["OrdersController_ghnWebhook_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cart": {
         parameters: {
             query?: never;
@@ -594,6 +706,54 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["CartController_update_v1"];
+        trace?: never;
+    };
+    "/api/v1/ghn/provinces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GhnController_getProvinces_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ghn/districts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GhnController_getDistricts_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ghn/wards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GhnController_getWards_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/ghn/calculate-fee": {
@@ -692,6 +852,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payos/create-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tạo link thanh toán PayOS cho đơn hàng hoặc nạp ví
+         *     POST /payos/create-link
+         *     body: { type: 'order' | 'topup', order_id?: number, amount?: number }
+         */
+        post: operations["PayosController_createLink_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payos/order/{orderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lấy trạng thái thanh toán theo orderId (nội bộ)
+         *     GET /payos/order/:orderId
+         */
+        get: operations["PayosController_getOrderStatus_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payos/refresh/{orderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PayosController_refresh_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payos/status/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lấy trạng thái payment link theo payos_order_code
+         *     GET /payos/status/:code
+         */
+        get: operations["PayosController_getPaymentLinkStatus_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payos/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hủy payment link (user tự hủy từ frontend)
+         *     POST /payos/cancel
+         *     body: { payos_order_code: string }
+         */
+        post: operations["PayosController_cancel_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payos/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Webhook nhận thông báo từ PayOS
+         *     POST /payos/webhook (PUBLIC, không cần JWT)
+         *     PayOS gửi raw JSON, cần verify signature
+         */
+        post: operations["PayosController_webhook_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments": {
         parameters: {
             query?: never;
@@ -749,6 +1028,16 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Nạp ví thủ công — CHỈ admin.
+         *
+         *     Hàm `WalletsService.topup()` cộng thẳng vào sổ cái mà không đòi bằng chứng
+         *     tiền thật đã về. Chú thích của chính nó đã nói rõ nó dành cho "thao tác tay
+         *     của admin". Trước hôm nay route này không có guard nào, tức là nó phơi một
+         *     hàm in tiền ra Internet.
+         *
+         *     Người dùng nạp tiền bằng PayOS: POST /payos/create-link type = topup.
+         */
         post: operations["WalletsController_topup_v1"];
         delete?: never;
         options?: never;
@@ -878,6 +1167,22 @@ export interface paths {
         get: operations["InteractionsController_findAll_v1"];
         put?: never;
         post: operations["InteractionsController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interactions/seller/{sellerId}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["InteractionsController_sellerStats_v1"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1092,146 +1397,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/sepay-webhook": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Sepay gửi webhook đến endpoint này
-         *     Public — không cần JWT vì Sepay không biết token của user
-         *     Xác thực bằng HMAC signature thay vì JWT
-         */
-        post: operations["SepayController_handleWebhook_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/payos/create-link": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Tạo link thanh toán PayOS cho đơn hàng hoặc nạp ví
-         *     POST /payos/create-link
-         *     body: { type: 'order' | 'topup', order_id?: number, amount?: number }
-         */
-        post: operations["PayosController_createLink_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/payos/order/{orderId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Lấy trạng thái thanh toán theo orderId (nội bộ)
-         *     GET /payos/order/:orderId
-         */
-        get: operations["PayosController_getOrderStatus_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/payos/refresh/{orderId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["PayosController_refresh_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/payos/status/{code}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Lấy trạng thái payment link theo payos_order_code
-         *     GET /payos/status/:code
-         */
-        get: operations["PayosController_getPaymentLinkStatus_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/payos/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Hủy payment link (user tự hủy từ frontend)
-         *     POST /payos/cancel
-         *     body: { payos_order_code: string }
-         */
-        post: operations["PayosController_cancel_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/payos/webhook": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Webhook nhận thông báo từ PayOS
-         *     POST /payos/webhook (PUBLIC, không cần JWT)
-         *     PayOS gửi raw JSON, cần verify signature
-         */
-        post: operations["PayosController_webhook_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/sitemap.xml": {
         parameters: {
             query?: never;
@@ -1239,7 +1404,45 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["SitemapController_getSitemap"];
+        /**
+         * Bảng chỉ mục — KHÔNG còn chứa URL sản phẩm, chỉ trỏ sang các file con.
+         *
+         *     Đây là lý do cả bài sửa này tồn tại: request vào `/sitemap.xml` giờ chỉ tốn
+         *     một câu `GROUP BY` và vài chục dòng XML, thay vì nạp cả bảng sản phẩm.
+         */
+        get: operations["SitemapController_getSitemapIndex"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sitemap-static.xml": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SitemapController_getSitemapStatic"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sitemap-products-{lo}.xml": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SitemapController_getSitemapProducts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1392,36 +1595,30 @@ export interface paths {
         patch: operations["AdminController_rejectWithdrawal_v1"];
         trace?: never;
     };
-    "/api/v1/settings/public": {
+    "/api/v1/admin/withdrawals/{id}/complete": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["SettingsController_getPublic_v1"];
+        get?: never;
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["SettingsController_findAll_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations["SettingsController_update_v1"];
+        /**
+         * Chặng thứ ba: tiền rời khỏi hệ thống sang `bank_external` sau khi admin đã
+         *     chuyển khoản thật ngoài đời.
+         *
+         *     `AdminService.completeWithdrawal` và `WithdrawalsService.complete` đều đã
+         *     tồn tại và có test, nhưng KHÔNG có route nào gọi tới. Nghĩa là lệnh rút chỉ
+         *     đi được tới `approved` rồi đứng đó vĩnh viễn, và tiền vẫn nằm trong
+         *     `withdrawal_pending` — sổ cái nói người bán chưa được trả, dù thực tế đã
+         *     chuyển. Thiếu đúng bảy dòng này.
+         */
+        patch: operations["AdminController_completeWithdrawal_v1"];
         trace?: never;
     };
     "/api/v1/withdrawals": {
@@ -1454,6 +1651,48 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SettingsController_getPublic_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * ĐỌC được thì cần đăng nhập; GHI thì phải là admin.
+         *
+         *     Bản trước hai endpoint dưới đây chỉ có JwtAuthGuard, nghĩa là BẤT KỲ tài
+         *     khoản nào đăng nhập cũng sửa được cài đặt toàn hệ thống — đổi tên site, đổi
+         *     mô tả, và (từ nay) bật được chế độ bảo trì để đóng cửa cả sàn. Không có gì
+         *     trong giao diện dẫn tới đó, nhưng endpoint thì gọi thẳng bằng curl là xong.
+         *
+         *     AdminGuard đã có sẵn trong repo từ trước, chỉ là chỗ này quên gắn.
+         */
+        get: operations["SettingsController_findAll_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["SettingsController_update_v1"];
         trace?: never;
     };
 }
@@ -1489,7 +1728,6 @@ export interface components {
             /** @enum {string} */
             role: "buyer" | "seller" | "admin" | "moderator";
             avatar: string;
-            balance: number;
             email_verified: boolean;
             is_locked: boolean;
             /** Format: date-time */
@@ -1539,8 +1777,6 @@ export interface components {
             email: string;
             password: string;
             phone_number?: string;
-            /** @enum {string} */
-            role?: "buyer" | "seller" | "admin" | "moderator";
         };
         SendOtpDto: {
             /** Format: email */
@@ -1553,7 +1789,7 @@ export interface components {
             newPassword: string;
         };
         ChangePasswordDto: {
-            oldPassword: string;
+            oldPassword?: string;
             newPassword: string;
         };
         CreateCategoryDto: {
@@ -1570,6 +1806,7 @@ export interface components {
         Category: {
             id: number;
             name: string;
+            name_en: string;
             description: string;
             slug: string;
             image: string;
@@ -1588,6 +1825,22 @@ export interface components {
             slug: string;
             description: string;
             price: number;
+            /**
+             * @description 4.1. Đơn vị tiền của `price` — mã ISO 4217 ('VND', 'USD', 'JPY'…).
+             *
+             *     VÌ SAO CẦN: trước cột này, mọi con số trong hệ thống đều NGẦM hiểu là đồng
+             *     Việt Nam, và không chỗ nào trong mã nói ra điều đó. Giao diện tiếng Anh vì
+             *     vậy vẫn in "1.890.000 ₫" — không phải lỗi định dạng, mà là vì thật sự không
+             *     có dữ liệu nào cho nó biết số đó là tiền gì.
+             *
+             *     ⚠️ CỘT NÀY CHỈ LÀM ĐÚNG PHẦN HIỂN THỊ. Nó KHÔNG khiến sàn giao dịch được
+             *     xuyên tiền tệ. Muốn thế còn cần: nguồn tỉ giá, thời điểm chốt giá, và một
+             *     sổ cái nhiều tiền tệ. Sổ cái hiện tại (ledger_accounts) kiểm bất biến
+             *     `sum(entries) = 0`, mà bất biến đó chỉ có nghĩa TRONG CÙNG một tiền tệ —
+             *     trộn hai loại tiền vào một sổ là cách làm hỏng sổ sách mà không ai thấy.
+             *     Nên tới khi có thiết kế đó, mỗi sàn vẫn nên chạy một tiền tệ.
+             */
+            currency: string;
             stock: number;
             image: string;
             brand: string;
@@ -1596,6 +1849,8 @@ export interface components {
             condition: string;
             is_freeship: boolean;
             sold_count: number;
+            rating_avg: number;
+            review_count: number;
             view_count: number;
             /** @enum {string} */
             status: "draft" | "pending" | "active" | "sold" | "rejected";
@@ -1622,6 +1877,15 @@ export interface components {
         CreateProductDto: {
             name: string;
             price: number;
+            /**
+             * @description Mã ISO 4217, 3 chữ hoa. Bỏ trống thì entity mặc định 'VND'.
+             *
+             *     Chỉ kiểm HÌNH DẠNG chứ không kiểm mã có thật: danh sách ISO 4217 thay đổi
+             *     theo thời gian và giữ một bản chép tay ở đây thì sớm muộn cũng lạc hậu.
+             *     Mã lạ lọt qua sẽ hiện ra ở phần định dạng phía frontend (Intl ném lỗi và
+             *     rơi về in số kèm mã), chứ không làm hỏng dữ liệu.
+             */
+            currency?: string;
             image?: string;
             description?: string;
             slug?: string;
@@ -1660,6 +1924,10 @@ export interface components {
             /** Format: date-time */
             created_at: string;
         };
+        RegisterPushTokenDto: {
+            token: string;
+            platform?: string;
+        };
         CreateOrderDto: {
             shipping_address: string;
             receiver_name: string;
@@ -1674,6 +1942,11 @@ export interface components {
             ghn_ward_code?: string;
             cart_item_ids?: number[];
         };
+        ShippingQuoteDto: {
+            to_district_id: number;
+            to_ward_code: string;
+            cart_item_ids?: number[];
+        };
         Order: {
             id: number;
             order_code: string;
@@ -1682,6 +1955,17 @@ export interface components {
             shipping_fee: number;
             discount_amount: number;
             final_amount: number;
+            /**
+             * @description Đơn vị tiền của đơn — CHỤP LẠI lúc đặt, không đọc lại từ sản phẩm.
+             *
+             *     Người bán đổi tiền tệ của tin đăng sau khi đơn đã đặt là chuyện có thật, và
+             *     khi đó đơn cũ phải giữ nguyên thứ nó đã thoả thuận. Đọc `product.currency`
+             *     lúc hiển thị thì một đơn 1.890.000 VND có thể biến thành 1.890.000 USD chỉ
+             *     vì người bán sửa tin — hoá đơn tự đổi số sau lưng người mua.
+             *
+             *     Cùng lý do mà `order_items` đã chụp lại tên và giá sản phẩm.
+             */
+            currency: string;
             /** @enum {string} */
             status: "pending" | "confirmed" | "processing" | "shipping" | "delivered" | "cancelled" | "refunded";
             /** @enum {string} */
@@ -1732,6 +2016,25 @@ export interface components {
             district?: string;
             note?: string;
         };
+        OrderShipment: {
+            id: number;
+            order: components["schemas"]["Order"];
+            seller: components["schemas"]["User"];
+            tracking_code: string;
+            cod_amount: number;
+            /** @enum {string} */
+            status: "created" | "failed" | "delivered" | "received";
+            error: string | null;
+            /** Format: date-time */
+            delivered_at: string;
+            /** Format: date-time */
+            received_at: string;
+            auto_received: boolean;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         CreateCartDto: {
             product_id: number;
             quantity?: number;
@@ -1781,6 +2084,15 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        CreatePayosLinkDto: {
+            /** @enum {string} */
+            type: "order" | "topup";
+            order_id?: number;
+            amount?: number;
+        };
+        CancelPayosLinkDto: {
+            payos_order_code: string;
         };
         CreatePaymentDto: {
             order_id?: number;
@@ -1921,10 +2233,27 @@ export interface components {
             recipient_name: string;
             phone_number: string;
             label: string;
+            /**
+             * @description Mã quốc gia ISO 3166-1 alpha-2 ('VN', 'US', 'JP'…).
+             *
+             *     Đứng TRƯỚC province vì nó quyết định mấy ô còn lại có nghĩa gì: 'province /
+             *     district / ward' là ba cấp hành chính của Việt Nam. Nước khác chia khác —
+             *     Mỹ có state/city/ZIP, Nhật có prefecture/city/chōme. Cột này chưa làm cho
+             *     biểu mẫu tự đổi theo nước, nhưng nó ghi lại được ĐỊA CHỈ NÀY THUỘC NƯỚC NÀO,
+             *     là thứ tối thiểu phải có trước khi làm việc đó.
+             *
+             *     Mặc định 'VN' cho mọi dòng đang có: tất cả địa chỉ trong database lúc này
+             *     đều nhập bằng bộ chọn tỉnh/huyện/xã Việt Nam, nên đó là sự thật chứ không
+             *     phải phỏng đoán.
+             */
+            country: string;
             province: string;
             district: string;
             ward: string;
             street: string;
+            ghn_province_id: number;
+            ghn_district_id: number;
+            ghn_ward_code: string;
             is_default: boolean;
             /** Format: date-time */
             created_at: string;
@@ -1939,6 +2268,9 @@ export interface components {
             district: string;
             ward?: string;
             street: string;
+            ghn_province_id?: number;
+            ghn_district_id?: number;
+            ghn_ward_code?: string;
             is_default?: boolean;
         };
         UpdateAddressDto: {
@@ -1949,6 +2281,9 @@ export interface components {
             district?: string;
             ward?: string;
             street?: string;
+            ghn_province_id?: number;
+            ghn_district_id?: number;
+            ghn_ward_code?: string;
             is_default?: boolean;
         };
         CreateShopDto: {
@@ -1959,6 +2294,14 @@ export interface components {
             banner?: string;
             phone?: string;
             address?: string;
+            pickup_name?: string;
+            pickup_phone?: string;
+            pickup_address?: string;
+            pickup_province_name?: string;
+            pickup_district_id?: number;
+            pickup_district_name?: string;
+            pickup_ward_code?: string;
+            pickup_ward_name?: string;
         };
         Shop: {
             id: number;
@@ -1970,6 +2313,30 @@ export interface components {
             banner: string;
             phone: string;
             address: string;
+            /**
+             * @description Địa chỉ LẤY HÀNG của người bán — nguồn gửi cho vận đơn GHN.
+             *
+             *     Zoldify là sàn C2C: mỗi người bán tự gửi hàng từ nhà mình, KHÔNG có kho
+             *     chung của sàn. Nên "from" của mỗi vận đơn phải là địa chỉ này, không phải
+             *     một điểm gửi cố định trong biến môi trường.
+             *
+             *     Lưu cả ID lẫn TÊN vì GHN dùng hai kiểu ở hai chỗ:
+             *       · tính phí  -> cần district_id (số) + ward_code
+             *       · tạo đơn   -> cần from_district_name / from_ward_name / from_province_name (chữ)
+             *     Cả hai lấy được cùng lúc từ danh mục /ghn/provinces|districts|wards, nên
+             *     chụp lại luôn để khỏi tra ngược tên<->id về sau.
+             *
+             *     Nullable vì shop cũ chưa khai; chưa đủ pickup thì rơi về shop GHN mặc định
+             *     của sàn (GHN_SHOP_ID) — xem GhnService. Bắt buộc khai đủ trước khi bán.
+             */
+            pickup_name: string;
+            pickup_phone: string;
+            pickup_address: string;
+            pickup_province_name: string;
+            pickup_district_id: number;
+            pickup_district_name: string;
+            pickup_ward_code: string;
+            pickup_ward_name: string;
             /** @enum {string} */
             status: "active" | "inactive" | "banned";
             /** Format: date-time */
@@ -1985,15 +2352,14 @@ export interface components {
             banner?: string;
             phone?: string;
             address?: string;
-        };
-        CreatePayosLinkDto: {
-            /** @enum {string} */
-            type: "order" | "topup";
-            order_id?: number;
-            amount?: number;
-        };
-        CancelPayosLinkDto: {
-            payos_order_code: string;
+            pickup_name?: string;
+            pickup_phone?: string;
+            pickup_address?: string;
+            pickup_province_name?: string;
+            pickup_district_id?: number;
+            pickup_district_name?: string;
+            pickup_ward_code?: string;
+            pickup_ward_name?: string;
         };
         Setting: {
             id: number;
@@ -2256,7 +2622,7 @@ export interface operations {
                         /** @example 200 */
                         statusCode: number;
                         message?: string;
-                        data: Record<string, never>;
+                        data: unknown;
                     };
                 };
             };
@@ -2782,6 +3148,7 @@ export interface operations {
                 seller_id?: string;
                 price_min?: string;
                 price_max?: string;
+                condition?: string;
                 sort?: string;
             };
             header?: never;
@@ -3153,6 +3520,62 @@ export interface operations {
             };
         };
     };
+    NotificationsController_registerPushToken_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterPushTokenDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 201 */
+                        statusCode: number;
+                        message?: string;
+                        data: unknown;
+                    };
+                };
+            };
+        };
+    };
+    NotificationsController_unregisterPushToken_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterPushTokenDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode: number;
+                        message?: string;
+                        data: unknown;
+                    };
+                };
+            };
+        };
+    };
     NotificationsController_getUnreadCount_v1: {
         parameters: {
             query?: never;
@@ -3288,6 +3711,7 @@ export interface operations {
                 limit?: string;
                 status?: string;
                 as?: string;
+                cursor?: string;
             };
             header?: never;
             path?: never;
@@ -3336,6 +3760,34 @@ export interface operations {
                         statusCode: number;
                         message?: string;
                         data: Record<string, never>;
+                    };
+                };
+            };
+        };
+    };
+    OrdersController_shippingQuote_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShippingQuoteDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 201 */
+                        statusCode: number;
+                        message?: string;
+                        data: unknown;
                     };
                 };
             };
@@ -3446,7 +3898,110 @@ export interface operations {
                         /** @example 200 */
                         statusCode: number;
                         message?: string;
+                        data: Record<string, never>;
+                    };
+                };
+            };
+        };
+    };
+    OrdersController_simGhn_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode: number;
+                        message?: string;
+                        data: Record<string, never>;
+                    };
+                };
+            };
+        };
+    };
+    OrdersController_retryShipments_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 201 */
+                        statusCode: number;
+                        message?: string;
+                        data: components["schemas"]["OrderShipment"][];
+                    };
+                };
+            };
+        };
+    };
+    OrdersController_settleShipments_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 201 */
+                        statusCode: number;
+                        message?: string;
                         data: unknown;
+                    };
+                };
+            };
+        };
+    };
+    OrdersController_confirmReceived_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                sellerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode: number;
+                        message?: string;
+                        data: Record<string, never>;
                     };
                 };
             };
@@ -3485,6 +4040,32 @@ export interface operations {
             path: {
                 id: string;
             };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode: number;
+                        message?: string;
+                        data: unknown;
+                    };
+                };
+            };
+        };
+    };
+    OrdersController_ghnWebhook_v1: {
+        parameters: {
+            query?: {
+                token?: string;
+            };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -3636,6 +4217,82 @@ export interface operations {
                         statusCode: number;
                         message?: string;
                         data: components["schemas"]["Cart"];
+                    };
+                };
+            };
+        };
+    };
+    GhnController_getProvinces_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode: number;
+                        message?: string;
+                        data: Record<string, never>;
+                    };
+                };
+            };
+        };
+    };
+    GhnController_getDistricts_v1: {
+        parameters: {
+            query?: {
+                province_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode: number;
+                        message?: string;
+                        data: unknown;
+                    };
+                };
+            };
+        };
+    };
+    GhnController_getWards_v1: {
+        parameters: {
+            query?: {
+                district_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode: number;
+                        message?: string;
+                        data: unknown;
                     };
                 };
             };
@@ -3806,6 +4463,164 @@ export interface operations {
                         data: {
                             held_balance: number;
                         };
+                    };
+                };
+            };
+        };
+    };
+    PayosController_createLink_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePayosLinkDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 201 */
+                        statusCode: number;
+                        message?: string;
+                        data: unknown;
+                    };
+                };
+            };
+        };
+    };
+    PayosController_getOrderStatus_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode: number;
+                        message?: string;
+                        data: unknown;
+                    };
+                };
+            };
+        };
+    };
+    PayosController_refresh_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode: number;
+                        message?: string;
+                        data: unknown;
+                    };
+                };
+            };
+        };
+    };
+    PayosController_getPaymentLinkStatus_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode: number;
+                        message?: string;
+                        data: unknown;
+                    };
+                };
+            };
+        };
+    };
+    PayosController_cancel_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelPayosLinkDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode: number;
+                        message?: string;
+                        data: unknown;
+                    };
+                };
+            };
+        };
+    };
+    PayosController_webhook_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode: number;
+                        message?: string;
+                        data: Record<string, never>;
                     };
                 };
             };
@@ -4093,7 +4908,10 @@ export interface operations {
     };
     ChatController_getMyConversations_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                currentPage?: string;
+                limit?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4262,6 +5080,7 @@ export interface operations {
             query?: {
                 currentPage?: string;
                 limit?: string;
+                mine?: string;
             };
             header?: never;
             path?: never;
@@ -4310,6 +5129,32 @@ export interface operations {
                         statusCode: number;
                         message?: string;
                         data: components["schemas"]["Review"];
+                    };
+                };
+            };
+        };
+    };
+    InteractionsController_sellerStats_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sellerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode: number;
+                        message?: string;
+                        data: unknown;
                     };
                 };
             };
@@ -4864,12 +5709,10 @@ export interface operations {
             };
         };
     };
-    SepayController_handleWebhook_v1: {
+    SitemapController_getSitemapIndex: {
         parameters: {
             query?: never;
-            header: {
-                "x-signature": string;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -4880,179 +5723,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @example 200 */
-                        statusCode: number;
-                        message?: string;
-                        data: Record<string, never>;
-                    };
+                    "application/json": string;
                 };
             };
         };
     };
-    PayosController_createLink_v1: {
+    SitemapController_getSitemapStatic: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePayosLinkDto"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            201: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @example 201 */
-                        statusCode: number;
-                        message?: string;
-                        data: unknown;
-                    };
+                    "application/json": string;
                 };
             };
         };
     };
-    PayosController_getOrderStatus_v1: {
+    SitemapController_getSitemapProducts: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                orderId: string;
+                lo: string;
             };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 200 */
-                        statusCode: number;
-                        message?: string;
-                        data: unknown;
-                    };
-                };
-            };
-        };
-    };
-    PayosController_refresh_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                orderId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 200 */
-                        statusCode: number;
-                        message?: string;
-                        data: unknown;
-                    };
-                };
-            };
-        };
-    };
-    PayosController_getPaymentLinkStatus_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                code: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 200 */
-                        statusCode: number;
-                        message?: string;
-                        data: unknown;
-                    };
-                };
-            };
-        };
-    };
-    PayosController_cancel_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CancelPayosLinkDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 200 */
-                        statusCode: number;
-                        message?: string;
-                        data: unknown;
-                    };
-                };
-            };
-        };
-    };
-    PayosController_webhook_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 200 */
-                        statusCode: number;
-                        message?: string;
-                        data: Record<string, never>;
-                    };
-                };
-            };
-        };
-    };
-    SitemapController_getSitemap: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -5385,6 +6086,90 @@ export interface operations {
             };
         };
     };
+    AdminController_completeWithdrawal_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode: number;
+                        message?: string;
+                        data: components["schemas"]["Withdrawal"];
+                    };
+                };
+            };
+        };
+    };
+    WithdrawalsController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWithdrawalDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 201 */
+                        statusCode: number;
+                        message?: string;
+                        data: components["schemas"]["Withdrawal"];
+                    };
+                };
+            };
+        };
+    };
+    WithdrawalsController_getMyWithdrawals_v1: {
+        parameters: {
+            query?: {
+                page?: string;
+                limit?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode: number;
+                        message?: string;
+                        data: {
+                            meta: components["schemas"]["PaginationMetaDto"];
+                            result: components["schemas"]["Withdrawal"][];
+                        };
+                    };
+                };
+            };
+        };
+    };
     SettingsController_getPublic_v1: {
         parameters: {
             query?: never;
@@ -5452,64 +6237,6 @@ export interface operations {
                         statusCode: number;
                         message?: string;
                         data: components["schemas"]["Setting"][];
-                    };
-                };
-            };
-        };
-    };
-    WithdrawalsController_create_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateWithdrawalDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 201 */
-                        statusCode: number;
-                        message?: string;
-                        data: components["schemas"]["Withdrawal"];
-                    };
-                };
-            };
-        };
-    };
-    WithdrawalsController_getMyWithdrawals_v1: {
-        parameters: {
-            query?: {
-                page?: string;
-                limit?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 200 */
-                        statusCode: number;
-                        message?: string;
-                        data: {
-                            meta: components["schemas"]["PaginationMetaDto"];
-                            result: components["schemas"]["Withdrawal"][];
-                        };
                     };
                 };
             };

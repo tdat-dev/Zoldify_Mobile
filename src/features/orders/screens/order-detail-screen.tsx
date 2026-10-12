@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useCancelOrder, useConfirmReceived, useOrder } from '@/features/orders/api';
-import { useReviewStore } from '@/features/reviews/store';
+import { useMyReviewedProducts } from '@/features/reviews/api';
 import { STATUS_META, type OrderStatus } from '@/features/orders/order-status';
 import { formatVnd } from '@/lib/format';
 import { mediaUrl } from '@/lib/media';
@@ -62,7 +62,8 @@ export default function OrderDetailScreen() {
   const { data: order, isPending, isError, refetch } = useOrder(Number(id));
   const cancel = useCancelOrder();
   const confirm = useConfirmReceived();
-  const reviewedMap = useReviewStore((s) => s.byProduct);
+  // Món nào đã đánh giá: hỏi server (trước đây nhớ trên máy, lỗi H-01).
+  const { data: reviewedSet } = useMyReviewedProducts();
 
   // Làm mới khi mở lại — trạng thái/timeline do người bán đổi ở server.
   useFocusEffect(
@@ -105,6 +106,13 @@ export default function OrderDetailScreen() {
   const canCancel = order.status === 'pending' || order.status === 'confirmed';
   const canReceive = order.status === 'shipping';
   const canReview = order.status === 'delivered';
+  // Vận đơn GHN bị từ chối: nói rõ cho người mua thay vì để đơn nằm im ở "Đã
+  // xác nhận" (lỗi H-08 test E2E, đơn ORD-20260930-785). Chỉ khi đơn còn chờ
+  // gửi: đơn đã huỷ mà vẫn hứa "sẽ được giao" là nói sai (thấy khi test 05/10).
+  const awaitingShipment = order.status === 'confirmed' || order.status === 'processing';
+  const failedShipment = awaitingShipment
+    ? order.shipments?.find((s) => s.status === 'failed')
+    : undefined;
 
   const onReceive = () => {
     sellerIds.forEach((sid) => confirm.mutate({ orderId: order.id, sellerId: sid }));
@@ -120,6 +128,16 @@ export default function OrderDetailScreen() {
             {order.tracking_code ? <Text variant="caption">Vận đơn: {order.tracking_code}</Text> : null}
           </View>
           <Timeline status={order.status} />
+          {failedShipment ? (
+            <View style={styles.shipFail}>
+              <Ionicons name="alert-circle-outline" size={16} color={Palette.dangerFg} />
+              <Text variant="caption" style={styles.shipFailText}>
+                Người bán chưa tạo được vận đơn GHN
+                {failedShipment.error ? `: ${failedShipment.error}` : ''}. Đơn sẽ được giao khi
+                người bán tạo lại vận đơn.
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.card}>
@@ -134,7 +152,7 @@ export default function OrderDetailScreen() {
             {items.map((it) => {
               const uri = mediaUrl(it.product_image);
               const pid = it.product?.id;
-              const reviewed = pid ? (reviewedMap[pid]?.length ?? 0) > 0 : false;
+              const reviewed = pid ? (reviewedSet?.has(pid) ?? false) : false;
               return (
                 <View key={it.id} style={styles.itemGroup}>
                   <View style={styles.itemRow}>
@@ -156,7 +174,9 @@ export default function OrderDetailScreen() {
                     ) : (
                       <Pressable
                         style={styles.reviewBtn}
-                        onPress={() => router.push({ pathname: '/write-review/[id]', params: { id: pid } })}>
+                        onPress={() =>
+                          router.push({ pathname: '/write-review/[id]', params: { id: pid, orderId: order.id } })
+                        }>
                         <Ionicons name="star-outline" size={14} color={Palette.brand} />
                         <Text style={styles.reviewBtnText}>Đánh giá</Text>
                       </Pressable>
@@ -237,6 +257,8 @@ const styles = StyleSheet.create({
   },
   codeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   code: { fontFamily: Font.semibold, color: Palette.inkMuted },
+  shipFail: { flexDirection: 'row', gap: 6, marginTop: 12, alignItems: 'flex-start' },
+  shipFailText: { flex: 1, color: Palette.dangerFg },
   h: { marginBottom: 10 },
   addr: { marginTop: 4 },
   timeline: { flexDirection: 'row', justifyContent: 'space-between' },
