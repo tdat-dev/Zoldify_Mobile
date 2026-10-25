@@ -12,6 +12,18 @@ export const cartKeys = {
   count: () => [...cartKeys.all, 'count'] as const,
 };
 
+/**
+ * Món trong giỏ còn mua được không: hết kho (stock <= 0) hoặc tin không còn
+ * đăng bán (đã bán, bị gỡ) thì không. Một món như vậy lọt vào POST /orders là
+ * cả đơn bị từ chối, nên giỏ và thanh toán đều phải loại ra.
+ */
+export function isCartItemAvailable(item: Cart): boolean {
+  const p = item.product;
+  if (!p) return false;
+  if ((p.stock ?? 1) <= 0) return false;
+  return !p.status || p.status === 'active';
+}
+
 /** Đếm số món (ưu tiên meta.total, không có thì cộng dồn quantity). */
 function totalOf(data?: Paginated<Cart> | null): number {
   const total = data?.meta?.total;

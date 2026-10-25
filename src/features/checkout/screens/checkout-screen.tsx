@@ -14,7 +14,7 @@ import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useAddresses, type Address } from '@/features/addresses/api';
-import { useCart, useRefetchCartOnFocus } from '@/features/cart/api';
+import { isCartItemAvailable, useCart, useRefetchCartOnFocus } from '@/features/cart/api';
 import { type GhnAddressSelection } from '@/features/checkout/ghn-address-form';
 import { useCreateOrder, usePayOrderWithWallet, useShippingQuote } from '@/features/orders/api';
 import type { CreateOrderDto, Order } from '@/api';
@@ -64,7 +64,10 @@ export default function CheckoutScreen() {
   const { only } = useLocalSearchParams<{ only?: string }>();
   const { data: cart = [], isPending } = useCart();
   useRefetchCartOnFocus();
-  const items = only ? cart.filter((i) => String(i.id) === String(only)) : cart;
+  const picked = only ? cart.filter((i) => String(i.id) === String(only)) : cart;
+  // Món hết hàng/không còn bán: bỏ ra, không thì một món kéo cả đơn hỏng.
+  const items = picked.filter(isCartItemAvailable);
+  const soldOutCount = picked.length - items.length;
   const { data: addresses = [], isSuccess: addressesLoaded } = useAddresses();
   const [address, setAddress] = useState<GhnAddressSelection>(EMPTY_ADDRESS);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -229,7 +232,7 @@ export default function CheckoutScreen() {
       <View style={styles.root}>
         {header}
         <View style={styles.center}>
-          <Text variant="heading">Chưa có món để thanh toán</Text>
+          <Text variant="heading">{soldOutCount > 0 ? 'Món đã hết hàng' : 'Chưa có món để thanh toán'}</Text>
           <View style={styles.emptyCta}>
             <Button title="Về giỏ hàng" variant="secondary" onPress={() => router.replace('/cart')} />
           </View>
@@ -309,6 +312,11 @@ export default function CheckoutScreen() {
         {/* Món */}
         <View style={styles.card}>
           <Text variant="heading" style={styles.noteHead}>{items.length} món</Text>
+          {soldOutCount > 0 ? (
+            <Text variant="caption" style={[styles.warn, styles.soldOutNote]}>
+              {soldOutCount} món trong giỏ đã hết hàng nên không có trong đơn này.
+            </Text>
+          ) : null}
           <View style={styles.itemList}>
             {items.map((it) => {
               const uri = mediaUrl(it.product?.image);
@@ -557,6 +565,7 @@ const styles = StyleSheet.create({
   fixAddr: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginTop: 6 },
   sheetFooter: { padding: 16, borderTopWidth: 1, borderTopColor: Palette.line },
   noteHead: { marginBottom: 12 },
+  soldOutNote: { marginTop: -4, marginBottom: 12 },
   noteInput: { minHeight: 60, textAlignVertical: 'top', paddingTop: 10 },
   itemList: { gap: 12 },
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },

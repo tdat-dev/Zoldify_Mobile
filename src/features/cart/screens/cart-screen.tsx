@@ -9,6 +9,7 @@ import { ListRowSkeleton } from '@/components/ui/list-row-skeleton';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import {
+  isCartItemAvailable,
   useCart,
   useRefetchCartOnFocus,
   useRemoveCartItem,
@@ -63,8 +64,9 @@ function CartRow({
   onRemove: () => void;
 }) {
   const uri = mediaUrl(item.product?.image);
+  const soldOut = !isCartItemAvailable(item);
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, soldOut && styles.rowSoldOut]}>
       <Pressable
         style={styles.thumb}
         onPress={() =>
@@ -79,11 +81,15 @@ function CartRow({
         <Text variant="body" numberOfLines={2} style={styles.rowName}>
           {item.product?.name}
         </Text>
-        <Text style={styles.rowPrice}>{formatVnd(item.product?.price)}</Text>
+        <Text style={[styles.rowPrice, soldOut && styles.rowPriceOff]}>{formatVnd(item.product?.price)}</Text>
         <View style={styles.rowFooter}>
           {/* Đồ cũ thường là món DUY NHẤT (stock 1) — ẩn bộ +/− cho khỏi giống
               sàn nhiều số lượng; chỉ hiện khi người bán có >1 cùng món. */}
-          {(item.product?.stock ?? 1) > 1 ? (
+          {soldOut ? (
+            <View style={styles.soldTag}>
+              <Text style={styles.soldTagText}>Hết hàng</Text>
+            </View>
+          ) : (item.product?.stock ?? 1) > 1 ? (
             <QtyStepper value={item.quantity} onChange={onQty} disabled={busy} />
           ) : (
             <Text style={styles.unique}>Món duy nhất</Text>
@@ -146,7 +152,11 @@ export default function CartScreen() {
   }
 
   const list = items ?? [];
-  const total = list.reduce(
+  // Món hết hàng vẫn hiện để người mua biết và tự xoá, nhưng không tính tiền
+  // và không đưa sang thanh toán (thanh toán cũng lọc lại).
+  const buyable = list.filter(isCartItemAvailable);
+  const soldOutCount = list.length - buyable.length;
+  const total = buyable.reduce(
     (acc, i) => acc + Number(i.product?.price ?? 0) * (i.quantity ?? 1),
     0,
   );
@@ -190,8 +200,16 @@ export default function CartScreen() {
           <Text variant="bodyMuted">Tạm tính</Text>
           <Text style={styles.total}>{formatVnd(total)}</Text>
         </View>
-        <Text variant="caption" style={styles.note}>Phí vận chuyển tính ở bước thanh toán.</Text>
-        <Button title="Thanh toán" onPress={() => router.push('/checkout')} />
+        <Text variant="caption" style={styles.note}>
+          {soldOutCount > 0
+            ? `${soldOutCount} món đã hết hàng, không tính vào đơn. Phí vận chuyển tính ở bước thanh toán.`
+            : 'Phí vận chuyển tính ở bước thanh toán.'}
+        </Text>
+        <Button
+          title="Thanh toán"
+          onPress={() => router.push('/checkout')}
+          disabled={buyable.length === 0}
+        />
       </View>
     </View>
   );
@@ -251,6 +269,10 @@ const styles = StyleSheet.create({
   rowFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   remove: { fontFamily: Font.medium, fontSize: 13, color: Palette.inkMuted },
   unique: { fontFamily: Font.semibold, fontSize: 12, color: Palette.inkMuted },
+  rowSoldOut: { opacity: 0.6 },
+  rowPriceOff: { color: Palette.inkMuted, textDecorationLine: 'line-through' },
+  soldTag: { backgroundColor: Palette.neutralBg, borderRadius: Radius.control, paddingHorizontal: 6, paddingVertical: 2 },
+  soldTagText: { fontFamily: Font.semibold, fontSize: 12, color: Palette.neutralFg },
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
