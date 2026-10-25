@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -16,8 +16,9 @@ import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useAddresses, type Address } from '@/features/addresses/api';
 import { useCart } from '@/features/cart/api';
 import { type GhnAddressSelection } from '@/features/checkout/ghn-address-form';
-import { useCreateOrder, useShippingQuote } from '@/features/orders/api';
-import type { CreateOrderDto } from '@/api';
+import { useCreateOrder, usePayOrderWithWallet, useShippingQuote } from '@/features/orders/api';
+import type { CreateOrderDto, Order } from '@/api';
+import { apiErrorMessage } from '@/lib/api/error-message';
 import { formatVnd } from '@/lib/format';
 import { mediaUrl } from '@/lib/media';
 
@@ -107,6 +108,8 @@ export default function CheckoutScreen() {
 
   const quote = useShippingQuote();
   const create = useCreateOrder();
+  const pay = usePayOrderWithWallet();
+  const submitting = create.isPending || pay.isPending;
 
   const subtotal = useMemo(
     () => items.reduce((acc, i) => acc + Number(i.product?.price ?? 0) * (i.quantity ?? 1), 0),
@@ -157,12 +160,41 @@ export default function CheckoutScreen() {
       cart_item_ids: items.map((i) => i.id),
     };
     create.mutate(dto, {
-      onSuccess: () => router.replace('/orders'),
+      onSuccess: (created) => {
+        if (payment === 'wallet') void payWithWallet(created);
+        else router.replace('/orders');
+      },
       onError: (e) => {
         const msg = (e as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
         setErrMsg(Array.isArray(msg) ? String(msg[0]) : typeof msg === 'string' ? msg : 'Đặt hàng chưa được. Thử lại nhé.');
       },
     });
+  };
+
+  // POST /orders với 'wallet' chỉ TẠO đơn, chưa trừ tiền: phải gọi tiếp
+  // POST /payments cho từng đơn. Trước đây app dừng ở bước tạo đơn rồi báo
+  // thành công, ví không bị trừ đồng nào.
+  const payWithWallet = async (created: Order | Order[]) => {
+    const orders = Array.isArray(created) ? created : [created];
+    let failed: { order: Order; message: string } | null = null;
+    for (const o of orders) {
+      try {
+        await pay.mutateAsync(o.id);
+      } catch (e) {
+        failed ??= { order: o, message: apiErrorMessage(e, 'Chưa trừ được tiền trong ví.') };
+      }
+    }
+    if (!failed) {
+      router.replace('/orders');
+      return;
+    }
+    // Đơn đã có nhưng chưa trả: đưa tới chi tiết đơn (nơi trả lại được), không
+    // phải màn thành công.
+    router.replace({ pathname: '/orders/[id]', params: { id: String(failed.order.id) } });
+    Alert.alert(
+      'Đơn đã tạo nhưng chưa thanh toán',
+      `${failed.message}\n\nĐơn vẫn được giữ. Nạp thêm ví rồi bấm "Trả bằng ví" trong chi tiết đơn, hoặc huỷ đơn nếu không mua nữa.`,
+    );
   };
 
   const header = (
@@ -172,7 +204,9 @@ export default function CheckoutScreen() {
     </View>
   );
 
-  if (isPending) {
+  // Đặt xong giỏ được làm mới nên `items` rỗng trong lúc còn trừ ví: giữ
+  // vòng chờ thay vì nháy màn "Chưa có món".
+  if (isPending || (submitting && items.length === 0)) {
     return (
       <View style={styles.root}>
         {header}
@@ -416,10 +450,10 @@ export default function CheckoutScreen() {
           <Text style={styles.total}>{formatVnd(grandTotal)}</Text>
         </View>
         <Button
-          title={create.isPending ? 'Đang đặt…' : 'Đặt hàng'}
+          title={pay.isPending ? 'Đang trừ ví…' : create.isPending ? 'Đang đặt…' : 'Đặt hàng'}
           onPress={onSubmit}
-          loading={create.isPending}
-          disabled={!addressReady || create.isPending || (ghnReady && !!feeError)}
+          loading={submitting}
+          disabled={!addressReady || submitting || (ghnReady && !!feeError)}
         />
       </View>
     </View>

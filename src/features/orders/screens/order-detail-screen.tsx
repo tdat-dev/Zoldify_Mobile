@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,9 +10,10 @@ import { BackChevron } from '@/components/ui/back-chevron';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
-import { useCancelOrder, useConfirmReceived, useOrder } from '@/features/orders/api';
+import { useCancelOrder, useConfirmReceived, useOrder, usePayOrderWithWallet } from '@/features/orders/api';
 import { useMyReviewedProducts } from '@/features/reviews/api';
 import { STATUS_META, type OrderStatus } from '@/features/orders/order-status';
+import { apiErrorMessage } from '@/lib/api/error-message';
 import { formatVnd } from '@/lib/format';
 import { mediaUrl } from '@/lib/media';
 
@@ -62,6 +63,7 @@ export default function OrderDetailScreen() {
   const { data: order, isPending, isError, refetch } = useOrder(Number(id));
   const cancel = useCancelOrder();
   const confirm = useConfirmReceived();
+  const pay = usePayOrderWithWallet();
   // Món nào đã đánh giá: hỏi server (trước đây nhớ trên máy, lỗi H-01).
   const { data: reviewedSet } = useMyReviewedProducts();
 
@@ -106,6 +108,9 @@ export default function OrderDetailScreen() {
   const canCancel = order.status === 'pending' || order.status === 'confirmed';
   const canReceive = order.status === 'shipping';
   const canReview = order.status === 'delivered';
+  // Chọn ví lúc đặt mà trừ tiền chưa được (thiếu số dư...): đơn còn chờ và
+  // chưa trả thì cho trả lại ngay tại đây.
+  const canPayWallet = order.payment_method === 'wallet' && !order.is_paid && order.status === 'pending';
   // Vận đơn GHN bị từ chối: nói rõ cho người mua thay vì để đơn nằm im ở "Đã
   // xác nhận" (lỗi H-08 test E2E, đơn ORD-20260930-785). Chỉ khi đơn còn chờ
   // gửi: đơn đã huỷ mà vẫn hứa "sẽ được giao" là nói sai (thấy khi test 05/10).
@@ -113,6 +118,13 @@ export default function OrderDetailScreen() {
   const failedShipment = awaitingShipment
     ? order.shipments?.find((s) => s.status === 'failed')
     : undefined;
+
+  const onPayWallet = () => {
+    pay.mutate(order.id, {
+      onSuccess: () => Alert.alert('Đã thanh toán', 'Đã trừ tiền trong ví cho đơn này.'),
+      onError: (e) => Alert.alert('Chưa thanh toán được', apiErrorMessage(e, 'Chưa trừ được tiền trong ví.')),
+    });
+  };
 
   const onReceive = () => {
     sellerIds.forEach((sid) => confirm.mutate({ orderId: order.id, sellerId: sid }));
@@ -209,8 +221,15 @@ export default function OrderDetailScreen() {
           </View>
         </View>
 
-        {canReceive || canCancel ? (
+        {canPayWallet || canReceive || canCancel ? (
           <View style={styles.actions}>
+            {canPayWallet ? (
+              <Button
+                title={pay.isPending ? 'Đang trừ ví…' : 'Trả bằng ví'}
+                onPress={onPayWallet}
+                loading={pay.isPending}
+              />
+            ) : null}
             {canReceive ? (
               <Button
                 title={confirm.isPending ? 'Đang xác nhận…' : 'Đã nhận hàng'}

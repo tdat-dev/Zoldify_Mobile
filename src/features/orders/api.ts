@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import http from '@/lib/api/client';
-import type { ApiResponse, CreateOrderDto, Order, Paginated } from '@/api';
+import type { ApiResponse, CreateOrderDto, Order, Paginated, Payment } from '@/api';
 import { useAuthStore } from '@/features/auth/store';
 import { cartKeys } from '@/features/cart/api';
 
@@ -98,6 +98,28 @@ export function useCreateOrder() {
       qc.invalidateQueries({ queryKey: cartKeys.all });
       qc.invalidateQueries({ queryKey: orderKeys.all });
     },
+  });
+}
+
+/**
+ * Trả một đơn bằng ví Zoldify (POST /payments). Tạo đơn với payment_method
+ * 'wallet' KHÔNG trừ tiền: chỉ bước này mới trừ ví, tách ký quỹ và chuyển đơn
+ * sang "Đã xác nhận". Thiếu số dư hay đơn vừa đổi trạng thái (409) thì đơn vẫn
+ * còn nhưng chưa trả, người mua trả lại ở màn chi tiết đơn.
+ */
+export function usePayOrderWithWallet() {
+  const qc = useQueryClient();
+  return useMutation({
+    meta: { handlesError: true },
+    mutationFn: async (orderId: number) => {
+      const res = await http.post<ApiResponse<Payment>>('/payments', {
+        order_id: orderId,
+        payment_method: 'wallet',
+      });
+      return res.data.data;
+    },
+    // Trả được hay không thì trạng thái đơn trên server cũng có thể đã đổi.
+    onSettled: () => qc.invalidateQueries({ queryKey: orderKeys.all }),
   });
 }
 
