@@ -14,7 +14,7 @@ import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useAddresses, type Address } from '@/features/addresses/api';
-import { useCart } from '@/features/cart/api';
+import { useCart, useRefetchCartOnFocus } from '@/features/cart/api';
 import { type GhnAddressSelection } from '@/features/checkout/ghn-address-form';
 import { useCreateOrder, usePayOrderWithWallet, useShippingQuote } from '@/features/orders/api';
 import type { CreateOrderDto, Order } from '@/api';
@@ -63,6 +63,7 @@ export default function CheckoutScreen() {
   // `only` = mua ngay 1 món: chỉ thanh toán đúng cart item đó, không phải cả giỏ.
   const { only } = useLocalSearchParams<{ only?: string }>();
   const { data: cart = [], isPending } = useCart();
+  useRefetchCartOnFocus();
   const items = only ? cart.filter((i) => String(i.id) === String(only)) : cart;
   const { data: addresses = [], isSuccess: addressesLoaded } = useAddresses();
   const [address, setAddress] = useState<GhnAddressSelection>(EMPTY_ADDRESS);

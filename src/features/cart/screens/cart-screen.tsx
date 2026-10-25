@@ -10,6 +10,7 @@ import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import {
   useCart,
+  useRefetchCartOnFocus,
   useRemoveCartItem,
   useUpdateCartQty,
 } from '@/features/cart/api';
@@ -101,6 +102,7 @@ export default function CartScreen() {
   const insets = useSafeAreaInsets();
   const guest = useAuthStore((s) => s.status) !== 'signedIn';
   const { data: items, isPending } = useCart();
+  useRefetchCartOnFocus();
   const updateQty = useUpdateCartQty();
   const remove = useRemoveCartItem();
 

@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 
 import http from '@/lib/api/client';
 import type { ApiResponse, Cart, Paginated } from '@/api';
@@ -49,6 +51,20 @@ export function useCart() {
     },
     enabled: signedIn,
   });
+}
+
+/**
+ * Lấy lại giỏ mỗi lần màn được focus. Giỏ đổi ngoài tầm mắt (món bị mua mất,
+ * người bán đổi giá) mà staleTime 60s lại giữ bản cũ, nên vào giỏ/thanh toán
+ * phải hỏi lại server. Query đang tắt (khách) thì invalidate không gọi gì.
+ */
+export function useRefetchCartOnFocus() {
+  const qc = useQueryClient();
+  useFocusEffect(
+    useCallback(() => {
+      qc.invalidateQueries({ queryKey: cartKeys.all }, { cancelRefetch: false });
+    }, [qc]),
+  );
 }
 
 /** Thêm vào giỏ. Làm mới cả danh sách lẫn badge. */

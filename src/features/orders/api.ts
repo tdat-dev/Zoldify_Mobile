@@ -94,7 +94,8 @@ export function useCreateOrder() {
       const res = await http.post<ApiResponse<Order>>('/orders', dto);
       return res.data.data;
     },
-    onSuccess: () => {
+    // Cả khi lỗi: đặt hỏng thường vì hết hàng/đổi giá, giỏ phải lấy lại cho đúng.
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: cartKeys.all });
       qc.invalidateQueries({ queryKey: orderKeys.all });
     },
@@ -131,7 +132,8 @@ export function useCancelOrder() {
       const res = await http.patch<ApiResponse<Order>>(`/orders/${id}/cancel`);
       return res.data.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: orderKeys.all }),
+    // Cả khi lỗi (vd 409: người bán vừa đổi trạng thái) để màn hiện đúng trạng thái mới.
+    onSettled: () => qc.invalidateQueries({ queryKey: orderKeys.all }),
   });
 }
 
@@ -145,7 +147,7 @@ export function useConfirmReceived() {
       );
       return input;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: orderKeys.all }),
+    onSettled: () => qc.invalidateQueries({ queryKey: orderKeys.all }),
   });
 }
 
