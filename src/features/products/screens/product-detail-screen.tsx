@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { StatusBar } from 'expo-status-bar';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -35,6 +35,9 @@ export default function ProductDetailScreen() {
   const startConv = useStartConversation();
   const addToCart = useAddToCart();
   const [mode, setMode] = useState<null | 'add' | 'buy'>(null);
+  // Khoá chạm đúp: `mode` là state nên tới lần render sau nút mới khoá, chạm
+  // nhanh hai lần trong khe đó là thêm vào giỏ hai lần. Ref đổi ngay lập tức.
+  const busyRef = useRef(false);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [errMsg, setErrMsg] = useState<string | null>(null);
@@ -81,6 +84,8 @@ export default function ProductDetailScreen() {
 
   const onAdd = () => {
     if (guest) return requireAuth();
+    if (busyRef.current) return;
+    busyRef.current = true;
     setErrMsg(null);
     setMode('add');
     addToCart.mutate(
@@ -91,13 +96,18 @@ export default function ProductDetailScreen() {
           setTimeout(() => setAdded(false), 1500);
         },
         onError: cartError,
-        onSettled: () => setMode(null),
+        onSettled: () => {
+          busyRef.current = false;
+          setMode(null);
+        },
       },
     );
   };
 
   const onBuy = () => {
     if (guest) return requireAuth();
+    if (busyRef.current) return;
+    busyRef.current = true;
     setErrMsg(null);
     setMode('buy');
     // Mua ngay: thêm vào giỏ rồi vào THẲNG thanh toán, chỉ món này (param `only`).
@@ -107,7 +117,10 @@ export default function ProductDetailScreen() {
       {
         onSuccess: (item) => router.push({ pathname: '/checkout', params: { only: item.id } }),
         onError: cartError,
-        onSettled: () => setMode(null),
+        onSettled: () => {
+          busyRef.current = false;
+          setMode(null);
+        },
       },
     );
   };
