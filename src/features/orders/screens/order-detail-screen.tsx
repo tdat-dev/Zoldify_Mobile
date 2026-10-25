@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -63,6 +63,8 @@ export default function OrderDetailScreen() {
   const { data: order, isPending, isError, refetch } = useOrder(Number(id));
   const cancel = useCancelOrder();
   const confirm = useConfirmReceived();
+  // isPending của một hook chỉ theo lượt gọi cuối, mà ở đây gọi cho từng người bán.
+  const [receiving, setReceiving] = useState(false);
   const pay = usePayOrderWithWallet();
   // Món nào đã đánh giá: hỏi server (trước đây nhớ trên máy, lỗi H-01).
   const { data: reviewedSet } = useMyReviewedProducts();
@@ -126,9 +128,43 @@ export default function OrderDetailScreen() {
     });
   };
 
-  const onReceive = () => {
-    sellerIds.forEach((sid) => confirm.mutate({ orderId: order.id, sellerId: sid }));
+  // Xác nhận cho TẤT CẢ người bán trong đơn cùng lúc, chờ hết rồi báo MỘT lần.
+  const doReceive = async () => {
+    setReceiving(true);
+    const results = await Promise.allSettled(
+      sellerIds.map((sid) => confirm.mutateAsync({ orderId: order.id, sellerId: sid })),
+    );
+    setReceiving(false);
+    const failed = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+    if (failed.length === 0) {
+      Alert.alert('Đã xác nhận nhận hàng', 'Cảm ơn bạn. Giờ bạn có thể đánh giá món đã mua.');
+      return;
+    }
+    const reason = apiErrorMessage(failed[0].reason);
+    Alert.alert(
+      'Chưa xác nhận xong',
+      failed.length === results.length
+        ? reason
+        : `Đã xác nhận ${results.length - failed.length}/${results.length} người bán. Phần còn lại chưa được: ${reason}`,
+    );
   };
+
+  // Nhận hàng là giải ngân cho người bán, huỷ đơn không hoàn tác được: hỏi lại trước.
+  const onReceive = () =>
+    Alert.alert(
+      'Bạn đã nhận đủ hàng?',
+      'Xác nhận xong, tiền được chuyển cho người bán và không lấy lại được. Chỉ bấm khi đã nhận và kiểm tra hàng.',
+      [
+        { text: 'Chưa', style: 'cancel' },
+        { text: 'Đã nhận hàng', onPress: () => void doReceive() },
+      ],
+    );
+
+  const onCancel = () =>
+    Alert.alert('Huỷ đơn này?', 'Đơn bị huỷ thì không hoàn tác được.', [
+      { text: 'Không huỷ', style: 'cancel' },
+      { text: 'Huỷ đơn', style: 'destructive', onPress: () => cancel.mutate(order.id) },
+    ]);
 
   return (
     <View style={styles.root}>
@@ -232,16 +268,16 @@ export default function OrderDetailScreen() {
             ) : null}
             {canReceive ? (
               <Button
-                title={confirm.isPending ? 'Đang xác nhận…' : 'Đã nhận hàng'}
+                title={receiving ? 'Đang xác nhận…' : 'Đã nhận hàng'}
                 onPress={onReceive}
-                loading={confirm.isPending}
+                loading={receiving}
               />
             ) : null}
             {canCancel ? (
               <Button
                 title={cancel.isPending ? 'Đang huỷ…' : 'Huỷ đơn'}
                 variant="secondary"
-                onPress={() => cancel.mutate(order.id)}
+                onPress={onCancel}
                 loading={cancel.isPending}
               />
             ) : null}

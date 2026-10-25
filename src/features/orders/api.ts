@@ -141,6 +141,8 @@ export function useCancelOrder() {
 export function useConfirmReceived() {
   const qc = useQueryClient();
   return useMutation({
+    // Màn chi tiết đơn gọi cho nhiều người bán một lượt và gộp lỗi thành một thông báo.
+    meta: { handlesError: true },
     mutationFn: async (input: { orderId: number; sellerId: number }) => {
       await http.patch<ApiResponse<unknown>>(
         `/orders/${input.orderId}/shipments/${input.sellerId}/received`,
