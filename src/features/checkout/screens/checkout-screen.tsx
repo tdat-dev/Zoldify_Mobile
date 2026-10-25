@@ -147,6 +147,12 @@ export default function CheckoutScreen() {
       setErrMsg('Nhập đủ người nhận, số điện thoại và địa chỉ nhé.');
       return;
     }
+    // Không có mã quận/phường GHN thì server không tính được phí và đơn lên
+    // với phí ship 0đ. Bắt sửa địa chỉ trước khi cho đặt.
+    if (!ghnReady) {
+      setErrMsg('Địa chỉ này chưa có quận/phường theo GHN nên chưa tính được phí ship. Sửa địa chỉ rồi đặt lại nhé.');
+      return;
+    }
     const dto: CreateOrderDto = {
       receiver_name: address.receiver_name,
       receiver_phone: address.receiver_phone,
@@ -254,9 +260,22 @@ export default function CheckoutScreen() {
                 </View>
                 <Text variant="bodyMuted" style={styles.addrLine}>{address.shipping_address}</Text>
                 {!ghnReady ? (
-                  <Text variant="caption" style={styles.warn}>
-                    Thiếu mã vùng GHN — sửa địa chỉ để tính được phí ship.
-                  </Text>
+                  <>
+                    <Text variant="caption" style={styles.warn}>
+                      Địa chỉ này thiếu quận/phường theo GHN nên chưa tính được phí ship. Sửa lại địa
+                      chỉ (chọn quận, phường) hoặc chọn địa chỉ khác để đặt hàng.
+                    </Text>
+                    {selectedId !== null ? (
+                      <Pressable
+                        hitSlop={8}
+                        style={styles.fixAddr}
+                        onPress={() => router.push({ pathname: '/addresses/[id]', params: { id: selectedId } })}
+                        accessibilityRole="button">
+                        <Feather name="edit-2" size={13} color={Palette.brand} />
+                        <Text style={styles.pickEditText}>Sửa địa chỉ này</Text>
+                      </Pressable>
+                    ) : null}
+                  </>
                 ) : null}
               </View>
             ) : (
@@ -453,7 +472,7 @@ export default function CheckoutScreen() {
           title={pay.isPending ? 'Đang trừ ví…' : create.isPending ? 'Đang đặt…' : 'Đặt hàng'}
           onPress={onSubmit}
           loading={submitting}
-          disabled={!addressReady || submitting || (ghnReady && !!feeError)}
+          disabled={!addressReady || !ghnReady || submitting || !!feeError}
         />
       </View>
     </View>
@@ -534,6 +553,7 @@ const styles = StyleSheet.create({
   pickDefaultText: { fontFamily: Font.semibold, fontSize: 10.5, color: Palette.white },
   pickEdit: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 12 },
   pickEditText: { fontFamily: Font.semibold, fontSize: 12.5, color: Palette.brand },
+  fixAddr: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginTop: 6 },
   sheetFooter: { padding: 16, borderTopWidth: 1, borderTopColor: Palette.line },
   noteHead: { marginBottom: 12 },
   noteInput: { minHeight: 60, textAlignVertical: 'top', paddingTop: 10 },
