@@ -14,6 +14,7 @@ import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useAddresses, type Address } from '@/features/addresses/api';
+import { useAuthStore } from '@/features/auth/store';
 import { isCartItemAvailable, useCart, useRefetchCartOnFocus } from '@/features/cart/api';
 import { type GhnAddressSelection } from '@/features/checkout/ghn-address-form';
 import { useCreateOrder, usePayOrderWithWallet, useShippingQuote } from '@/features/orders/api';
@@ -60,6 +61,7 @@ const PAY_OPTIONS: { value: PayMethod; title: string; desc: string; icon: keyof 
 /** Thanh toán: địa chỉ GHN → phí ship theo người bán → tạo đơn (COD/Ví). */
 export default function CheckoutScreen() {
   const insets = useSafeAreaInsets();
+  const signedOut = useAuthStore((s) => s.status) === 'signedOut';
   // `only` = mua ngay 1 món: chỉ thanh toán đúng cart item đó, không phải cả giỏ.
   const { only } = useLocalSearchParams<{ only?: string }>();
   const { data: cart = [], isPending } = useCart();
@@ -213,6 +215,25 @@ export default function CheckoutScreen() {
       <Text variant="title">Thanh toán</Text>
     </View>
   );
+
+  // Khách hoặc phiên vừa hết hạn: useCart bị tắt nên isPending đứng mãi ở
+  // true (vòng chờ không bao giờ dừng). Mời đăng nhập như màn giỏ hàng.
+  if (signedOut) {
+    return (
+      <View style={styles.root}>
+        {header}
+        <View style={styles.center}>
+          <Text variant="heading">Đăng nhập để thanh toán</Text>
+          <Text variant="bodyMuted" style={styles.centerNote}>
+            Phiên đăng nhập đã hết hoặc bạn chưa đăng nhập. Giỏ hàng vẫn được giữ.
+          </Text>
+          <View style={styles.emptyCta}>
+            <Button title="Đăng nhập" onPress={() => router.push('/login')} />
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   // Đặt xong giỏ được làm mới nên `items` rỗng trong lúc còn trừ ví: giữ
   // vòng chờ thay vì nháy màn "Chưa có món".
@@ -502,6 +523,7 @@ const styles = StyleSheet.create({
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
   emptyCta: { alignSelf: 'stretch', paddingHorizontal: 24 },
+  centerNote: { textAlign: 'center' },
   body: { padding: 12, gap: 12 },
   card: {
     backgroundColor: Palette.white,
