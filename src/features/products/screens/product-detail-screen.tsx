@@ -215,7 +215,7 @@ export default function ProductDetailScreen() {
           </View>
 
           <Text variant="title" style={styles.name}>{product.name}</Text>
-          <Text style={styles.price}>{formatVnd(product.price)}</Text>
+          <Text style={styles.price}>{formatVnd(product.price, product.currency)}</Text>
 
           {rating.count > 0 ? (
             <View style={styles.ratingRow}>

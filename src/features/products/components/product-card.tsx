@@ -86,7 +86,7 @@ export function ProductCard({ product }: { product: Product }) {
       <Text variant="body" numberOfLines={2} style={styles.name}>
         {product.name}
       </Text>
-      <Text style={[styles.price, sold && styles.priceSold]}>{formatVnd(product.price)}</Text>
+      <Text style={[styles.price, sold && styles.priceSold]}>{formatVnd(product.price, product.currency)}</Text>
       {/* Sao chỉ hiện khi có đánh giá thật (trước đây số sinh ngẫu nhiên theo id,
           lỗi H-01): 0 lượt thì không vẽ "0.0", chỉ còn dòng đã bán/lượt xem. */}
       {(product.review_count ?? 0) > 0 || proof ? (

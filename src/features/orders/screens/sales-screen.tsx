@@ -47,7 +47,7 @@ function SaleRow({ order }: { order: Order }) {
 
       <View style={styles.cardFoot}>
         <Text variant="caption">{order.payment_method === 'cod' ? 'Thu hộ (COD)' : 'Đã trả qua app'}</Text>
-        <Text style={styles.total}>{formatVnd(order.final_amount)}</Text>
+        <Text style={styles.total}>{formatVnd(order.final_amount, order.currency)}</Text>
       </View>
     </Pressable>
   );

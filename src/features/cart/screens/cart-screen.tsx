@@ -81,7 +81,7 @@ function CartRow({
         <Text variant="body" numberOfLines={2} style={styles.rowName}>
           {item.product?.name}
         </Text>
-        <Text style={[styles.rowPrice, soldOut && styles.rowPriceOff]}>{formatVnd(item.product?.price)}</Text>
+        <Text style={[styles.rowPrice, soldOut && styles.rowPriceOff]}>{formatVnd(item.product?.price, item.product?.currency)}</Text>
         <View style={styles.rowFooter}>
           {/* Đồ cũ thường là món DUY NHẤT (stock 1) — ẩn bộ +/− cho khỏi giống
               sàn nhiều số lượng; chỉ hiện khi người bán có >1 cùng món. */}
@@ -198,7 +198,7 @@ export default function CartScreen() {
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.totalRow}>
           <Text variant="bodyMuted">Tạm tính</Text>
-          <Text style={styles.total}>{formatVnd(total)}</Text>
+          <Text style={styles.total}>{formatVnd(total, buyable[0]?.product?.currency)}</Text>
         </View>
         <Text variant="caption" style={styles.note}>
           {soldOutCount > 0

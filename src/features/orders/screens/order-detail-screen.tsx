@@ -209,9 +209,9 @@ export default function OrderDetailScreen() {
                     </View>
                     <View style={styles.itemBody}>
                       <Text variant="body" numberOfLines={2}>{it.product_name}</Text>
-                      <Text variant="caption">{formatVnd(it.price)}{it.quantity > 1 ? ` × ${it.quantity}` : ''}</Text>
+                      <Text variant="caption">{formatVnd(it.price, order.currency)}{it.quantity > 1 ? ` × ${it.quantity}` : ''}</Text>
                     </View>
-                    <Text style={styles.itemTotal}>{formatVnd(it.subtotal)}</Text>
+                    <Text style={styles.itemTotal}>{formatVnd(it.subtotal, order.currency)}</Text>
                   </View>
                   {canReview && pid ? (
                     reviewed ? (
@@ -239,7 +239,7 @@ export default function OrderDetailScreen() {
         <View style={styles.card}>
           <View style={styles.sumRow}>
             <Text variant="bodyMuted">Tiền hàng</Text>
-            <Text style={styles.sumV}>{formatVnd(order.total_amount)}</Text>
+            <Text style={styles.sumV}>{formatVnd(order.total_amount, order.currency)}</Text>
           </View>
           <View style={styles.sumRow}>
             <Text variant="bodyMuted">Phí vận chuyển</Text>
@@ -248,12 +248,12 @@ export default function OrderDetailScreen() {
           {order.discount_amount > 0 ? (
             <View style={styles.sumRow}>
               <Text variant="bodyMuted">Giảm giá</Text>
-              <Text style={styles.sumV}>-{formatVnd(order.discount_amount)}</Text>
+              <Text style={styles.sumV}>-{formatVnd(order.discount_amount, order.currency)}</Text>
             </View>
           ) : null}
           <View style={[styles.sumRow, styles.sumTotal]}>
             <Text variant="subheading">Tổng cộng</Text>
-            <Text style={styles.total}>{formatVnd(order.final_amount)}</Text>
+            <Text style={styles.total}>{formatVnd(order.final_amount, order.currency)}</Text>
           </View>
         </View>
 

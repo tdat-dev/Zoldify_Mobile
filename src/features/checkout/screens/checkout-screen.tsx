@@ -349,12 +349,12 @@ export default function CheckoutScreen() {
                   <View style={styles.itemBody}>
                     <Text variant="body" numberOfLines={2}>{it.product?.name}</Text>
                     <Text variant="caption">
-                      {formatVnd(it.product?.price)}
+                      {formatVnd(it.product?.price, it.product?.currency)}
                       {it.quantity > 1 ? ` × ${it.quantity}` : ''}
                     </Text>
                   </View>
                   <Text style={styles.itemTotal}>
-                    {formatVnd(Number(it.product?.price ?? 0) * (it.quantity ?? 1))}
+                    {formatVnd(Number(it.product?.price ?? 0) * (it.quantity ?? 1), it.product?.currency)}
                   </Text>
                 </View>
               );
@@ -393,7 +393,7 @@ export default function CheckoutScreen() {
         <View style={styles.card}>
           <View style={styles.sumRow}>
             <Text variant="bodyMuted">Tiền hàng</Text>
-            <Text style={styles.sumValue}>{formatVnd(subtotal)}</Text>
+            <Text style={styles.sumValue}>{formatVnd(subtotal, items[0]?.product?.currency)}</Text>
           </View>
           <View style={styles.sumRow}>
             <Text variant="bodyMuted">Phí vận chuyển</Text>

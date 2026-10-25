@@ -174,11 +174,11 @@ export default function SaleDetailScreen() {
                   <View style={styles.itemBody}>
                     <Text variant="body" numberOfLines={2}>{it.product_name}</Text>
                     <Text variant="caption">
-                      {formatVnd(it.price)}
+                      {formatVnd(it.price, order.currency)}
                       {it.quantity > 1 ? ` × ${it.quantity}` : ''}
                     </Text>
                   </View>
-                  <Text style={styles.itemTotal}>{formatVnd(it.subtotal)}</Text>
+                  <Text style={styles.itemTotal}>{formatVnd(it.subtotal, order.currency)}</Text>
                 </View>
               );
             })}
@@ -187,7 +187,7 @@ export default function SaleDetailScreen() {
             <Text variant="subheading">
               {order.payment_method === 'cod' ? 'GHN thu hộ khi giao' : 'Người mua đã trả qua app'}
             </Text>
-            <Text style={styles.total}>{formatVnd(myAmount)}</Text>
+            <Text style={styles.total}>{formatVnd(myAmount, order.currency)}</Text>
           </View>
         </View>
 
