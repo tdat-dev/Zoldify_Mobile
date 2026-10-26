@@ -90,8 +90,12 @@ export function useCreateOrder() {
   const qc = useQueryClient();
   return useMutation({
     meta: { handlesError: true },
-    mutationFn: async (dto: CreateOrderDto) => {
-      const res = await http.post<ApiResponse<Order>>('/orders', dto);
+    // `idempotencyKey`: một khoá cho mọi lần gửi lại của cùng một lần đặt. Mất
+    // phản hồi sau khi server đã tạo đơn rồi bấm lại thì nhận về đúng đơn cũ.
+    mutationFn: async ({ dto, idempotencyKey }: { dto: CreateOrderDto; idempotencyKey?: string }) => {
+      const res = await http.post<ApiResponse<Order>>('/orders', dto, {
+        headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+      });
       return res.data.data;
     },
     // Cả khi lỗi: đặt hỏng thường vì hết hàng/đổi giá, giỏ phải lấy lại cho đúng.

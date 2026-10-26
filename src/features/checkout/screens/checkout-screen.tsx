@@ -1,5 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Crypto from 'expo-crypto';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -114,6 +115,10 @@ export default function CheckoutScreen() {
 
   const quote = useShippingQuote();
   const create = useCreateOrder();
+  // Một khoá cho cả phiên thanh toán: lần trước lỗi mà chưa tạo đơn thì server
+  // xử lý như mới, lần trước đã tạo (chỉ mất phản hồi) thì trả lại đúng đơn đó.
+  const idempotencyKey = useRef<string | null>(null);
+  idempotencyKey.current ??= Crypto.randomUUID();
   const pay = usePayOrderWithWallet();
   const submitting = create.isPending || pay.isPending;
 
@@ -171,7 +176,7 @@ export default function CheckoutScreen() {
       payment_method: payment,
       cart_item_ids: items.map((i) => i.id),
     };
-    create.mutate(dto, {
+    create.mutate({ dto, idempotencyKey: idempotencyKey.current ?? undefined }, {
       onSuccess: (created) => {
         if (payment === 'wallet') void payWithWallet(created);
         else router.replace('/orders');
