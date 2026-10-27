@@ -18,7 +18,7 @@ import { useAddresses, type Address } from '@/features/addresses/api';
 import { useAuthStore } from '@/features/auth/store';
 import { isCartItemAvailable, useCart, useRefetchCartOnFocus } from '@/features/cart/api';
 import { type GhnAddressSelection } from '@/features/checkout/ghn-address-form';
-import { useCreateOrder, usePayOrderWithWallet, useShippingQuote } from '@/features/orders/api';
+import { useCreateOrder, usePayOrderWithWallet, useShippingQuote, useWalletBalance } from '@/features/orders/api';
 import type { CreateOrderDto, Order } from '@/api';
 import { apiErrorMessage } from '@/lib/api/error-message';
 import { formatVnd } from '@/lib/format';
@@ -120,6 +120,7 @@ export default function CheckoutScreen() {
   const idempotencyKey = useRef<string | null>(null);
   idempotencyKey.current ??= Crypto.randomUUID();
   const pay = usePayOrderWithWallet();
+  const wallet = useWalletBalance();
   const submitting = create.isPending || pay.isPending;
 
   const subtotal = useMemo(
@@ -137,6 +138,11 @@ export default function CheckoutScreen() {
       ? `GHN chưa giao được tới địa chỉ này: ${feeFailure ?? 'không rõ lý do'}. Chọn địa chỉ khác nhé.`
       : null;
   const grandTotal = subtotal + shippingFee;
+  const currency = items[0]?.product?.currency;
+  // Biết chắc ví không đủ thì không cho đặt: tạo đơn xong mới trừ hụt là để
+  // lại một đơn chưa trả mà kho đã bị giữ (web đã chặn từ trước).
+  const walletShort =
+    payment === 'wallet' && wallet.data !== undefined && !feeError && wallet.data.balance < grandTotal;
 
   const addressReady = !!address.receiver_name && !!address.receiver_phone && !!address.shipping_address;
   const ghnReady = !!address.ghn_district_id && !!address.ghn_ward_code;
@@ -162,6 +168,10 @@ export default function CheckoutScreen() {
     // với phí ship 0đ. Bắt sửa địa chỉ trước khi cho đặt.
     if (!ghnReady) {
       setErrMsg('Địa chỉ này chưa có quận/phường theo GHN nên chưa tính được phí ship. Sửa địa chỉ rồi đặt lại nhé.');
+      return;
+    }
+    if (walletShort) {
+      setErrMsg('Ví không đủ tiền cho đơn này. Nạp thêm hoặc chọn trả khi nhận hàng nhé.');
       return;
     }
     const dto: CreateOrderDto = {
@@ -385,7 +395,11 @@ export default function CheckoutScreen() {
                   />
                   <View style={styles.payInfo}>
                     <Text variant="subheading">{opt.title}</Text>
-                    <Text variant="caption">{opt.desc}</Text>
+                    <Text variant="caption">
+                      {opt.value === 'wallet' && wallet.data
+                        ? `Số dư: ${formatVnd(wallet.data.balance, currency)}`
+                        : opt.desc}
+                    </Text>
                   </View>
                   <Feather name={opt.icon} size={18} color={Palette.inkMuted} />
                 </Pressable>
@@ -398,12 +412,12 @@ export default function CheckoutScreen() {
         <View style={styles.card}>
           <View style={styles.sumRow}>
             <Text variant="bodyMuted">Tiền hàng</Text>
-            <Text style={styles.sumValue}>{formatVnd(subtotal, items[0]?.product?.currency)}</Text>
+            <Text style={styles.sumValue}>{formatVnd(subtotal, currency)}</Text>
           </View>
           <View style={styles.sumRow}>
             <Text variant="bodyMuted">Phí vận chuyển</Text>
             <Text style={styles.sumValue}>
-              {!ghnReady ? 'Chọn địa chỉ' : quote.isPending ? 'Đang tính…' : feeError ? 'Chưa tính được' : shippingFee === 0 ? 'Miễn phí' : formatVnd(shippingFee)}
+              {!ghnReady ? 'Chọn địa chỉ' : quote.isPending ? 'Đang tính…' : feeError ? 'Chưa tính được' : shippingFee === 0 ? 'Miễn phí' : formatVnd(shippingFee, currency)}
             </Text>
           </View>
 
@@ -427,6 +441,11 @@ export default function CheckoutScreen() {
           ) : null}
           {feeError && ghnReady && !quote.isPending ? (
             <Text variant="caption" style={styles.errText}>{feeError}</Text>
+          ) : null}
+          {walletShort && wallet.data ? (
+            <Text variant="caption" style={[styles.errText, styles.walletShort]}>
+              Ví còn {formatVnd(wallet.data.balance, currency)}, thiếu {formatVnd(grandTotal - wallet.data.balance, currency)}. Nạp thêm hoặc chọn trả khi nhận hàng nhé.
+            </Text>
           ) : null}
         </View>
 
@@ -501,13 +520,13 @@ export default function CheckoutScreen() {
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.totalRow}>
           <Text variant="bodyMuted">Tổng thanh toán</Text>
-          <Text style={styles.total}>{formatVnd(grandTotal)}</Text>
+          <Text style={styles.total}>{formatVnd(grandTotal, currency)}</Text>
         </View>
         <Button
           title={pay.isPending ? 'Đang trừ ví…' : create.isPending ? 'Đang đặt…' : 'Đặt hàng'}
           onPress={onSubmit}
           loading={submitting}
-          disabled={!addressReady || !ghnReady || submitting || !!feeError}
+          disabled={!addressReady || !ghnReady || submitting || !!feeError || walletShort}
         />
       </View>
     </View>
@@ -628,6 +647,7 @@ const styles = StyleSheet.create({
   warn: { color: Palette.pendingFg, marginTop: 8 },
   errBox: { backgroundColor: Palette.dangerBg, borderRadius: Radius.control, paddingHorizontal: 12, paddingVertical: 10 },
   errText: { color: Palette.dangerFg },
+  walletShort: { marginTop: 8 },
   footer: {
     paddingHorizontal: 16,
     paddingTop: 12,

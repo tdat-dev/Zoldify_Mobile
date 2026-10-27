@@ -176,6 +176,17 @@ export default function OrderDetailScreen() {
             {order.tracking_code ? <Text variant="caption">Vận đơn: {order.tracking_code}</Text> : null}
           </View>
           <Timeline status={order.status} />
+          {/* Đơn đã trả rồi bị huỷ thì tiền về ví (backend giữ is_paid). Trước
+              đây màn chỉ ghi "Đã huỷ", người mua phải tự mở ví đoán xem đã
+              được hoàn chưa (test máy ảo 27/10). */}
+          {(order.status === 'cancelled' || order.status === 'refunded') && order.is_paid ? (
+            <View style={styles.refund}>
+              <Ionicons name="wallet-outline" size={16} color={Palette.successFg} />
+              <Text variant="caption" style={styles.refundText}>
+                Đã hoàn {formatVnd(order.final_amount, order.currency)} vào ví Zoldify.
+              </Text>
+            </View>
+          ) : null}
           {failedShipment ? (
             <View style={styles.shipFail}>
               <Ionicons name="alert-circle-outline" size={16} color={Palette.dangerFg} />
@@ -243,7 +254,7 @@ export default function OrderDetailScreen() {
           </View>
           <View style={styles.sumRow}>
             <Text variant="bodyMuted">Phí vận chuyển</Text>
-            <Text style={styles.sumV}>{order.shipping_fee === 0 ? 'Miễn phí' : formatVnd(order.shipping_fee)}</Text>
+            <Text style={styles.sumV}>{order.shipping_fee === 0 ? 'Miễn phí' : formatVnd(order.shipping_fee, order.currency)}</Text>
           </View>
           {order.discount_amount > 0 ? (
             <View style={styles.sumRow}>
@@ -336,6 +347,17 @@ const styles = StyleSheet.create({
   stepLabel: { marginTop: 6, textAlign: 'center', fontSize: 10.5 },
   stepLabelOn: { color: Palette.brand, fontFamily: Font.semibold },
   cancelled: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 4 },
+  refund: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: Radius.control,
+    backgroundColor: Palette.successBg,
+  },
+  refundText: { flex: 1, color: Palette.successFg },
   items: { gap: 12 },
   itemGroup: { gap: 8 },
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },

@@ -37,6 +37,32 @@ export interface OrderShipment {
 /** Chi tiết đơn kèm vận đơn (schema OpenAPI chưa khai trường này). */
 export type OrderDetail = Order & { shipments?: OrderShipment[] };
 
+/** Số dư ví Zoldify (GET /payments/wallet/balance). */
+export interface WalletBalance {
+  balance: number;
+  pending_withdrawal: number;
+}
+export const walletKeys = {
+  balance: ['wallet', 'balance'] as const,
+};
+
+/**
+ * Số dư ví của tôi. Checkout cần nó để báo thiếu tiền TRƯỚC khi tạo đơn: trước
+ * đây đơn được tạo rồi bước trừ ví mới hỏng, để lại một đơn treo giữ kho.
+ */
+export function useWalletBalance() {
+  const signedIn = useAuthStore((s) => s.status === 'signedIn');
+  return useQuery({
+    queryKey: walletKeys.balance,
+    queryFn: async () => {
+      const res = await http.get<ApiResponse<WalletBalance>>('/payments/wallet/balance');
+      return { ...res.data.data, balance: Number(res.data.data?.balance ?? 0) };
+    },
+    enabled: signedIn,
+    staleTime: 15_000,
+  });
+}
+
 export const orderKeys = {
   all: ['orders'] as const,
   list: (status?: string) => [...orderKeys.all, 'list', status ?? 'all'] as const,
@@ -123,8 +149,12 @@ export function usePayOrderWithWallet() {
       });
       return res.data.data;
     },
-    // Trả được hay không thì trạng thái đơn trên server cũng có thể đã đổi.
-    onSettled: () => qc.invalidateQueries({ queryKey: orderKeys.all }),
+    // Trả được hay không thì trạng thái đơn trên server cũng có thể đã đổi,
+    // và số dư ví cũng vậy.
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: orderKeys.all });
+      qc.invalidateQueries({ queryKey: walletKeys.balance });
+    },
   });
 }
 
@@ -137,7 +167,11 @@ export function useCancelOrder() {
       return res.data.data;
     },
     // Cả khi lỗi (vd 409: người bán vừa đổi trạng thái) để màn hiện đúng trạng thái mới.
-    onSettled: () => qc.invalidateQueries({ queryKey: orderKeys.all }),
+    // Huỷ đơn đã trả thì tiền về ví: làm mới số dư luôn.
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: orderKeys.all });
+      qc.invalidateQueries({ queryKey: walletKeys.balance });
+    },
   });
 }
 
