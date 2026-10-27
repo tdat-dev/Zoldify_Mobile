@@ -33,6 +33,25 @@ Notifications.setNotificationHandler({
 // Token đang giữ, để gỡ đúng cái khi đăng xuất.
 let currentToken: string | null = null;
 
+/**
+ * Gỡ token của máy này khi phiên CÒN hợp lệ, gọi TRƯỚC /auth/logout.
+ *
+ * Trước đây gỡ sau khi trạng thái đổi sang signedOut, lúc đó server đã tăng
+ * token_version và máy đã xoá JWT, nên lệnh gỡ đi ra không có phiên hợp lệ và
+ * hỏng im lặng: máy đã đăng xuất vẫn nhận push của người dùng cũ. Chờ tối đa
+ * 3 giây để mạng chậm không giữ chân nút đăng xuất.
+ */
+export async function unregisterPushBeforeLogout(): Promise<void> {
+  const t = currentToken;
+  if (!t) return;
+  currentToken = null;
+  try {
+    await Promise.race([removePushToken(t), new Promise((r) => setTimeout(r, 3000))]);
+  } catch {
+    // Gỡ hỏng không được chặn việc đăng xuất.
+  }
+}
+
 /** Android bắt buộc có channel thì mới hiện notification. */
 async function ensureAndroidChannel() {
   if (Platform.OS !== 'android') return;

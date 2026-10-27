@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { authApi } from '@/features/auth/api';
 import { disconnectChatSocket } from '@/features/chat/socket';
+import { unregisterPushBeforeLogout } from '@/features/notifications/push';
 import { queryClient } from '@/lib/api/query-client';
 import { tokenStore } from '@/lib/auth/token-store';
 import type { AuthUser } from '@/api';
@@ -67,6 +68,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signOut: async () => {
     try {
+      await unregisterPushBeforeLogout();
       await authApi.logout();
     } finally {
       disconnectChatSocket();
