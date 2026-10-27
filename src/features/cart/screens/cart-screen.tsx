@@ -65,6 +65,9 @@ function CartRow({
 }) {
   const uri = mediaUrl(item.product?.image);
   const soldOut = !isCartItemAvailable(item);
+  // Server tự giảm số lượng về đúng tồn kho và gửi kèm số cũ. Không báo thì
+  // người mua thấy số tự đổi mà không biết vì sao.
+  const adjustedFrom = (item as Cart & { quantity_adjusted_from?: number }).quantity_adjusted_from;
   return (
     <View style={[styles.row, soldOut && styles.rowSoldOut]}>
       <Pressable
@@ -98,6 +101,11 @@ function CartRow({
             <Text style={styles.remove}>Xoá</Text>
           </Pressable>
         </View>
+        {!soldOut && adjustedFrom && adjustedFrom > item.quantity ? (
+          <Text variant="caption" style={styles.adjusted}>
+            Chỉ còn {item.quantity} món, đã giảm từ {adjustedFrom}.
+          </Text>
+        ) : null}
       </View>
     </View>
   );
@@ -309,4 +317,5 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   note: { color: Palette.pendingFg },
+  adjusted: { color: Palette.pendingFg, marginTop: 6 },
 });
