@@ -19,7 +19,7 @@ import { ProductDetailSkeleton } from '@/features/products/components/product-de
 import { useStartConversation } from '@/features/chat/api';
 import { useProductReviews, useSellerStats } from '@/features/reviews/api';
 import { ReviewCard } from '@/features/reviews/components/review-card';
-import { useAddToCart, useCartCount } from '@/features/cart/api';
+import { useAddToCart, useBuyNow, useCartCount } from '@/features/cart/api';
 import { useAuthStore } from '@/features/auth/store';
 import { useRequireAuth } from '@/features/auth/use-require-auth';
 import { formatVnd } from '@/lib/format';
@@ -34,6 +34,7 @@ export default function ProductDetailScreen() {
   const me = useAuthStore((s) => s.user);
   const startConv = useStartConversation();
   const addToCart = useAddToCart();
+  const buyNow = useBuyNow();
   const [mode, setMode] = useState<null | 'add' | 'buy'>(null);
   // Khoá chạm đúp: `mode` là state nên tới lần render sau nút mới khoá, chạm
   // nhanh hai lần trong khe đó là thêm vào giỏ hai lần. Ref đổi ngay lập tức.
@@ -110,9 +111,9 @@ export default function ProductDetailScreen() {
     busyRef.current = true;
     setErrMsg(null);
     setMode('buy');
-    // Mua ngay: thêm vào giỏ rồi vào THẲNG thanh toán, chỉ món này (param `only`).
-    // Đặt xong backend tự xoá cart item nên không đọng trong giỏ.
-    addToCart.mutate(
+    // Mua ngay: đặt dòng giỏ về đúng số đang chọn rồi vào THẲNG thanh toán, chỉ
+    // món này (param `only`). Đặt xong backend tự xoá cart item.
+    buyNow.mutate(
       { product_id: product!.id, quantity: qty },
       {
         onSuccess: (item) => router.push({ pathname: '/checkout', params: { only: item.id } }),

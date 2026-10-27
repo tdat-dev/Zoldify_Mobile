@@ -95,6 +95,40 @@ export function useAddToCart() {
   });
 }
 
+/**
+ * Mua ngay: dòng giỏ của món này phải có ĐÚNG số đang chọn.
+ *
+ * POST /cart cộng dồn vào dòng sẵn có, nên giỏ đang có 2 mà bấm mua ngay 1 thì
+ * sang thanh toán thành 3, hoặc bị từ chối vì vượt kho. Món đã có trong giỏ
+ * thì PATCH về đúng số, chưa có thì thêm mới.
+ */
+export function useBuyNow() {
+  const qc = useQueryClient();
+  return useMutation({
+    meta: { handlesError: true },
+    mutationFn: async (input: { product_id: number; quantity: number }) => {
+      const list = await http.get<ApiResponse<Paginated<Cart>>>('/cart', {
+        params: { currentPage: 1, limit: 100 },
+      });
+      const existing = (list.data.data?.result ?? []).find(
+        (i) => Number(i.product?.id) === Number(input.product_id),
+      );
+      if (existing) {
+        const res = await http.patch<ApiResponse<Cart>>(`/cart/${existing.id}`, {
+          quantity: input.quantity,
+        });
+        return res.data.data ?? existing;
+      }
+      const res = await http.post<ApiResponse<Cart>>('/cart', {
+        product_id: input.product_id,
+        quantity: input.quantity,
+      });
+      return res.data.data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: cartKeys.all }),
+  });
+}
+
 /** Đổi số lượng một dòng giỏ (>= 1). */
 export function useUpdateCartQty() {
   const qc = useQueryClient();
