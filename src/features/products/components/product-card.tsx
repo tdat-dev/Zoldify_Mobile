@@ -1,15 +1,13 @@
 import Feather from '@expo/vector-icons/Feather';
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { RemoteImage } from '@/components/ui/remote-image';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import type { Product } from '@/api';
 import { CONDITION_LABEL, isFreshCondition } from '@/features/products/filters';
 import { formatVnd } from '@/lib/format';
-import { mediaUrl } from '@/lib/media';
 
 /**
  * Ô hàng kiểu CHỢ ĐỒ CŨ — theo ItemTile web nhưng khoe tín hiệu tin tưởng:
@@ -17,10 +15,6 @@ import { mediaUrl } from '@/lib/media';
  * giá, và phủ "ĐÃ BÁN" khi món đã bán (mỗi món là DUY NHẤT). Ảnh thiếu -> ô icon.
  */
 export function ProductCard({ product }: { product: Product }) {
-  const uri = mediaUrl(product.image);
-  const [failed, setFailed] = useState(false);
-  const showImage = !!uri && !failed;
-
   const sold = product.status === 'sold';
   const fresh = isFreshCondition(product.condition);
   const condLabel = product.condition ? CONDITION_LABEL[product.condition] ?? product.condition : null;
@@ -40,19 +34,20 @@ export function ProductCard({ product }: { product: Product }) {
       onPress={() => router.push({ pathname: '/products/[id]', params: { id: product.id } })}
       accessibilityRole="button">
       <View style={styles.imageWrap}>
-        {showImage ? (
-          <Image
-            source={uri}
-            style={[styles.image, sold && styles.imageSold]}
-            contentFit="cover"
-            transition={160}
-            onError={() => setFailed(true)}
-          />
-        ) : (
-          <View style={styles.placeholder}>
-            <Feather name="image" size={26} color={Palette.inkFaint} />
-          </View>
-        )}
+        {/* Bản thu nhỏ 480px: ô chỉ rộng ~400px, ảnh gốc 1,1-1,6 MB. Hỏng thì
+            lùi về ảnh gốc và tải lại (xem useRemoteImage). */}
+        <RemoteImage
+          path={product.image}
+          thumb
+          style={[styles.image, sold && styles.imageSold]}
+          contentFit="cover"
+          transition={160}
+          fallback={
+            <View style={styles.placeholder}>
+              <Feather name="image" size={26} color={Palette.inkFaint} />
+            </View>
+          }
+        />
 
         {/* Chip tình trạng — góc trái, đặc sản đồ cũ. */}
         {condLabel ? (

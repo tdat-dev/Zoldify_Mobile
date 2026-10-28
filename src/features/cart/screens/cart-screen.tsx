@@ -1,8 +1,8 @@
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { RemoteImage } from '@/components/ui/remote-image';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListRowSkeleton } from '@/components/ui/list-row-skeleton';
@@ -17,7 +17,6 @@ import {
 } from '@/features/cart/api';
 import { useAuthStore } from '@/features/auth/store';
 import { formatVnd } from '@/lib/format';
-import { mediaUrl } from '@/lib/media';
 import type { Cart } from '@/api';
 
 /** Bộ tăng/giảm số lượng — phẳng 4px, hairline; nút trừ khoá ở mức 1. */
@@ -63,7 +62,6 @@ function CartRow({
   onQty: (next: number) => void;
   onRemove: () => void;
 }) {
-  const uri = mediaUrl(item.product?.image);
   const soldOut = !isCartItemAvailable(item);
   // Server tự giảm số lượng về đúng tồn kho và gửi kèm số cũ. Không báo thì
   // người mua thấy số tự đổi mà không biết vì sao.
@@ -75,9 +73,7 @@ function CartRow({
         onPress={() =>
           router.push({ pathname: '/products/[id]', params: { id: item.product.id } })
         }>
-        {uri ? (
-          <Image source={uri} style={styles.thumbImg} contentFit="cover" />
-        ) : null}
+        <RemoteImage path={item.product?.image} thumb style={styles.thumbImg} contentFit="cover" />
       </Pressable>
 
       <View style={styles.rowBody}>

@@ -1,9 +1,9 @@
-import { Image } from 'expo-image';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { RemoteImage } from '@/components/ui/remote-image';
 import { BackChevron } from '@/components/ui/back-chevron';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -13,13 +13,11 @@ import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useSellerOrders } from '@/features/orders/api';
 import { SALE_TABS, STATUS_META } from '@/features/orders/order-status';
 import { formatVnd } from '@/lib/format';
-import { mediaUrl } from '@/lib/media';
 import type { Order } from '@/api';
 
 function SaleRow({ order }: { order: Order }) {
   const items = order.items ?? [];
   const first = items[0];
-  const uri = mediaUrl(first?.product_image);
   const more = items.length - 1;
   const meta = STATUS_META[order.status];
 
@@ -36,7 +34,7 @@ function SaleRow({ order }: { order: Order }) {
 
       <View style={styles.cardBody}>
         <View style={styles.thumb}>
-          {uri ? <Image source={uri} style={styles.thumbImg} contentFit="cover" /> : null}
+          <RemoteImage path={first?.product_image} thumb style={styles.thumbImg} contentFit="cover" />
         </View>
         <View style={styles.info}>
           <Text variant="body" numberOfLines={2}>{first?.product_name ?? 'Đơn hàng'}</Text>

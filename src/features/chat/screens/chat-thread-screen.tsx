@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -13,6 +12,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
+import { RemoteImage } from '@/components/ui/remote-image';
 import { BackChevron } from '@/components/ui/back-chevron';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
@@ -26,7 +26,6 @@ import {
 } from '@/features/chat/api';
 import { useChatRealtime } from '@/features/chat/realtime';
 import { timeAgo } from '@/lib/format';
-import { mediaUrl } from '@/lib/media';
 
 function Bubble({
   msg,
@@ -141,9 +140,7 @@ export default function ChatThreadScreen() {
           style={styles.productBar}
           onPress={() => router.push({ pathname: '/products/[id]', params: { id: conv.product!.id } })}>
           <View style={styles.productThumb}>
-            {mediaUrl(conv.product.image) ? (
-              <Image source={mediaUrl(conv.product.image)} style={styles.productImg} contentFit="cover" />
-            ) : null}
+            <RemoteImage path={conv.product.image} thumb style={styles.productImg} contentFit="cover" />
           </View>
           <Text variant="body" numberOfLines={1} style={styles.productName}>{conv.product.name}</Text>
           <Ionicons name="chevron-forward" size={16} color={Palette.inkFaint} />

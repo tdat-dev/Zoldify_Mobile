@@ -1,5 +1,4 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image } from 'expo-image';
 import { useState } from 'react';
 import {
   Dimensions,
@@ -13,6 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { RemoteImage } from '@/components/ui/remote-image';
 import { mediaUrl } from '@/lib/media';
 import { Text } from './text';
 import { Font, Palette } from './theme';
@@ -55,7 +55,7 @@ export function ImageGallery({ images, aspectRatio = 1 }: { images: string[]; as
         onMomentumScrollEnd={onScroll}
         renderItem={({ item }) => (
           <Pressable onPress={() => setLightbox(true)} accessibilityLabel="Xem ảnh to hơn">
-            <Image source={item} style={{ width: W, height: W * aspectRatio }} contentFit="cover" transition={160} />
+            <RemoteImage path={item} style={{ width: W, height: W * aspectRatio }} contentFit="cover" transition={160} />
           </Pressable>
         )}
       />
@@ -87,7 +87,7 @@ export function ImageGallery({ images, aspectRatio = 1 }: { images: string[]; as
             getItemLayout={(_, i) => ({ length: W, offset: W * i, index: i })}
             renderItem={({ item }) => (
               <View style={styles.lbPage}>
-                <Image source={item} style={styles.lbImage} contentFit="contain" />
+                <RemoteImage path={item} style={styles.lbImage} contentFit="contain" />
               </View>
             )}
           />

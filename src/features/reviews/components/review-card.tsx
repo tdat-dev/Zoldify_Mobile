@@ -1,12 +1,11 @@
-import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
+import { RemoteImage } from '@/components/ui/remote-image';
 import { Avatar } from '@/components/ui/avatar';
 import { RatingStars } from '@/components/ui/rating';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import type { ReviewView } from '@/features/reviews/api';
-import { mediaUrl } from '@/lib/media';
 
 /** Một thẻ đánh giá — avatar, tên, sao, thời gian, nội dung + ảnh (nếu có). */
 export function ReviewCard({ review }: { review: ReviewView }) {
@@ -29,7 +28,7 @@ export function ReviewCard({ review }: { review: ReviewView }) {
       {review.photos?.length ? (
         <View style={styles.photos}>
           {review.photos.map((p, i) => (
-            <Image key={i} source={mediaUrl(p)} style={styles.photo} contentFit="cover" transition={120} />
+            <RemoteImage key={i} path={p} thumb style={styles.photo} contentFit="cover" transition={120} />
           ))}
         </View>
       ) : null}

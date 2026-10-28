@@ -1,11 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { RemoteImage } from '@/components/ui/remote-image';
 import { BackChevron } from '@/components/ui/back-chevron';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
@@ -15,7 +15,6 @@ import { useMyReviewedProducts } from '@/features/reviews/api';
 import { STATUS_META, type OrderStatus } from '@/features/orders/order-status';
 import { apiErrorMessage } from '@/lib/api/error-message';
 import { formatVnd } from '@/lib/format';
-import { mediaUrl } from '@/lib/media';
 
 // Các mốc theo dõi cho đơn bình thường (đơn huỷ hiển thị riêng).
 const STEPS: { key: OrderStatus; label: string }[] = [
@@ -209,14 +208,13 @@ export default function OrderDetailScreen() {
           <Text variant="heading" style={styles.h}>{items.length} món</Text>
           <View style={styles.items}>
             {items.map((it) => {
-              const uri = mediaUrl(it.product_image);
               const pid = it.product?.id;
               const reviewed = pid ? (reviewedSet?.has(pid) ?? false) : false;
               return (
                 <View key={it.id} style={styles.itemGroup}>
                   <View style={styles.itemRow}>
                     <View style={styles.thumb}>
-                      {uri ? <Image source={uri} style={styles.thumbImg} contentFit="cover" /> : null}
+                      <RemoteImage path={it.product_image} thumb style={styles.thumbImg} contentFit="cover" />
                     </View>
                     <View style={styles.itemBody}>
                       <Text variant="body" numberOfLines={2}>{it.product_name}</Text>

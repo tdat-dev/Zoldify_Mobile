@@ -1,10 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams, type Href } from 'expo-router';
 import { useCallback } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { RemoteImage } from '@/components/ui/remote-image';
 import { BackChevron } from '@/components/ui/back-chevron';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
@@ -20,7 +20,6 @@ import {
 } from '@/features/orders/api';
 import { STATUS_META } from '@/features/orders/order-status';
 import { formatVnd } from '@/lib/format';
-import { mediaUrl } from '@/lib/media';
 import type { Order } from '@/api';
 
 /** Một câu nói người bán cần làm gì tiếp, theo trạng thái đơn + vận đơn. */
@@ -165,11 +164,10 @@ export default function SaleDetailScreen() {
           </Text>
           <View style={styles.items}>
             {items.map((it) => {
-              const uri = mediaUrl(it.product_image);
               return (
                 <View key={it.id} style={styles.itemRow}>
                   <View style={styles.thumb}>
-                    {uri ? <Image source={uri} style={styles.thumbImg} contentFit="cover" /> : null}
+                    <RemoteImage path={it.product_image} thumb style={styles.thumbImg} contentFit="cover" />
                   </View>
                   <View style={styles.itemBody}>
                     <Text variant="body" numberOfLines={2}>{it.product_name}</Text>

@@ -1,9 +1,9 @@
-import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { RemoteImage } from '@/components/ui/remote-image';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListRowSkeleton } from '@/components/ui/list-row-skeleton';
@@ -14,7 +14,6 @@ import { useOrders } from '@/features/orders/api';
 import { ORDER_TABS, STATUS_META } from '@/features/orders/order-status';
 import { TabPlaceholder } from '@/features/shared/tab-placeholder';
 import { formatVnd } from '@/lib/format';
-import { mediaUrl } from '@/lib/media';
 import type { Order } from '@/api';
 
 function StatusBadge({ status }: { status: Order['status'] }) {
@@ -29,7 +28,6 @@ function StatusBadge({ status }: { status: Order['status'] }) {
 function OrderCard({ order }: { order: Order }) {
   const items = order.items ?? [];
   const first = items[0];
-  const uri = mediaUrl(first?.product_image);
   const more = items.length - 1;
 
   return (
@@ -43,7 +41,7 @@ function OrderCard({ order }: { order: Order }) {
 
       <View style={styles.cardBody}>
         <View style={styles.thumb}>
-          {uri ? <Image source={uri} style={styles.thumbImg} contentFit="cover" /> : null}
+          <RemoteImage path={first?.product_image} thumb style={styles.thumbImg} contentFit="cover" />
         </View>
         <View style={styles.info}>
           <Text variant="body" numberOfLines={2}>{first?.product_name ?? 'Đơn hàng'}</Text>

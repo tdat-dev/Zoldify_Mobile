@@ -1,8 +1,7 @@
 import { Image } from 'expo-image';
-import { useState } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { mediaUrl } from '@/lib/media';
+import { useRemoteImage } from '@/hooks/use-remote-image';
 import { Text } from './text';
 import { Font, Palette } from './theme';
 
@@ -32,19 +31,21 @@ export function Avatar({
   size?: number;
   style?: StyleProp<ViewStyle>;
 }) {
-  const [failed, setFailed] = useState(false);
-  const src = mediaUrl(uri);
-  const showImage = !!src && !failed;
+  // Ảnh Google/R2 hỏng giữa chừng thì tải lại 2 lần rồi mới về chữ cái
+  // (trước đây hỏng một lần là chữ cái mãi, xem useRemoteImage).
+  const img = useRemoteImage(uri);
+  const showImage = !!img.uri;
   const dims = { width: size, height: size, borderRadius: size / 2 };
 
   if (showImage) {
     return (
       <Image
-        source={src}
+        key={img.key}
+        source={img.uri}
         style={[dims, style as object]}
         contentFit="cover"
         transition={140}
-        onError={() => setFailed(true)}
+        onError={img.onError}
         accessibilityLabel={name ?? undefined}
       />
     );

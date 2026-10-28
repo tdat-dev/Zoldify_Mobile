@@ -1,13 +1,13 @@
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Crypto from 'expo-crypto';
-import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { RemoteImage } from '@/components/ui/remote-image';
 import { BackChevron } from '@/components/ui/back-chevron';
 import { KEYBOARD_GAP } from '@/components/ui/screen';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,6 @@ import { useCreateOrder, usePayOrderWithWallet, useShippingQuote, useWalletBalan
 import type { CreateOrderDto, Order } from '@/api';
 import { apiErrorMessage } from '@/lib/api/error-message';
 import { formatVnd } from '@/lib/format';
-import { mediaUrl } from '@/lib/media';
 
 const EMPTY_ADDRESS: GhnAddressSelection = {
   receiver_name: '',
@@ -355,11 +354,10 @@ export default function CheckoutScreen() {
           ) : null}
           <View style={styles.itemList}>
             {items.map((it) => {
-              const uri = mediaUrl(it.product?.image);
               return (
                 <View key={it.id} style={styles.itemRow}>
                   <View style={styles.itemThumb}>
-                    {uri ? <Image source={uri} style={styles.itemThumbImg} contentFit="cover" /> : null}
+                    <RemoteImage path={it.product?.image} thumb style={styles.itemThumbImg} contentFit="cover" />
                   </View>
                   <View style={styles.itemBody}>
                     <Text variant="body" numberOfLines={2}>{it.product?.name}</Text>
