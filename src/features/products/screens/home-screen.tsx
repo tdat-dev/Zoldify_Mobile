@@ -1,7 +1,7 @@
-import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { ScreenStatusBar } from '@/components/ui/screen-status-bar';
 import { Text } from '@/components/ui/text';
 import { Palette } from '@/components/ui/theme';
 import { useInfiniteProducts } from '@/features/products/api';
@@ -37,7 +37,7 @@ export default function HomeScreen() {
   if (isPending) {
     return (
       <View style={styles.root}>
-        <StatusBar style="light" />
+        <ScreenStatusBar style="light" />
         <HomeHeader />
         <ProductGridSkeleton count={6} />
       </View>
@@ -47,7 +47,7 @@ export default function HomeScreen() {
   if (isError) {
     return (
       <View style={styles.root}>
-        <StatusBar style="light" />
+        <ScreenStatusBar style="light" />
         <HomeHeader />
         <View style={styles.fill}>
           <Text variant="heading">Không tải được sản phẩm</Text>
@@ -64,7 +64,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="dark" />
+      <ScreenStatusBar style="light" />
       <HomeHeader />
       <FlatList
         data={items}

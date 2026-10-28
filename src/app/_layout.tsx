@@ -15,6 +15,7 @@ import {
   ThemeProvider,
 } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Pressable, Text, View, useColorScheme } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -66,6 +67,10 @@ function RootNavigator({ appReady }: { appReady: boolean }) {
 
   return (
     <>
+      {/* Mặc định cho mọi màn header trắng: icon tối. Không để "auto" vì máy bật
+          dark mode sẽ ra icon trắng trên nền trắng. Màn header xanh tự đè bằng
+          ScreenStatusBar khi đang hiện. */}
+      <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(app)" />
         <Stack.Screen name="(auth)" />

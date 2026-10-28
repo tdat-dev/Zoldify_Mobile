@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ScreenStatusBar } from '@/components/ui/screen-status-bar';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProductSearch } from '@/features/products/api';
@@ -64,6 +65,7 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.root}>
+      <ScreenStatusBar style="light" />
       <View style={[styles.chrome, { paddingTop: insets.top + 8 }]}>
         <Pressable hitSlop={10} onPress={back} accessibilityLabel="Quay lại">
           <View style={styles.chevron} />

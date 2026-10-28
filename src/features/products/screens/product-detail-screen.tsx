@@ -1,5 +1,4 @@
 import Feather from '@expo/vector-icons/Feather';
-import { StatusBar } from 'expo-status-bar';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -10,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { HeartButton } from '@/components/ui/heart-button';
 import { ImageGallery } from '@/components/ui/image-gallery';
 import { RatingStars } from '@/components/ui/rating';
+import { ScreenStatusBar } from '@/components/ui/screen-status-bar';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProduct } from '@/features/products/api';
@@ -54,7 +54,7 @@ export default function ProductDetailScreen() {
   // Thanh trên: back + ô tìm kiếm + tin nhắn + giỏ (đồng nhất với trang chủ).
   const topBar = (
     <View style={[styles.topbar, { paddingTop: insets.top + 8 }]}>
-      <StatusBar style="light" />
+      <ScreenStatusBar style="light" />
       <Pressable style={styles.tbBack} hitSlop={8} onPress={back} accessibilityLabel="Quay lại">
         <View style={styles.chevron} />
       </Pressable>
