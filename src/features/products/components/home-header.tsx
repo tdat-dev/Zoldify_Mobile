@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CountBadge } from '@/components/ui/count-badge';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useCartCount } from '@/features/cart/api';
@@ -32,11 +33,7 @@ function IconButton({
   return (
     <Pressable style={styles.iconBtn} onPress={onPress} hitSlop={4}>
       <Feather name={name} size={size} color={Palette.white} />
-      {badge && badge > 0 ? (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{badge > 99 ? '99+' : String(badge)}</Text>
-        </View>
-      ) : null}
+      <CountBadge count={badge ?? 0} style={styles.badge} />
     </Pressable>
   );
 }
@@ -113,19 +110,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badge: {
-    position: 'absolute',
-    right: 3,
-    top: 2,
-    minWidth: 17,
-    height: 17,
-    paddingHorizontal: 4,
-    borderRadius: 999,
-    backgroundColor: Palette.price,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: { fontFamily: Font.bold, fontSize: 10, color: Palette.white },
+  badge: { position: 'absolute', right: 3, top: 2 },
   search: {
     flex: 1,
     flexDirection: 'row',

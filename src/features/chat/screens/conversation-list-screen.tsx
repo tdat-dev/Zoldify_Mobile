@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CountBadge } from '@/components/ui/count-badge';
 import { Avatar } from '@/components/ui/avatar';
 import { BackChevron } from '@/components/ui/back-chevron';
 import { Button } from '@/components/ui/button';
@@ -34,7 +35,7 @@ function ConversationRow({ item }: { item: Conversation }) {
           {preview}
         </Text>
       </View>
-      {unread ? <View style={styles.badge}><Text style={styles.badgeText}>{item.unread_count}</Text></View> : null}
+      {unread ? <CountBadge count={item.unread_count} size={20} color={Palette.brand} /> : null}
     </Pressable>
   );
 }
@@ -124,6 +125,4 @@ const styles = StyleSheet.create({
   time: { color: Palette.inkFaint },
   product: { color: Palette.inkFaint },
   previewUnread: { color: Palette.ink, fontFamily: Font.semibold },
-  badge: { minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, backgroundColor: Palette.brand, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { fontFamily: Font.bold, fontSize: 11, color: Palette.white },
 });

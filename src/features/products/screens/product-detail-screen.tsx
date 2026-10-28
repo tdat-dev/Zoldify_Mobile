@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CountBadge } from '@/components/ui/count-badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { HeartButton } from '@/components/ui/heart-button';
@@ -69,11 +70,7 @@ export default function ProductDetailScreen() {
       </Pressable>
       <Pressable style={styles.tbIcon} hitSlop={4} onPress={() => router.push('/cart')}>
         <Feather name="shopping-cart" size={22} color={Palette.white} />
-        {cartCount > 0 ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{cartCount > 99 ? '99+' : String(cartCount)}</Text>
-          </View>
-        ) : null}
+        <CountBadge count={cartCount} size={16} style={styles.badge} />
       </Pressable>
     </View>
   );
@@ -435,19 +432,7 @@ const styles = StyleSheet.create({
   },
   searchPlaceholder: { flex: 1, fontFamily: Font.regular, fontSize: 13.5, color: Palette.inkFaint },
   tbIcon: { width: 38, height: 40, alignItems: 'center', justifyContent: 'center' },
-  badge: {
-    position: 'absolute',
-    right: 2,
-    top: 2,
-    minWidth: 16,
-    height: 16,
-    paddingHorizontal: 4,
-    borderRadius: 999,
-    backgroundColor: Palette.price,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: { fontFamily: Font.bold, fontSize: 9.5, color: Palette.white },
+  badge: { position: 'absolute', right: 2, top: 2 },
   chevron: {
     width: 11,
     height: 11,

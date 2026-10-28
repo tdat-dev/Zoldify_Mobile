@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { CountBadge } from '@/components/ui/count-badge';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
@@ -71,9 +72,7 @@ export function FilterBar({
         <Pressable style={styles.trigger} onPress={openSheet}>
           <Ionicons name="options-outline" size={16} color={activeCount ? Palette.brand : Palette.ink} />
           <Text style={[styles.triggerText, activeCount ? styles.triggerTextOn : null]}>Lọc</Text>
-          {activeCount ? (
-            <View style={styles.badge}><Text style={styles.badgeText}>{activeCount}</Text></View>
-          ) : null}
+          <CountBadge count={activeCount} size={18} color={Palette.brand} style={styles.badge} />
         </Pressable>
       </View>
 
@@ -165,16 +164,7 @@ const styles = StyleSheet.create({
   triggerText: { fontFamily: Font.medium, fontSize: 13.5, color: Palette.ink },
   triggerTextOn: { color: Palette.brand, fontFamily: Font.semibold },
   divider: { width: 1, height: 20, backgroundColor: Palette.line },
-  badge: {
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 5,
-    borderRadius: Radius.control,
-    backgroundColor: Palette.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: { fontFamily: Font.bold, fontSize: 11, color: Palette.white },
+  badge: { borderRadius: Radius.control },
   sheet: {
     backgroundColor: Palette.white,
     borderTopLeftRadius: Radius.modal,
