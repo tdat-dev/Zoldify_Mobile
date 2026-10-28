@@ -56,17 +56,14 @@ const styles = StyleSheet.create({
   },
   row: { gap: 4, paddingHorizontal: 8 },
   item: { width: 76, alignItems: 'center', gap: 7, paddingHorizontal: 2 },
+  // Không khung: minh hoạ đã có viền và khối riêng, thêm ô viền quanh nó chỉ
+  // làm hàng lối tắt trông như lưới nút (theo yêu cầu 28/10).
   thumb: {
     width: 56,
     height: 56,
-    borderRadius: Radius.control,
-    backgroundColor: Palette.white,
-    borderWidth: 1,
-    borderColor: Palette.line,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
   },
-  img: { width: 44, height: 44 },
+  img: { width: 52, height: 52 },
   label: { textAlign: 'center', color: Palette.ink },
 });
