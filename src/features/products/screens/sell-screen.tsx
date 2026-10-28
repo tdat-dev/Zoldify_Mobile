@@ -1,10 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { KEYBOARD_GAP } from '@/components/ui/screen';
 import { PhotoUploadGrid } from '@/components/ui/photo-upload-grid';
@@ -204,9 +205,7 @@ export default function SellScreen() {
       </View>
 
       {/* Picker danh mục — modal trượt từ đáy, danh sách đầy đủ. */}
-      <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
-        <Pressable style={styles.sheetBackdrop} onPress={() => setPickerOpen(false)} />
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 8 }]}>
+      <BottomSheet visible={pickerOpen} onClose={() => setPickerOpen(false)} style={styles.sheet}>
           <View style={styles.sheetHead}>
             <Text variant="heading">Chọn danh mục</Text>
             <Pressable hitSlop={8} onPress={() => setPickerOpen(false)}>
@@ -230,8 +229,7 @@ export default function SellScreen() {
               );
             })}
           </ScrollView>
-        </View>
-      </Modal>
+      </BottomSheet>
     </View>
   );
 }
@@ -286,7 +284,6 @@ const styles = StyleSheet.create({
     borderTopColor: Palette.line,
     backgroundColor: Palette.white,
   },
-  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(25,32,41,0.4)' },
   sheet: {
     backgroundColor: Palette.white,
     borderTopLeftRadius: Radius.modal,

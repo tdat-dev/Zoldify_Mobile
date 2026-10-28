@@ -3,10 +3,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Crypto from 'expo-crypto';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { RemoteImage } from '@/components/ui/remote-image';
 import { BackChevron } from '@/components/ui/back-chevron';
 import { KEYBOARD_GAP } from '@/components/ui/screen';
@@ -455,9 +456,7 @@ export default function CheckoutScreen() {
       </KeyboardAwareScrollView>
 
       {/* Bảng chọn địa chỉ đã lưu */}
-      <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setPickerOpen(false)} />
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 8 }]}>
+      <BottomSheet visible={pickerOpen} onClose={() => setPickerOpen(false)} style={styles.sheet}>
           <View style={styles.sheetHead}>
             <Text variant="heading">Chọn địa chỉ</Text>
             <Pressable hitSlop={8} onPress={() => setPickerOpen(false)} accessibilityLabel="Đóng">
@@ -512,8 +511,7 @@ export default function CheckoutScreen() {
               onPress={() => { setPickerOpen(false); router.push('/addresses/new'); }}
             />
           </View>
-        </View>
-      </Modal>
+      </BottomSheet>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.totalRow}>
@@ -563,7 +561,6 @@ const styles = StyleSheet.create({
   addrPhone: {},
   addrLine: { color: Palette.ink },
   addrHint: { color: Palette.inkFaint },
-  backdrop: { flex: 1, backgroundColor: 'rgba(25,32,41,0.4)' },
   sheet: {
     backgroundColor: Palette.white,
     borderTopLeftRadius: Radius.modal,

@@ -1,8 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { BottomSheet } from './bottom-sheet';
 import { Text } from './text';
 import { Font, Palette, Radius } from './theme';
 
@@ -36,9 +36,7 @@ export function SelectField({
   disabled?: boolean;
   loading?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
-  const insets = useSafeAreaInsets();
-  const selected = options.find((o) => o.id === value) ?? null;
+  const [open, setOpen] = useState(false);  const selected = options.find((o) => o.id === value) ?? null;
 
   return (
     <View>
@@ -62,9 +60,7 @@ export function SelectField({
         )}
       </Pressable>
 
-      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)} />
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 8 }]}>
+      <BottomSheet visible={open} onClose={() => setOpen(false)} style={styles.sheet}>
           <View style={styles.sheetHead}>
             <Text variant="heading">{title ?? placeholder}</Text>
             <Pressable hitSlop={8} onPress={() => setOpen(false)} accessibilityLabel="Đóng">
@@ -92,8 +88,7 @@ export function SelectField({
               })
             )}
           </ScrollView>
-        </View>
-      </Modal>
+      </BottomSheet>
     </View>
   );
 }
@@ -113,7 +108,6 @@ const styles = StyleSheet.create({
   },
   rowDisabled: { backgroundColor: Palette.surfaceSunken, opacity: 0.7 },
   placeholder: { color: Palette.inkFaint },
-  backdrop: { flex: 1, backgroundColor: 'rgba(25,32,41,0.4)' },
   sheet: {
     backgroundColor: Palette.white,
     borderTopLeftRadius: Radius.modal,

@@ -2,14 +2,13 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Modal,
   Pressable,
   StyleSheet,
   TextInput,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 
@@ -40,9 +39,13 @@ export function PickerField({
   error,
   onSelect,
 }: Props) {
-  const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
+  // Đóng là xoá từ khoá: mở lại không thấy danh sách vẫn đang lọc dở.
+  const close = () => {
+    setQ('');
+    setOpen(false);
+  };
 
   const filtered = q
     ? options.filter((o) => o.label.toLowerCase().includes(q.toLowerCase()))
@@ -62,12 +65,10 @@ export function PickerField({
       </Pressable>
       {error ? <Text variant="caption" style={styles.err}>{error}</Text> : null}
 
-      <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
-        <View style={styles.backdrop}>
-          <View style={[styles.sheet, { paddingBottom: insets.bottom + 8 }]}>
+      <BottomSheet visible={open} onClose={close} style={styles.sheet}>
             <View style={styles.sheetHeader}>
               <Text variant="heading">{label}</Text>
-              <Pressable hitSlop={10} onPress={() => setOpen(false)}>
+              <Pressable hitSlop={10} onPress={close} accessibilityLabel="Đóng">
                 <Text style={styles.close}>✕</Text>
               </Pressable>
             </View>
@@ -91,6 +92,7 @@ export function PickerField({
               <FlatList
                 data={filtered}
                 keyExtractor={(o) => String(o.key)}
+                style={styles.list}
                 keyboardShouldPersistTaps="handled"
                 ItemSeparatorComponent={() => <View style={styles.sep} />}
                 renderItem={({ item }) => (
@@ -98,8 +100,7 @@ export function PickerField({
                     style={styles.row}
                     onPress={() => {
                       onSelect(item);
-                      setQ('');
-                      setOpen(false);
+                      close();
                     }}>
                     <Text variant="body">{item.label}</Text>
                   </Pressable>
@@ -109,9 +110,7 @@ export function PickerField({
                 }
               />
             )}
-          </View>
-        </View>
-      </Modal>
+      </BottomSheet>
     </View>
   );
 }
@@ -136,14 +135,9 @@ const styles = StyleSheet.create({
   caret: { fontFamily: Font.regular, fontSize: 14, color: Palette.inkMuted, marginLeft: 8 },
   err: { color: Palette.dangerFg, marginTop: 6 },
 
-  backdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.4)', justifyContent: 'flex-end' },
-  sheet: {
-    backgroundColor: Palette.white,
-    borderTopLeftRadius: Radius.modal,
-    borderTopRightRadius: Radius.modal,
-    maxHeight: '80%',
-    paddingTop: 12,
-  },
+  sheet: { paddingTop: 12 },
+  // Co theo chỗ trống phía trên bàn phím, ô tìm kiếm và tiêu đề luôn còn thấy.
+  list: { flexGrow: 0, flexShrink: 1 },
   sheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',

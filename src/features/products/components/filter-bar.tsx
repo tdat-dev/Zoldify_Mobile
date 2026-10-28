@@ -1,8 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
@@ -36,9 +36,7 @@ export function FilterBar({
 }: {
   value: ProductQuery;
   onChange: (next: ProductQuery) => void;
-}) {
-  const insets = useSafeAreaInsets();
-  const [open, setOpen] = useState(false);
+}) {  const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<ProductQuery>(value);
 
   const activeCount = countActiveFilters(value);
@@ -79,9 +77,7 @@ export function FilterBar({
         </Pressable>
       </View>
 
-      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)} />
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 8 }]}>
+      <BottomSheet visible={open} onClose={() => setOpen(false)} style={styles.sheet}>
           <View style={styles.sheetHead}>
             <Text variant="heading">Sắp xếp & Lọc</Text>
             <Pressable hitSlop={8} onPress={() => setOpen(false)} accessibilityLabel="Đóng">
@@ -145,8 +141,7 @@ export function FilterBar({
               <Button title="Áp dụng" onPress={apply} />
             </View>
           </View>
-        </View>
-      </Modal>
+      </BottomSheet>
     </>
   );
 }
@@ -180,7 +175,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: { fontFamily: Font.bold, fontSize: 11, color: Palette.white },
-  backdrop: { flex: 1, backgroundColor: 'rgba(25,32,41,0.4)' },
   sheet: {
     backgroundColor: Palette.white,
     borderTopLeftRadius: Radius.modal,
