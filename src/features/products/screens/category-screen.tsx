@@ -12,13 +12,42 @@ import { ProductCard } from '@/features/products/components/product-card';
 import { ProductGridSkeleton } from '@/features/products/components/product-grid-skeleton';
 import { EMPTY_QUERY, toProductFilters, type ProductQuery } from '@/features/products/filters';
 
-/** Danh sách sản phẩm theo danh mục — cuộn vô hạn + sắp xếp/lọc dùng chung. */
-export default function CategoryScreen() {
-  const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
-  const insets = useSafeAreaInsets();
-  const [query, setQuery] = useState<ProductQuery>(EMPTY_QUERY);
+/** Đổi param URL thành số, rỗng hoặc không phải số -> undefined. */
+function numParam(v?: string): number | undefined {
+  if (v == null || v === '') return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+}
 
-  const filters = toProductFilters(query, { category_id: Number(id) });
+/**
+ * Danh sách sản phẩm đã lọc sẵn, cuộn vô hạn + sắp xếp/lọc dùng chung.
+ *
+ * Dùng cho hai lối vào:
+ *  - /category/[id]: theo danh mục;
+ *  - /browse?name=&sort=&price_min=&price_max=: lối tắt trang chủ ("Mới đăng",
+ *    "Dưới 100k"). Trước đây lối tắt mở màn TÌM KIẾM trống, bắt người dùng tự
+ *    gõ hoặc tự lọc lại thứ họ vừa bấm chọn (28/10).
+ * Bộ lọc từ URL chỉ là điểm xuất phát, FilterBar vẫn đổi được.
+ */
+export default function CategoryScreen() {
+  const params = useLocalSearchParams<{
+    id?: string;
+    name?: string;
+    sort?: string;
+    price_min?: string;
+    price_max?: string;
+  }>();
+  const { id, name } = params;
+  const insets = useSafeAreaInsets();
+  const [query, setQuery] = useState<ProductQuery>(() => ({
+    ...EMPTY_QUERY,
+    ...(params.sort ? { sort: params.sort } : {}),
+    price_min: numParam(params.price_min),
+    price_max: numParam(params.price_max),
+  }));
+
+  const categoryId = numParam(id);
+  const filters = toProductFilters(query, categoryId != null ? { category_id: categoryId } : undefined);
   const {
     data,
     isPending,
@@ -41,7 +70,7 @@ export default function CategoryScreen() {
         <View style={styles.chevron} />
       </Pressable>
       <Text variant="heading" numberOfLines={1} style={styles.title}>
-        {name ?? 'Danh mục'}
+        {name ?? (categoryId != null ? 'Danh mục' : 'Sản phẩm')}
       </Text>
       <View style={styles.side} />
     </View>
@@ -98,7 +127,7 @@ export default function CategoryScreen() {
                 <ActivityIndicator color={Palette.brand} />
               </View>
             ) : !hasNextPage && items.length > 0 ? (
-              <Text style={styles.end}>Hết danh mục này rồi.</Text>
+              <Text style={styles.end}>Hết rồi, đổi bộ lọc để xem thêm.</Text>
             ) : null
           }
           renderItem={({ item }) => <ProductCard product={item} />}
