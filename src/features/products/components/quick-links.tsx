@@ -13,12 +13,14 @@ import { Palette, Radius } from '@/components/ui/theme';
  */
 const LINKS = [
   { label: 'Đăng bán', img: require('../../../../assets/images/ql-sell.png'), href: '/sell' },
-  { label: 'Mới đăng', img: require('../../../../assets/images/ql-new.png'), href: '/search' },
-  { label: 'Dưới 100k', img: require('../../../../assets/images/ql-deal.png'), href: '/search' },
+  { label: 'Mới đăng', img: require('../../../../assets/images/ql-new.png'), href: { pathname: '/browse', params: { name: 'Mới đăng', sort: 'newest' } } },
+  { label: 'Dưới 100k', img: require('../../../../assets/images/ql-deal.png'), href: { pathname: '/browse', params: { name: 'Dưới 100k', price_max: '100000' } } },
   { label: 'Đơn mua', img: require('../../../../assets/images/ql-order.png'), href: '/orders' },
-  { label: 'Ví của tôi', img: require('../../../../assets/images/ql-wallet.png'), href: '/account' },
+  { label: 'Ví của tôi', img: require('../../../../assets/images/ql-wallet.png'), href: '/wallet' },
   { label: 'Tin nhắn', img: require('../../../../assets/images/ql-chat.png'), href: '/messages' },
 ] as const;
+// Mới đăng / Dưới 100k mở thẳng danh sách đã lọc (/browse), không mở màn tìm
+// kiếm trống; Ví mở màn ví thật (trước trỏ /account, không có gì về ví). 28/10.
 
 export function QuickLinks() {
   return (
