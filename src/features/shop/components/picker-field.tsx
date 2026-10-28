@@ -8,9 +8,24 @@ import {
   View,
 } from 'react-native';
 
-import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { BottomSheet, dismissKeyboardThen } from '@/components/ui/bottom-sheet';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
+
+/**
+ * Bỏ dấu để so: gõ "ha" phải ra "Hà Nội", "thanh hoa" ra "Thanh Hóa". Trước
+ * đây so nguyên chữ có dấu nên gõ không dấu (cách gõ nhanh phổ biến) không ra
+ * kết quả nào đúng (28/10). Đ/đ không tách được bằng NFD nên đổi tay.
+ */
+function boDau(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+    .trim();
+}
 
 export interface Option {
   key: string | number;
@@ -42,14 +57,16 @@ export function PickerField({
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   // Đóng là xoá từ khoá: mở lại không thấy danh sách vẫn đang lọc dở.
-  const close = () => {
-    setQ('');
-    setOpen(false);
-  };
+  // Cất bàn phím TRƯỚC khi đóng: đóng Modal giữa lúc bàn phím còn mở làm bảng
+  // kế tiếp (Quận -> Phường) mở ra lơ lửng (xem BottomSheet).
+  const close = () =>
+    dismissKeyboardThen(() => {
+      setQ('');
+      setOpen(false);
+    });
 
-  const filtered = q
-    ? options.filter((o) => o.label.toLowerCase().includes(q.toLowerCase()))
-    : options;
+  const needle = boDau(q);
+  const filtered = needle ? options.filter((o) => boDau(o.label).includes(needle)) : options;
 
   return (
     <View>
