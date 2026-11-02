@@ -15,6 +15,7 @@ import { TextField } from '@/components/ui/text-field';
 import { Font, Palette } from '@/components/ui/theme';
 import { authApi, authKeys, useUpdateProfile, type ProfileUser } from '@/features/auth/api';
 import { useAuthStore } from '@/features/auth/store';
+import { apiErrorMessage } from '@/lib/api/error-message';
 import { uploadImage } from '@/lib/upload';
 import { normalizeVnPhone, vnPhoneError } from '@/lib/validators';
 
@@ -97,7 +98,9 @@ export default function ProfileEditScreen() {
           await refreshProfile();
           back();
         },
-        onError: () => setErr('Lưu hồ sơ thất bại. Thử lại nhé.'),
+        // Hiện đúng lý do backend trả (VD số đã có người dùng) hoặc báo mất mạng,
+        // thay vì một câu chung không biết sửa gì (D-26).
+        onError: (e) => setErr(apiErrorMessage(e, 'Lưu hồ sơ thất bại. Thử lại nhé.')),
       },
     );
   };
