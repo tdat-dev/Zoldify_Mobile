@@ -17,15 +17,14 @@ import { useAuthStore } from '@/features/auth/store';
 import { useWalletBalance, walletKeys } from '@/features/orders/api';
 import { TabPlaceholder } from '@/features/shared/tab-placeholder';
 import {
+  LEDGER_LABEL,
   MIN_TOPUP,
   MIN_WITHDRAW,
-  MONEY_LABEL,
   WITHDRAWAL_META,
-  moneyFlow,
   useCreateTopupLink,
   useCreateWithdrawal,
   useMyWithdrawals,
-  useWalletPayments,
+  useWalletTransactions,
   walletListKeys,
 } from '@/features/wallet/api';
 import { formatVnd } from '@/lib/format';
@@ -70,7 +69,7 @@ export default function WalletScreen() {
   const guest = useAuthStore((s) => s.status) !== 'signedIn';
 
   const balance = useWalletBalance();
-  const payments = useWalletPayments();
+  const payments = useWalletTransactions();
   const withdrawals = useMyWithdrawals();
   const topup = useCreateTopupLink();
   const withdraw = useCreateWithdrawal();
@@ -92,7 +91,7 @@ export default function WalletScreen() {
 
   const refreshAll = () => {
     qc.invalidateQueries({ queryKey: walletKeys.balance });
-    qc.invalidateQueries({ queryKey: walletListKeys.payments });
+    qc.invalidateQueries({ queryKey: walletListKeys.transactions });
     qc.invalidateQueries({ queryKey: walletListKeys.withdrawals });
   };
 
@@ -322,10 +321,8 @@ export default function WalletScreen() {
             <Text variant="bodyMuted" style={styles.empty}>Chưa có giao dịch nào.</Text>
           ) : (
             payments.data!.map((p) => {
-              const flow = moneyFlow(p.type);
-              const sign = flow === 'in' ? '+' : flow === 'out' ? '−' : '';
-              const failed = p.status === 'failed';
-              const pending = p.status === 'pending';
+              const flow = p.amount > 0 ? 'in' : 'out';
+              const sign = flow === 'in' ? '+' : '−';
               return (
                 <View key={p.id} style={styles.row}>
                   <View style={[styles.flowIcon, flow === 'in' ? styles.flowIn : styles.flowOut]}>
@@ -337,21 +334,15 @@ export default function WalletScreen() {
                   </View>
                   <View style={styles.rowMain}>
                     <Text style={styles.rowTitle} numberOfLines={1}>
-                      {MONEY_LABEL[p.type] ?? p.type}
+                      {LEDGER_LABEL[p.type] ?? p.note ?? p.type}
                     </Text>
                     <Text variant="caption">
-                      {dateLabel(p.created_at)}
-                      {pending ? ' · Đang chờ' : failed ? ' · Không thành công' : ''}
+                      {dateLabel(p.created_at)} · Số dư {formatVnd(Number(p.balance_after))}
                     </Text>
                   </View>
-                  <Text
-                    style={[
-                      styles.amount,
-                      flow === 'in' && !failed && styles.amountIn,
-                      failed && styles.amountFailed,
-                    ]}>
+                  <Text style={[styles.amount, flow === 'in' && styles.amountIn]}>
                     {sign}
-                    {formatVnd(Number(p.amount))}
+                    {formatVnd(Math.abs(p.amount))}
                   </Text>
                 </View>
               );
@@ -440,7 +431,6 @@ const styles = StyleSheet.create({
   flowOut: { backgroundColor: Palette.neutralBg },
   amount: { fontFamily: Font.semibold, fontSize: 14, color: Palette.ink, fontVariant: ['tabular-nums'] },
   amountIn: { color: Palette.successFg },
-  amountFailed: { color: Palette.inkFaint, textDecorationLine: 'line-through' },
   listLoading: { marginVertical: 12 },
   empty: { paddingVertical: 8 },
 });

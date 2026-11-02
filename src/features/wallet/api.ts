@@ -10,7 +10,9 @@ import { walletKeys } from '@/features/orders/api';
  * không có gì về ví: bấm vào không thấy gì, 28/10). Cùng API với trang ví web
  * (Zoldify_Frontend/src/app/profile/wallet/page.tsx):
  *  - số dư: GET /payments/wallet/balance (useWalletBalance ở orders/api);
- *  - lịch sử nạp/trả: GET /payments;
+ *  - lịch sử: GET /wallets/transactions (sổ cái, có cả hoàn tiền và tiền bán).
+ *    Trước đây đọc GET /payments nên chỉ thấy khoản trả, không thấy tiền hoàn
+ *    escrow_refund hay nạp topup: người dùng tưởng mất tiền (D-19, E2E 02/11);
  *  - nạp: POST /payos/create-link { type: 'topup', amount } -> checkoutUrl;
  *  - rút: POST /withdrawals, lịch sử rút GET /withdrawals/me.
  */
@@ -19,12 +21,17 @@ import { walletKeys } from '@/features/orders/api';
 export const MIN_TOPUP = 10_000;
 export const MIN_WITHDRAW = 10_000;
 
-export interface WalletPayment {
+/**
+ * Một dòng sổ cái của ví (GET /wallets/transactions). `amount` có dấu: dương là
+ * tiền vào ví, âm là tiền ra. `type` là LedgerTxType của backend.
+ */
+export interface WalletLedgerEntry {
   id: number;
-  amount: number | string;
+  amount: number;
+  balance_after: number;
   type: string;
-  status: 'pending' | 'success' | 'failed' | string;
-  payment_method?: string;
+  reference_type?: string | null;
+  reference_id?: number | null;
   note?: string | null;
   created_at: string;
 }
@@ -43,30 +50,19 @@ export interface Withdrawal {
 }
 
 export const walletListKeys = {
-  payments: ['wallet', 'payments'] as const,
+  transactions: ['wallet', 'transactions'] as const,
   withdrawals: ['wallet', 'withdrawals'] as const,
 };
 
-/**
- * Tiền vào hay ra. Backend có HAI bộ từ: payments.type (order_payment,
- * wallet_topup) và wallet_transactions.type (topup, payment, refund,
- * withdrawal). Nhận cả hai như lib/money-flow.ts bên web; kiểu lạ thì hiện
- * nguyên văn, không gán bừa dấu cộng/trừ.
- */
-const IN = new Set(['wallet_topup', 'topup', 'refund']);
-const OUT = new Set(['order_payment', 'payment', 'withdrawal']);
-export function moneyFlow(type: string): 'in' | 'out' | 'unknown' {
-  if (IN.has(type)) return 'in';
-  if (OUT.has(type)) return 'out';
-  return 'unknown';
-}
-export const MONEY_LABEL: Record<string, string> = {
-  wallet_topup: 'Nạp tiền vào ví',
+/** Nhãn cho loại sự kiện sổ cái (LedgerTxType ở backend). */
+export const LEDGER_LABEL: Record<string, string> = {
   topup: 'Nạp tiền vào ví',
-  order_payment: 'Thanh toán đơn hàng',
-  payment: 'Thanh toán đơn hàng',
-  refund: 'Hoàn tiền',
-  withdrawal: 'Rút tiền',
+  order_hold: 'Thanh toán đơn hàng',
+  escrow_release: 'Tiền bán hàng',
+  escrow_refund: 'Hoàn tiền đơn hàng',
+  withdrawal_approve: 'Rút tiền',
+  withdrawal_complete: 'Rút tiền',
+  adjustment: 'Điều chỉnh số dư',
 };
 
 export const WITHDRAWAL_META: Record<WithdrawalStatus, { label: string; tone: 'pending' | 'progress' | 'success' | 'danger' }> = {
@@ -80,15 +76,16 @@ function useSignedIn() {
   return useAuthStore((s) => s.status === 'signedIn');
 }
 
-export function useWalletPayments() {
+/** Lịch sử ví lấy từ sổ cái: nạp, trả đơn, hoàn tiền, tiền bán, rút. */
+export function useWalletTransactions() {
   const signedIn = useSignedIn();
   return useQuery({
-    queryKey: walletListKeys.payments,
+    queryKey: walletListKeys.transactions,
     queryFn: async () => {
-      const res = await http.get<ApiResponse<Paginated<WalletPayment>>>('/payments', {
-        params: { currentPage: 1, limit: 20 },
+      const res = await http.get<ApiResponse<Paginated<WalletLedgerEntry>>>('/wallets/transactions', {
+        params: { page: 1, limit: 30 },
       });
-      return res.data.data?.result ?? [];
+      return (res.data.data?.result ?? []).map((e) => ({ ...e, amount: Number(e.amount) }));
     },
     enabled: signedIn,
   });
