@@ -49,8 +49,17 @@ http.interceptors.response.use(
       // Không có single-flight thì lúc mở app 20 request song song sẽ bắn
       // 20 lệnh refresh, và vì backend tăng token_version mỗi lần nên 19 cái
       // sau sẽ vô hiệu hoá cái đầu.
-      await tokenStore.clear();
-      onSessionExpired?.();
+      // Chỉ xoá phiên khi chính token ĐANG LƯU bị từ chối. Request bay từ phiên
+      // cũ (VD đăng xuất buyer, đăng nhập seller trong lúc thông báo/giỏ của
+      // buyer còn đang tải) về 401 SAU khi token mới đã lưu: bản cũ xoá luôn
+      // token mới, app nhảy về trang chủ ở trạng thái khách (D-24, E2E 02/11,
+      // chưa tái hiện lại được nhưng đúng trình tự đó).
+      const sent = String(error.config?.headers?.Authorization ?? '').replace(/^Bearer\s+/i, '');
+      const current = await tokenStore.getAccessToken();
+      if (!sent || !current || sent === current) {
+        await tokenStore.clear();
+        onSessionExpired?.();
+      }
     }
     return Promise.reject(error);
   },
