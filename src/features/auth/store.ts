@@ -33,6 +33,8 @@ interface AuthState {
   signOut: () => Promise<void>;
   /** Phiên hết hạn (interceptor 401 đã xoá token) — chỉ cập nhật state. */
   sessionExpired: () => void;
+  /** Tài khoản vừa bị xoá (token đã bỏ): về khách và bỏ dữ liệu của phiên. */
+  accountDeleted: () => void;
   /** Lấy lại profile sau khi tự sửa hồ sơ, để UI phản ánh ngay. */
   refreshProfile: () => Promise<void>;
 }
@@ -84,6 +86,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   sessionExpired: () => {
     disconnectChatSocket();
     set({ status: 'signedOut', user: null });
+  },
+
+  accountDeleted: () => {
+    disconnectChatSocket();
+    set({ status: 'signedOut', user: null });
+    queryClient.clear();
   },
 
   refreshProfile: async () => {

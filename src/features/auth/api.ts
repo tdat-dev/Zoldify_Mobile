@@ -126,6 +126,19 @@ export const authApi = {
   },
 
   /**
+   * Xoá tài khoản của chính mình: DELETE /auth/account { password? }.
+   * Tài khoản Google chưa đặt mật khẩu thì không gửi password. Google Play bắt
+   * app cho đăng ký phải cho xoá tài khoản ngay trong app (D-14, E2E 02/11).
+   * Thành công thì bỏ token ở máy luôn, phiên cũ không còn dùng được nữa.
+   */
+  async deleteAccount(password?: string): Promise<void> {
+    await http.delete<ApiResponse<MessageResponse>>('/auth/account', {
+      data: password ? { password } : {},
+    });
+    await tokenStore.clear();
+  },
+
+  /**
    * Xoá token ở máy TRƯỚC, rồi mới báo server.
    * Nếu gọi server trước mà mạng rớt thì người dùng bấm đăng xuất xong
    * vẫn đang đăng nhập — trạng thái tệ nhất.
@@ -205,6 +218,14 @@ export function useChangePassword() {
       authApi.changePassword(v.oldPassword, v.newPassword),
     // Đặt mật khẩu xong → has_password đổi → làm mới hồ sơ để menu cập nhật nhãn.
     onSuccess: () => qc.invalidateQueries({ queryKey: authKeys.profile() }),
+  });
+}
+
+/** Xoá tài khoản. `password` bỏ trống với tài khoản Google chưa đặt mật khẩu. */
+export function useDeleteAccount() {
+  return useMutation({
+    meta: { handlesError: true },
+    mutationFn: (password?: string) => authApi.deleteAccount(password),
   });
 }
 
