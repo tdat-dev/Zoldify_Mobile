@@ -59,12 +59,14 @@ export function HomeHeader() {
         {/* Ô tìm kiếm: "Mọi giá" mở dropdown lọc thật, phần còn lại mở tìm kiếm. */}
         <View style={styles.search}>
           <Pressable style={styles.scope} onPress={() => setScopeOpen(true)} hitSlop={6}>
-            <Text style={styles.scopeText}>Mọi giá</Text>
+            {/* Một dòng, không co: Android đo thiếu bề rộng nên "giá" rớt xuống
+                dòng hai và bị overflow cắt mất, chỉ còn "Mọi" (D-10). */}
+            <Text style={styles.scopeText} numberOfLines={1}>Mọi giá</Text>
             <Feather name="chevron-down" size={14} color={Palette.inkFaint} />
           </Pressable>
           <Pressable style={styles.searchTap} onPress={() => openSearch()}>
             <Text style={styles.placeholder} numberOfLines={1}>
-              Tìm đồ cũ & mới: máy tính, xe đạp…
+              Tìm đồ cũ & mới
             </Text>
             <Feather name="search" size={18} color={Palette.inkMuted} style={styles.searchIcon} />
           </Pressable>
@@ -121,6 +123,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   scope: {
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
@@ -128,7 +131,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: Palette.lineStrong,
   },
-  scopeText: { fontFamily: Font.medium, fontSize: 13, color: Palette.inkMuted },
+  scopeText: { flexShrink: 0, fontFamily: Font.medium, fontSize: 13, color: Palette.inkMuted },
   searchTap: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   placeholder: {
     flex: 1,
