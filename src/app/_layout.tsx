@@ -96,7 +96,7 @@ export default function RootLayout() {
   const userId = useAuthStore((s) => s.user?.id ?? null);
   const setWishlistOwner = useWishlistStore((s) => s.setOwner);
 
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     BeVietnamPro_400Regular,
     BeVietnamPro_500Medium,
     BeVietnamPro_600SemiBold,
@@ -131,7 +131,8 @@ export default function RootLayout() {
     <KeyboardProvider>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <RootNavigator appReady={fontsLoaded} />
+          {/* Font hỏng thì vẫn mở app bằng font hệ thống, không kẹt ở splash. */}
+          <RootNavigator appReady={fontsLoaded || !!fontError} />
         </ThemeProvider>
       </QueryClientProvider>
     </KeyboardProvider>

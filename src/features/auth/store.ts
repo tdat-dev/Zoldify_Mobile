@@ -39,19 +39,28 @@ interface AuthState {
   refreshProfile: () => Promise<void>;
 }
 
+/**
+ * Lúc mở app, splash native còn che màn cho tới khi biết đã đăng nhập chưa.
+ * Mạng chậm thì lời gọi profile ăn trọn timeout 20 giây của client, splash
+ * đứng theo (E2E 02/11 đo khoảng 8 giây, D-01). Chờ tối đa chừng này thôi.
+ */
+const HYDRATE_PROFILE_TIMEOUT_MS = 6000;
+
 /** Có token thì lấy profile để chốt signedIn; hỏng thì coi như signedOut. */
-async function resolveSession(): Promise<{ status: AuthStatus; user: AuthUser | null }> {
+async function resolveSession(timeoutMs?: number): Promise<{ status: AuthStatus; user: AuthUser | null }> {
   const token = await tokenStore.getAccessToken();
   if (!token) {
     return { status: 'signedOut', user: null };
   }
   try {
-    const user = await authApi.profile();
+    const user = await authApi.profile(timeoutMs);
     return { status: 'signedIn', user };
-  } catch {
-    // Token có nhưng gọi profile hỏng (hết hạn/thu hồi). Interceptor 401
-    // đã lo xoá token; ở đây chỉ cần kết luận là chưa đăng nhập.
-    await tokenStore.clear();
+  } catch (e) {
+    // Token bị server từ chối (401) thì interceptor đã xoá. Còn mất mạng hay
+    // hết giờ thì GIỮ token: lần mở sau có mạng là vào lại được, không bắt
+    // đăng nhập lại chỉ vì lúc mở app đang ở chỗ sóng yếu.
+    const status = (e as { response?: { status?: number } })?.response?.status;
+    if (status === 401 || status === 403) await tokenStore.clear();
     return { status: 'signedOut', user: null };
   }
 }
@@ -61,7 +70,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
 
   hydrate: async () => {
-    set(await resolveSession());
+    set(await resolveSession(HYDRATE_PROFILE_TIMEOUT_MS));
   },
 
   signIn: async () => {

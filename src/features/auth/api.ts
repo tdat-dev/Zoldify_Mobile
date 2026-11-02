@@ -92,8 +92,11 @@ export const authApi = {
     });
   },
 
-  async profile(): Promise<ProfileUser> {
-    const res = await http.get<ApiResponse<ProfileUser>>('/auth/profile');
+  /** `timeoutMs` ngắn dùng lúc mở app: splash không phải chờ hết 20 giây mặc định. */
+  async profile(timeoutMs?: number): Promise<ProfileUser> {
+    const res = await http.get<ApiResponse<ProfileUser>>('/auth/profile', {
+      ...(timeoutMs ? { timeout: timeoutMs } : {}),
+    });
     return res.data.data;
   },
 
