@@ -12,6 +12,7 @@ import { useDistricts, useProvinces, useWards } from '@/features/shop/ghn-api';
 import { SelectField, type SelectOption } from '@/components/ui/select-field';
 import { useAuthStore } from '@/features/auth/store';
 import { compareVi, sortByNameVi } from '@/lib/text';
+import { normalizeVnPhone, vnPhoneError } from '@/lib/validators';
 
 interface Sel {
   id: number | string;
@@ -91,7 +92,8 @@ export default function ShopSettingsScreen() {
     const e: Record<string, string> = {};
     if (name.trim().length < 2) e.name = 'Nhập tên shop.';
     if (pickupName.trim().length < 2) e.pickupName = 'Nhập tên người lấy hàng.';
-    if (phone.trim().length < 8) e.phone = 'Nhập số điện thoại.';
+    const phoneErr = vnPhoneError(phone);
+    if (phoneErr) e.phone = phoneErr;
     if (!province) e.province = 'Chọn tỉnh/thành.';
     if (!district) e.district = 'Chọn quận/huyện.';
     if (!ward) e.ward = 'Chọn phường/xã.';
@@ -108,7 +110,7 @@ export default function ShopSettingsScreen() {
         hasShop: !!shop,
         name: name.trim(),
         pickup_name: pickupName.trim(),
-        pickup_phone: phone.trim(),
+        pickup_phone: normalizeVnPhone(phone),
         pickup_address: address.trim(),
         pickup_province_name: province!.name,
         pickup_district_id: Number(district!.id),
