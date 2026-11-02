@@ -384,12 +384,39 @@ export default function ProductDetailScreen() {
   );
 }
 
-/** Một dòng thông tin món: nhãn xám bên trái, giá trị bên phải. */
+/** Số dòng hiện sẵn của một giá trị; dài hơn thì có nút Xem thêm. */
+const INFO_LINES = 2;
+
+/**
+ * Một dòng thông tin món: nhãn xám bên trái, giá trị bên phải. Giá trị dài
+ * (thông số nhiều dòng) cắt ở 2 dòng kèm "Xem thêm"; trước đây cắt cứng, người
+ * mua không đọc được hết thông số (D-03, E2E 02/11).
+ */
 function InfoRow({ label, value }: { label: string; value: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [overflow, setOverflow] = useState(false);
   return (
     <View style={styles.infoRow}>
       <Text variant="caption" style={styles.infoLabel}>{label}</Text>
-      <Text variant="label" style={styles.infoValue} numberOfLines={2}>{value}</Text>
+      <View style={styles.infoValueWrap}>
+        <Text variant="label" style={styles.infoValue} numberOfLines={expanded ? undefined : INFO_LINES}>
+          {value}
+        </Text>
+        {/* Bản đo ẩn, không giới hạn dòng: biết giá trị có dài hơn 2 dòng không. */}
+        <Text
+          variant="label"
+          style={[styles.infoValue, styles.infoMeasure]}
+          onTextLayout={(e) => setOverflow(e.nativeEvent.lines.length > INFO_LINES)}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants">
+          {value}
+        </Text>
+        {overflow ? (
+          <Pressable onPress={() => setExpanded((v) => !v)} hitSlop={8} accessibilityRole="button">
+            <Text style={styles.infoMore}>{expanded ? 'Thu gọn' : 'Xem thêm'}</Text>
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -516,7 +543,10 @@ const styles = StyleSheet.create({
   infoList: { gap: 10 },
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   infoLabel: { width: 96 },
-  infoValue: { flex: 1, color: Palette.ink },
+  infoValueWrap: { flex: 1 },
+  infoValue: { color: Palette.ink },
+  infoMeasure: { position: 'absolute', left: 0, right: 0, top: 0, opacity: 0, pointerEvents: 'none' },
+  infoMore: { fontFamily: Font.semibold, fontSize: 13, color: Palette.brand, marginTop: 4 },
   footer: {
     flexDirection: 'row',
     gap: 10,
