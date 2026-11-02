@@ -11,6 +11,7 @@ import { useMyShop, useSaveShop } from '@/features/shop/api';
 import { useDistricts, useProvinces, useWards } from '@/features/shop/ghn-api';
 import { PickerField, type Option } from '@/features/shop/components/picker-field';
 import { useAuthStore } from '@/features/auth/store';
+import { sortByNameVi } from '@/lib/text';
 
 interface Sel {
   id: number | string;
@@ -56,7 +57,8 @@ export default function ShopSettingsScreen() {
     items: { [k: string]: any }[] | undefined,
     idKey: string,
     nameKey: string,
-  ): Option[] => (items ?? []).map((it) => ({ key: it[idKey], label: it[nameKey] }));
+  ): Option[] =>
+    sortByNameVi((items ?? []).map((it) => ({ key: it[idKey], label: it[nameKey] })), (o) => o.label);
 
   const validate = () => {
     const e: Record<string, string> = {};

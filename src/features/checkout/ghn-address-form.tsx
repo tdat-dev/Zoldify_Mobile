@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { SelectField } from '@/components/ui/select-field';
 import { TextField } from '@/components/ui/text-field';
 import { useDistricts, useProvinces, useWards } from '@/features/shop/ghn-api';
+import { sortByNameVi } from '@/lib/text';
 
 export interface GhnAddressSelection {
   receiver_name: string;
@@ -97,7 +98,7 @@ export function GhnAddressForm({
         label="Tỉnh / Thành phố"
         placeholder="Chọn tỉnh/thành"
         value={provinceId || null}
-        options={provinces.map((p) => ({ id: p.ProvinceID, name: p.ProvinceName }))}
+        options={sortByNameVi(provinces.map((p) => ({ id: p.ProvinceID, name: p.ProvinceName })), (o) => o.name)}
         onSelect={(id) => {
           setProvinceId(Number(id));
           setDistrictId(0);
@@ -108,7 +109,7 @@ export function GhnAddressForm({
         label="Quận / Huyện"
         placeholder="Chọn quận/huyện"
         value={districtId || null}
-        options={districts.map((d) => ({ id: d.DistrictID, name: d.DistrictName }))}
+        options={sortByNameVi(districts.map((d) => ({ id: d.DistrictID, name: d.DistrictName })), (o) => o.name)}
         onSelect={(id) => {
           setDistrictId(Number(id));
           setWardCode('');
@@ -120,7 +121,7 @@ export function GhnAddressForm({
         label="Phường / Xã"
         placeholder="Chọn phường/xã"
         value={wardCode || null}
-        options={wards.map((w) => ({ id: w.WardCode, name: w.WardName }))}
+        options={sortByNameVi(wards.map((w) => ({ id: w.WardCode, name: w.WardName })), (o) => o.name)}
         onSelect={(code) => setWardCode(String(code))}
         disabled={!districtId}
         loading={wLoading}
