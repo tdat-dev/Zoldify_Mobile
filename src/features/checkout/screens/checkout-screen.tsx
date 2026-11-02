@@ -141,6 +141,10 @@ export default function CheckoutScreen() {
     : quote.data && (quote.data.ok === false || feeFailure)
       ? `GHN chưa giao được tới địa chỉ này: ${feeFailure ?? 'không rõ lý do'}. Chọn địa chỉ khác nhé.`
       : null;
+  // GHN báo không có tuyến tới quận nhận: thường do địa chỉ lưu mã quận cũ mà
+  // GHN đã ngừng phục vụ (D-04, E2E 02/11: quận 2045). Nói rõ và cho mở ngay
+  // địa chỉ đó để chọn lại quận, thay vì chỉ bảo "chọn địa chỉ khác".
+  const noRoute = !!feeFailure && /tuyến|route|quận nhận|district/i.test(feeFailure);
   const grandTotal = subtotal + shippingFee;
   const currency = items[0]?.product?.currency;
   // Biết chắc ví không đủ thì không cho đặt: tạo đơn xong mới trừ hụt là để
@@ -443,7 +447,24 @@ export default function CheckoutScreen() {
             </Text>
           ) : null}
           {feeError && ghnReady && !quote.isPending ? (
-            <Text variant="caption" style={styles.errText}>{feeError}</Text>
+            noRoute && selectedId !== null ? (
+              <View>
+                <Text variant="caption" style={styles.errText}>
+                  GHN chưa có tuyến giao tới quận/huyện của địa chỉ này. Quận có thể đã đổi mã sau
+                  sáp nhập: chọn lại quận/huyện cho địa chỉ, hoặc chọn địa chỉ khác.
+                </Text>
+                <Pressable
+                  hitSlop={8}
+                  style={styles.fixAddr}
+                  onPress={() => router.push({ pathname: '/addresses/[id]', params: { id: selectedId } })}
+                  accessibilityRole="button">
+                  <Feather name="edit-2" size={13} color={Palette.brand} />
+                  <Text style={styles.pickEditText}>Chọn lại quận/huyện</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Text variant="caption" style={styles.errText}>{feeError}</Text>
+            )
           ) : null}
           {walletShort && wallet.data ? (
             <Text variant="caption" style={[styles.errText, styles.walletShort]}>
