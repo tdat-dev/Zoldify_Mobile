@@ -14,7 +14,7 @@ import { useCancelOrder, useConfirmReceived, useOrder, usePayOrderWithWallet } f
 import { useMyReviewedProducts } from '@/features/reviews/api';
 import { STATUS_META, type OrderStatus } from '@/features/orders/order-status';
 import { apiErrorMessage } from '@/lib/api/error-message';
-import { formatVnd } from '@/lib/format';
+import { formatDateTime, formatVnd } from '@/lib/format';
 
 // Các mốc theo dõi cho đơn bình thường (đơn huỷ hiển thị riêng).
 const STEPS: { key: OrderStatus; label: string }[] = [
@@ -201,7 +201,39 @@ export default function OrderDetailScreen() {
         <View style={styles.card}>
           <Text variant="heading" style={styles.h}>Giao tới</Text>
           <Text variant="subheading">{order.receiver_name} · {order.receiver_phone}</Text>
-          <Text variant="bodyMuted" style={styles.addr}>{order.shipping_address}</Text>
+          <Text variant="bodyMuted" style={styles.addr}>{fullAddress(order)}</Text>
+        </View>
+
+        {/* Ngày đặt, cách thanh toán: trước đây không hiện (D-13, E2E 02/11).
+            Lý do huỷ chưa có vì API đơn hàng chưa trả trường này. */}
+        <View style={styles.card}>
+          <Text variant="heading" style={styles.h}>Thông tin đơn</Text>
+          {order.created_at ? (
+            <View style={styles.sumRow}>
+              <Text variant="bodyMuted">Ngày đặt</Text>
+              <Text style={styles.sumV}>{formatDateTime(order.created_at)}</Text>
+            </View>
+          ) : null}
+          <View style={styles.sumRow}>
+            <Text variant="bodyMuted">Thanh toán</Text>
+            <Text style={styles.sumV}>{PAYMENT_LABEL[order.payment_method] ?? order.payment_method}</Text>
+          </View>
+          <View style={styles.sumRow}>
+            <Text variant="bodyMuted">Trạng thái tiền</Text>
+            <Text style={styles.sumV}>
+              {order.is_paid
+                ? `Đã trả${order.paid_at ? ` lúc ${formatDateTime(order.paid_at)}` : ''}`
+                : order.payment_method === 'cod'
+                  ? 'Trả khi nhận hàng'
+                  : 'Chưa trả'}
+            </Text>
+          </View>
+          {order.note ? (
+            <View style={styles.noteRow}>
+              <Text variant="bodyMuted">Ghi chú</Text>
+              <Text variant="body">{order.note}</Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.card}>
@@ -297,7 +329,31 @@ export default function OrderDetailScreen() {
   );
 }
 
+const PAYMENT_LABEL: Record<string, string> = {
+  cod: 'Tiền mặt khi nhận hàng (COD)',
+  wallet: 'Ví Zoldify',
+  payos: 'Chuyển khoản qua PayOS',
+  bank_transfer: 'Chuyển khoản ngân hàng',
+  momo: 'MoMo',
+  vnpay: 'VNPay',
+};
+
+/**
+ * Địa chỉ giao đầy đủ. Có đơn chỉ lưu "số nhà, phường" trong shipping_address
+ * còn quận/tỉnh nằm ở cột riêng (E2E 02/11: "1 Smoke C5, Phường Xuân Phương"):
+ * ghép thêm phần còn thiếu.
+ */
+function fullAddress(order: { shipping_address?: string; district?: string; province?: string }): string {
+  let addr = order.shipping_address ?? '';
+  const has = (part: string) => addr.toLowerCase().includes(part.toLowerCase());
+  for (const part of [order.district, order.province]) {
+    if (part && !has(part)) addr = addr ? `${addr}, ${part}` : part;
+  }
+  return addr;
+}
+
 const styles = StyleSheet.create({
+  noteRow: { gap: 2, paddingVertical: 4 },
   root: { flex: 1, backgroundColor: Palette.surfacePage },
   header: {
     flexDirection: 'row',

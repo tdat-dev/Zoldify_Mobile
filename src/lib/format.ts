@@ -38,3 +38,12 @@ export function timeAgo(iso?: string | null): string {
   const d = new Date(then);
   return `${d.getDate()}/${d.getMonth() + 1}`;
 }
+
+/** Ngày giờ đầy đủ "dd/mm/yyyy hh:mm" (đơn hàng, giao dịch). Sai định dạng thì rỗng. */
+export function formatDateTime(iso?: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
