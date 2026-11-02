@@ -15,7 +15,7 @@ import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useProduct } from '@/features/products/api';
 import { CONDITION_LABEL, isFreshCondition } from '@/features/products/filters';
-import { RelatedRail } from '@/features/products/components/related-rail';
+import { ProductRelatedRails } from '@/features/products/components/related-rail';
 import { ProductDetailSkeleton } from '@/features/products/components/product-detail-skeleton';
 import { useStartConversation } from '@/features/chat/api';
 import { useProductReviews, useSellerStats } from '@/features/reviews/api';
@@ -339,20 +339,7 @@ export default function ProductDetailScreen() {
           )}
         </View>
 
-        {seller ? (
-          <RelatedRail
-            title="Thêm từ shop này"
-            filters={{ seller_id: seller.id }}
-            excludeId={product.id}
-          />
-        ) : null}
-        {product.category ? (
-          <RelatedRail
-            title="Sản phẩm tương tự"
-            filters={{ category_id: product.category.id }}
-            excludeId={product.id}
-          />
-        ) : null}
+        <ProductRelatedRails product={product} />
       </ScrollView>
 
       {errMsg ? (

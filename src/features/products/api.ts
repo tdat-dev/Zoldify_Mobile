@@ -49,10 +49,11 @@ async function fetchProduct(id: number) {
 }
 
 /** Danh sách sản phẩm có phân trang + lọc. Trả thẳng { result, meta }. */
-export function useProducts(page = 1, limit = 20, filters?: ProductFilters) {
+export function useProducts(page = 1, limit = 20, filters?: ProductFilters, enabled = true) {
   return useQuery({
     queryKey: productKeys.list(page, limit, filters),
     queryFn: () => fetchProducts(page, limit, filters),
+    enabled,
   });
 }
 
