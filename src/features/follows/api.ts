@@ -21,6 +21,8 @@ export const followKeys = {
   status: (sellerId: number) => ['follows', 'status', sellerId] as const,
   count: (sellerId: number) => ['follows', 'count', sellerId] as const,
   following: (userId: number) => ['follows', 'following', userId] as const,
+  /** Mọi danh sách "đang theo dõi" (mọi userId), để invalidate một lượt. */
+  followingAll: ['follows', 'following'] as const,
 };
 
 /** Danh sách shop mà `userId` đang theo dõi (trang 1). */
@@ -88,6 +90,9 @@ export function useToggleFollow(sellerId: number) {
     onSettled: (followed) => {
       if (typeof followed === 'boolean') qc.setQueryData(followKeys.status(sellerId), followed);
       qc.invalidateQueries({ queryKey: followKeys.count(sellerId) });
+      // Danh sách "Shop đang theo dõi" (và rail theo dõi ở trang chủ) phải đổi
+      // theo; trước đây chỉ làm mới status/count nên quay lại vẫn thấy rỗng (D-21).
+      qc.invalidateQueries({ queryKey: followKeys.followingAll });
     },
   });
 }
