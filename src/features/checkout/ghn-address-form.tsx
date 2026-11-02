@@ -61,9 +61,23 @@ export function GhnAddressForm({
   const { data: wards = [], isFetching: wLoading } = useWards(districtId || null);
 
   // Sửa địa chỉ: mã quận đã lưu có thể không còn trong danh sách GHN hiện tại
-  // (GHN đổi mã sau sáp nhập), trong khi danh sách phường theo mã cũ vẫn tải
-  // được. Trước đây ô Quận vì thế trống, bấm Cập nhật là gửi thiếu quận (D-07,
-  // E2E 02/11). Giờ: còn đúng mã đã lưu thì giữ nguyên tên đã lưu làm nhãn.
+  // (GHN đổi mã sau sáp nhập, VD quận 2045), trong khi danh sách phường theo mã
+  // cũ vẫn tải được. Trước đây ô Quận trống không lời nào mà phường vẫn còn,
+  // bấm Cập nhật là gửi thiếu quận (D-07, E2E 02/11). Mã cũ đó GHN cũng không
+  // tính phí được, nên KHÔNG giữ lại: bỏ quận + phường đã lưu và nhắc chọn lại.
+  const [staleDistrict, setStaleDistrict] = useState<string | null>(null);
+  if (
+    districtId > 0 &&
+    districtId === initial?.ghn_district_id &&
+    !dLoading &&
+    districts.length > 0 &&
+    !districts.some((d) => Number(d.DistrictID) === districtId)
+  ) {
+    setStaleDistrict(initial?.district || 'quận/huyện cũ');
+    setDistrictId(0);
+    setWardCode('');
+  }
+
   const keepSaved = <T,>(current: T, saved: T | undefined, savedName: string | undefined) =>
     saved != null && current === saved && savedName ? savedName : '';
 
@@ -143,7 +157,13 @@ export function GhnAddressForm({
         onSelect={(id) => {
           setDistrictId(Number(id));
           setWardCode('');
+          setStaleDistrict(null);
         }}
+        error={
+          staleDistrict && !districtId
+            ? `"${staleDistrict}" không còn trong danh sách của GHN. Chọn lại quận/huyện và phường/xã nhé.`
+            : undefined
+        }
         disabled={!provinceId}
         loading={dLoading}
       />
