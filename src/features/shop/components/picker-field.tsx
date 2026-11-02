@@ -11,21 +11,7 @@ import {
 import { BottomSheet, dismissKeyboardThen } from '@/components/ui/bottom-sheet';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
-
-/**
- * Bỏ dấu để so: gõ "ha" phải ra "Hà Nội", "thanh hoa" ra "Thanh Hóa". Trước
- * đây so nguyên chữ có dấu nên gõ không dấu (cách gõ nhanh phổ biến) không ra
- * kết quả nào đúng (28/10). Đ/đ không tách được bằng NFD nên đổi tay.
- */
-function boDau(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
-    .toLowerCase()
-    .trim();
-}
+import { boDau } from '@/lib/text';
 
 export interface Option {
   key: string | number;

@@ -60,7 +60,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "gen:api": "node node_modules/openapi-typescript/bin/cli.js ../Zoldify_Backend/openapi.json -o src/api/schema.d.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"src/**/__tests__/*.test.mts\""
   },
   "private": true
 }
