@@ -135,9 +135,12 @@ export const authApi = {
    * Thành công thì bỏ token ở máy luôn, phiên cũ không còn dùng được nữa.
    */
   async deleteAccount(password?: string): Promise<void> {
-    await http.delete<ApiResponse<MessageResponse>>('/auth/account', {
-      data: password ? { password } : {},
-    });
+    // Có mật khẩu thì gửi trong `data` của axios; tài khoản chỉ có Google thì
+    // không gửi body nào (hợp đồng với backend).
+    await http.delete<ApiResponse<MessageResponse>>(
+      '/auth/account',
+      password ? { data: { password } } : undefined,
+    );
     await tokenStore.clear();
   },
 
