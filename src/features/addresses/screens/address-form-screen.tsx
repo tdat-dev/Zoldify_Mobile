@@ -89,6 +89,9 @@ export default function AddressFormScreen() {
                   ghn_province_id: existing.ghn_province_id ?? undefined,
                   ghn_district_id: existing.ghn_district_id ?? undefined,
                   ghn_ward_code: existing.ghn_ward_code ?? undefined,
+                  province: existing.province,
+                  district: existing.district,
+                  ward: existing.ward,
                 }
               : undefined
           }

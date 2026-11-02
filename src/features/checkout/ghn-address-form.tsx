@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { SelectField } from '@/components/ui/select-field';
+import { SelectField, type SelectOption } from '@/components/ui/select-field';
 import { TextField } from '@/components/ui/text-field';
 import { useDistricts, useProvinces, useWards } from '@/features/shop/ghn-api';
 import { sortByNameVi } from '@/lib/text';
@@ -27,6 +27,10 @@ export interface GhnAddressInitial {
   ghn_province_id?: number;
   ghn_district_id?: number;
   ghn_ward_code?: string;
+  /** Tên đã lưu: dùng khi mã đã lưu không còn trong danh sách GHN hiện tại. */
+  province?: string;
+  district?: string;
+  ward?: string;
 }
 
 /**
@@ -53,9 +57,29 @@ export function GhnAddressForm({
   const { data: districts = [], isFetching: dLoading } = useDistricts(provinceId || null);
   const { data: wards = [], isFetching: wLoading } = useWards(districtId || null);
 
-  const provinceName = provinces.find((p) => p.ProvinceID === provinceId)?.ProvinceName ?? '';
-  const districtName = districts.find((d) => d.DistrictID === districtId)?.DistrictName ?? '';
-  const wardName = wards.find((w) => w.WardCode === wardCode)?.WardName ?? '';
+  // Sửa địa chỉ: mã quận đã lưu có thể không còn trong danh sách GHN hiện tại
+  // (GHN đổi mã sau sáp nhập), trong khi danh sách phường theo mã cũ vẫn tải
+  // được. Trước đây ô Quận vì thế trống, bấm Cập nhật là gửi thiếu quận (D-07,
+  // E2E 02/11). Giờ: còn đúng mã đã lưu thì giữ nguyên tên đã lưu làm nhãn.
+  const keepSaved = <T,>(current: T, saved: T | undefined, savedName: string | undefined) =>
+    saved != null && current === saved && savedName ? savedName : '';
+
+  const provinceName =
+    provinces.find((p) => Number(p.ProvinceID) === provinceId)?.ProvinceName ??
+    keepSaved(provinceId, initial?.ghn_province_id, initial?.province);
+  const districtName =
+    districts.find((d) => Number(d.DistrictID) === districtId)?.DistrictName ??
+    keepSaved(districtId, initial?.ghn_district_id, initial?.district);
+  const wardName =
+    wards.find((w) => String(w.WardCode) === wardCode)?.WardName ??
+    keepSaved(wardCode, initial?.ghn_ward_code, initial?.ward);
+
+  /** Danh sách đã sắp A-Z, cộng thêm dòng đang chọn nếu GHN không còn trả nó. */
+  const withSelected = (opts: SelectOption[], id: string | number, name: string) => {
+    const sorted = sortByNameVi(opts, (o) => o.name);
+    if (!id || !name || sorted.some((o) => o.id === id)) return sorted;
+    return [{ id, name }, ...sorted];
+  };
 
   // Giữ onChange trong ref để effect không phụ thuộc identity của nó (tránh loop).
   const onChangeRef = useRef(onChange);
@@ -98,7 +122,7 @@ export function GhnAddressForm({
         label="Tỉnh / Thành phố"
         placeholder="Chọn tỉnh/thành"
         value={provinceId || null}
-        options={sortByNameVi(provinces.map((p) => ({ id: p.ProvinceID, name: p.ProvinceName })), (o) => o.name)}
+        options={withSelected(provinces.map((p) => ({ id: Number(p.ProvinceID), name: p.ProvinceName })), provinceId, provinceName)}
         onSelect={(id) => {
           setProvinceId(Number(id));
           setDistrictId(0);
@@ -109,7 +133,7 @@ export function GhnAddressForm({
         label="Quận / Huyện"
         placeholder="Chọn quận/huyện"
         value={districtId || null}
-        options={sortByNameVi(districts.map((d) => ({ id: d.DistrictID, name: d.DistrictName })), (o) => o.name)}
+        options={withSelected(districts.map((d) => ({ id: Number(d.DistrictID), name: d.DistrictName })), districtId, districtName)}
         onSelect={(id) => {
           setDistrictId(Number(id));
           setWardCode('');
@@ -121,7 +145,7 @@ export function GhnAddressForm({
         label="Phường / Xã"
         placeholder="Chọn phường/xã"
         value={wardCode || null}
-        options={sortByNameVi(wards.map((w) => ({ id: w.WardCode, name: w.WardName })), (o) => o.name)}
+        options={withSelected(wards.map((w) => ({ id: String(w.WardCode), name: w.WardName })), wardCode, wardName)}
         onSelect={(code) => setWardCode(String(code))}
         disabled={!districtId}
         loading={wLoading}
