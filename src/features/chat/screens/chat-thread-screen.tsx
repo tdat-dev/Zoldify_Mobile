@@ -8,7 +8,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -81,6 +82,17 @@ export default function ChatThreadScreen() {
   const [text, setText] = useState('');
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
+  // Né bàn phím bằng chiều cao bàn phím đo trực tiếp (height âm khi mở), không
+  // đo vị trí view trên màn. Bản cũ dùng KeyboardAvoidingView + automaticOffset:
+  // trên Android edge-to-edge phép đo vị trí lệch nên phần đệm ra 0, thanh nhập
+  // nằm sau bàn phím (D-18, E2E 02/11). Trừ insets.bottom vì thanh nhập đã tự
+  // chừa khoảng đó; bàn phím mở thì nó nằm sát mép trên bàn phím.
+  const keyboard = useReanimatedKeyboardAnimation();
+  const bottomInset = insets.bottom;
+  const avoidStyle = useAnimatedStyle(() => ({
+    paddingBottom: Math.max(-keyboard.height.value - bottomInset, 0),
+  }));
+
   // Tin (thật, không phải tin tạm id âm) cuối cùng do mình gửi -> gắn nhãn Đã xem/Đã gửi.
   const lastMineId = (() => {
     const list = messages ?? [];
@@ -147,13 +159,7 @@ export default function ChatThreadScreen() {
         </Pressable>
       ) : null}
 
-      {/* Tự đo vị trí trên màn (automaticOffset); trừ insets.bottom vì thanh nhập
-          đã chừa sẵn khoảng đó — khi bàn phím mở, nó nằm sát mép bàn phím. */}
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior="padding"
-        automaticOffset
-        keyboardVerticalOffset={-insets.bottom}>
+      <Animated.View style={[styles.flex, avoidStyle]}>
         {isPending ? (
           <View style={styles.center}><ActivityIndicator size="large" color={Palette.brand} /></View>
         ) : (
@@ -164,6 +170,9 @@ export default function ChatThreadScreen() {
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+            // Bàn phím mở làm khung danh sách thấp lại: kéo về tin mới nhất.
+            onLayout={() => listRef.current?.scrollToEnd({ animated: false })}
+            keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
               <View style={styles.emptyMsg}><Text variant="bodyMuted">Gửi lời chào để bắt đầu nhé.</Text></View>
             }
@@ -197,7 +206,7 @@ export default function ChatThreadScreen() {
             <Ionicons name="send" size={18} color={Palette.white} />
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </Animated.View>
     </View>
   );
 }
