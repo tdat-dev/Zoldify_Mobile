@@ -1,3 +1,5 @@
+import { useScrollToTop } from 'expo-router';
+import { useRef } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
@@ -20,6 +22,12 @@ import { CategoryChips } from '@/features/categories/components/category-chips';
  * 2 cột CUỘN VÔ HẠN, khối chính). Khách chưa đăng nhập vẫn lượn được.
  */
 export default function HomeScreen() {
+  // Đang ở Trang chủ mà bấm lại tab Trang chủ thì cuộn về đầu, như mọi app
+  // (D-09, E2E 02/11). Thanh tab tự dựng vẫn phát sự kiện tabPress nên hook
+  // chuẩn của react-navigation bắt được.
+  const listRef = useRef<FlatList>(null);
+  useScrollToTop(listRef);
+
   const {
     data,
     isPending,
@@ -67,6 +75,7 @@ export default function HomeScreen() {
       <ScreenStatusBar style="light" />
       <HomeHeader />
       <FlatList
+        ref={listRef}
         data={items}
         keyExtractor={(item) => String(item.id)}
         numColumns={2}
