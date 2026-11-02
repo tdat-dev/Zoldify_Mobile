@@ -28,6 +28,7 @@ import {
   walletListKeys,
 } from '@/features/wallet/api';
 import { formatVnd } from '@/lib/format';
+import { BANK_ACCOUNT_MAX, bankAccountError } from '@/lib/validators';
 
 const QUICK_TOPUP = [50_000, 100_000, 200_000, 500_000];
 
@@ -123,7 +124,9 @@ export default function WalletScreen() {
     else if (amount < MIN_WITHDRAW) next.amount = `Rút tối thiểu ${formatVnd(MIN_WITHDRAW)}.`;
     else if (amount > available) next.amount = `Vượt số dư khả dụng ${formatVnd(available)}.`;
     if (!form.bank_name.trim()) next.bank_name = 'Nhập tên ngân hàng.';
-    if (!form.bank_account.trim()) next.bank_account = 'Nhập số tài khoản.';
+    // Trước đây chỉ kiểm để trống nên STK "abc" qua được (D-20).
+    const accErr = bankAccountError(form.bank_account);
+    if (accErr) next.bank_account = accErr;
     if (!form.bank_holder.trim()) next.bank_holder = 'Nhập tên chủ tài khoản.';
     setErrors(next);
     if (Object.keys(next).length) return;
@@ -131,7 +134,7 @@ export default function WalletScreen() {
       await withdraw.mutateAsync({
         amount,
         bank_name: form.bank_name.trim(),
-        bank_account: form.bank_account.trim(),
+        bank_account: digits(form.bank_account),
         bank_holder: form.bank_holder.trim(),
       });
       setForm({ amount: '', bank_name: '', bank_account: '', bank_holder: '' });
@@ -263,7 +266,9 @@ export default function WalletScreen() {
               label="Số tài khoản"
               keyboardType="number-pad"
               value={form.bank_account}
-              onChangeText={(t) => setForm((f) => ({ ...f, bank_account: t }))}
+              onChangeText={(t) => setForm((f) => ({ ...f, bank_account: digits(t) }))}
+              maxLength={BANK_ACCOUNT_MAX}
+              placeholder="Chỉ gồm chữ số"
               error={errors.bank_account}
             />
             <TextField
