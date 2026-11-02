@@ -81,11 +81,11 @@ export default function WalletScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState<string | null>(null);
 
-  if (guest) {
-    return <TabPlaceholder title="Ví của tôi" note="Đăng nhập để xem số dư, nạp và rút tiền." />;
-  }
-
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
+  if (guest) {
+    return <TabPlaceholder title="Ví của tôi" note="Đăng nhập để xem số dư, nạp và rút tiền." onBack={back} />;
+  }
   const available = balance.data?.balance ?? 0;
   const held = Number(balance.data?.pending_withdrawal ?? 0);
 
