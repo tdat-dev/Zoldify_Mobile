@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Button } from '@/components/ui/button';
 import { ScreenStatusBar } from '@/components/ui/screen-status-bar';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
@@ -10,6 +11,7 @@ import { useProductSearch } from '@/features/products/api';
 import { FilterBar } from '@/features/products/components/filter-bar';
 import { ProductCard } from '@/features/products/components/product-card';
 import { EMPTY_QUERY, type ProductQuery } from '@/features/products/filters';
+import { apiErrorMessage } from '@/lib/api/error-message';
 
 /** Trả về giá trị đã trễ `ms` mili-giây để không gọi API mỗi lần gõ phím. */
 function useDebounced(value: string, ms = 350) {
@@ -52,7 +54,7 @@ export default function SearchScreen() {
   const hasFilter = query.price_min != null || query.price_max != null || query.condition != null;
   const active = q.trim().length >= 2 || hasFilter;
 
-  const { data, isFetching, isError } = useProductSearch({
+  const { data, isFetching, isError, error, refetch } = useProductSearch({
     q,
     price_min: query.price_min,
     price_max: query.price_max,
@@ -105,8 +107,16 @@ export default function SearchScreen() {
           <ActivityIndicator size="large" color={Palette.brand} />
         </View>
       ) : isError ? (
+        // Mất mạng thì nói rõ và có nút Thử lại như tab Đơn mua; trước đây chỉ
+        // có một dòng chữ, phải gõ lại từ khoá mới tìm lại được (D-27).
         <View style={styles.center}>
-          <Text variant="bodyMuted" style={styles.hint}>Có lỗi khi tìm. Thử lại nhé.</Text>
+          <Text variant="heading">Chưa tìm được</Text>
+          <Text variant="bodyMuted" style={styles.hint}>
+            {apiErrorMessage(error, 'Có lỗi khi tìm. Thử lại nhé.')}
+          </Text>
+          <View style={styles.retry}>
+            <Button title="Thử lại" onPress={() => refetch()} loading={isFetching} />
+          </View>
         </View>
       ) : results.length === 0 ? (
         <View style={styles.center}>
@@ -139,6 +149,7 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
+  retry: { alignSelf: 'stretch', paddingHorizontal: 24, marginTop: 8 },
   root: { flex: 1, backgroundColor: Palette.surfacePage },
   chrome: {
     flexDirection: 'row',
