@@ -42,9 +42,12 @@ export interface GhnAddressInitial {
 export function GhnAddressForm({
   initial,
   onChange,
+  phoneError,
 }: {
   initial?: GhnAddressInitial;
   onChange: (a: GhnAddressSelection) => void;
+  /** Lỗi của ô số điện thoại (nơi gọi kiểm lúc lưu). */
+  phoneError?: string;
 }) {
   const [name, setName] = useState(initial?.receiver_name ?? '');
   const [phone, setPhone] = useState(initial?.receiver_phone ?? '');
@@ -117,6 +120,7 @@ export function GhnAddressForm({
         placeholder="090…"
         keyboardType="phone-pad"
         autoComplete="tel"
+        error={phoneError}
       />
       <SelectField
         label="Tỉnh / Thành phố"

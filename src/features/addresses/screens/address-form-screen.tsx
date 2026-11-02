@@ -17,6 +17,7 @@ import {
   type AddressInput,
 } from '@/features/addresses/api';
 import { GhnAddressForm, type GhnAddressSelection } from '@/features/checkout/ghn-address-form';
+import { normalizeVnPhone, vnPhoneError } from '@/lib/validators';
 
 /** Thêm/sửa một địa chỉ. Có `id` = sửa (điền sẵn từ cache danh sách). */
 export default function AddressFormScreen() {
@@ -35,6 +36,7 @@ export default function AddressFormScreen() {
   const [isDefault, setIsDefault] = useState(existing?.is_default ?? false);
   const [sel, setSel] = useState<GhnAddressSelection | null>(null);
   const [err, setErr] = useState('');
+  const [phoneErr, setPhoneErr] = useState<string | undefined>();
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/addresses' as never));
 
@@ -52,10 +54,17 @@ export default function AddressFormScreen() {
       setErr('Vui lòng điền đủ người nhận, SĐT, tỉnh/quận/phường và địa chỉ cụ thể.');
       return;
     }
+    // GHN gọi người nhận theo số này: số sai như "123" là giao hỏng (D-06).
+    const pErr = vnPhoneError(sel.receiver_phone);
+    setPhoneErr(pErr ?? undefined);
+    if (pErr) {
+      setErr('');
+      return;
+    }
     setErr('');
     const input: AddressInput = {
       recipient_name: sel.receiver_name,
-      phone_number: sel.receiver_phone,
+      phone_number: normalizeVnPhone(sel.receiver_phone),
       label: label.trim() || undefined,
       province: sel.province,
       district: sel.district,
@@ -96,6 +105,7 @@ export default function AddressFormScreen() {
               : undefined
           }
           onChange={setSel}
+          phoneError={phoneErr}
         />
 
         <TextField
