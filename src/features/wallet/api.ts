@@ -32,6 +32,7 @@ export interface WalletLedgerEntry {
   type: string;
   reference_type?: string | null;
   reference_id?: number | null;
+  order_id?: number | null;
   note?: string | null;
   created_at: string;
 }
@@ -83,7 +84,7 @@ export function useWalletTransactions() {
     queryKey: walletListKeys.transactions,
     queryFn: async () => {
       const res = await http.get<ApiResponse<Paginated<WalletLedgerEntry>>>('/wallets/transactions', {
-        params: { page: 1, limit: 30 },
+        params: { page: 1, limit: 20 },
       });
       return (res.data.data?.result ?? []).map((e) => ({ ...e, amount: Number(e.amount) }));
     },
