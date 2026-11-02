@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CountBadge } from '@/components/ui/count-badge';
@@ -13,7 +13,7 @@ import { RatingStars } from '@/components/ui/rating';
 import { ScreenStatusBar } from '@/components/ui/screen-status-bar';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
-import { useProduct } from '@/features/products/api';
+import { useDeleteProduct, useProduct } from '@/features/products/api';
 import { CONDITION_LABEL, isFreshCondition } from '@/features/products/filters';
 import { ProductRelatedRails } from '@/features/products/components/related-rail';
 import { ProductDetailSkeleton } from '@/features/products/components/product-detail-skeleton';
@@ -36,6 +36,7 @@ export default function ProductDetailScreen() {
   const startConv = useStartConversation();
   const addToCart = useAddToCart();
   const buyNow = useBuyNow();
+  const removeProduct = useDeleteProduct();
   const [mode, setMode] = useState<null | 'add' | 'buy'>(null);
   // Khoá chạm đúp: `mode` là state nên tới lần render sau nút mới khoá, chạm
   // nhanh hai lần trong khe đó là thêm vào giỏ hai lần. Ref đổi ngay lập tức.
@@ -154,6 +155,24 @@ export default function ProductDetailScreen() {
   const joinedYear = seller ? new Date(seller.created_at).getFullYear() : null;
   const rating = { rating: Number(product.rating_avg ?? 0), count: product.review_count ?? 0 };
   const reviews = reviewData?.reviews ?? [];
+  // Món của chính mình: không mua/nhắn được (server cũng chặn), thay bằng quản lý
+  // món (D-22, E2E 02/11).
+  const isOwner = !!me && !!seller && me.id === seller.id;
+
+  const onDelete = () => {
+    Alert.alert('Xoá món này?', 'Món sẽ không còn hiện trên Zoldify nữa.', [
+      { text: 'Giữ lại', style: 'cancel' },
+      {
+        text: 'Xoá',
+        style: 'destructive',
+        onPress: () =>
+          removeProduct.mutate(product.id, {
+            onSuccess: back,
+            onError: () => setErrMsg('Chưa xoá được món. Thử lại nhé.'),
+          }),
+      },
+    ]);
+  };
 
   const onMessage = () => {
     if (guest) return requireAuth();
@@ -288,10 +307,12 @@ export default function ProductDetailScreen() {
                 </View>
                 <Feather name="chevron-right" size={16} color={Palette.inkFaint} />
               </Pressable>
-              <Pressable style={styles.msgBtn} onPress={onMessage} accessibilityRole="button">
-                <Feather name="message-circle" size={15} color={Palette.brand} />
-                <Text style={styles.msgText}>Nhắn</Text>
-              </Pressable>
+              {!isOwner ? (
+                <Pressable style={styles.msgBtn} onPress={onMessage} accessibilityRole="button">
+                  <Feather name="message-circle" size={15} color={Palette.brand} />
+                  <Text style={styles.msgText}>Nhắn</Text>
+                </Pressable>
+              ) : null}
             </View>
           ) : null}
 
@@ -349,23 +370,45 @@ export default function ProductDetailScreen() {
       ) : null}
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
-        <View style={styles.footerBtn}>
-          <Button
-            title={added ? 'Đã thêm ✓' : 'Thêm vào giỏ'}
-            variant="secondary"
-            loading={mode === 'add'}
-            disabled={mode !== null}
-            onPress={onAdd}
-          />
-        </View>
-        <View style={styles.footerBtn}>
-          <Button
-            title="Mua ngay"
-            loading={mode === 'buy'}
-            disabled={mode !== null}
-            onPress={onBuy}
-          />
-        </View>
+        {isOwner ? (
+          <>
+            <View style={styles.footerBtn}>
+              <Button
+                title="Xoá món"
+                variant="secondary"
+                loading={removeProduct.isPending}
+                onPress={onDelete}
+              />
+            </View>
+            <View style={styles.footerBtn}>
+              <Button
+                title="Sửa món"
+                disabled={removeProduct.isPending}
+                onPress={() => router.push({ pathname: '/edit-product/[id]', params: { id: product.id } })}
+              />
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.footerBtn}>
+              <Button
+                title={added ? 'Đã thêm ✓' : 'Thêm vào giỏ'}
+                variant="secondary"
+                loading={mode === 'add'}
+                disabled={mode !== null}
+                onPress={onAdd}
+              />
+            </View>
+            <View style={styles.footerBtn}>
+              <Button
+                title="Mua ngay"
+                loading={mode === 'buy'}
+                disabled={mode !== null}
+                onPress={onBuy}
+              />
+            </View>
+          </>
+        )}
       </View>
     </View>
   );

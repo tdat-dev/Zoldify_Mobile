@@ -125,3 +125,56 @@ export function useProductSearch(input: {
     enabled: active,
   });
 }
+
+/**
+ * Người bán sửa món của mình: PATCH /products/:id (ownership kiểm ở backend).
+ * KHÔNG gửi `stock` qua đây: PATCH ghi đè cả cột, bán lúc đang sửa là kho sai.
+ * Đổi số lượng đi riêng qua useUpdateProductStock.
+ */
+export type ProductUpdateInput = Partial<Omit<CreateProductDto, 'stock'>>;
+
+export function useUpdateProduct(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    meta: { handlesError: true },
+    mutationFn: async (input: ProductUpdateInput) => {
+      const res = await http.patch<ApiResponse<Product>>(`/products/${id}`, input);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: productKeys.detail(id) });
+      qc.invalidateQueries({ queryKey: productKeys.lists() });
+    },
+  });
+}
+
+/** Đặt lại tồn kho: PATCH /products/:id/stock { stock } (chỉ chạm cột stock). */
+export function useUpdateProductStock(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    meta: { handlesError: true },
+    mutationFn: async (stock: number) => {
+      await http.patch(`/products/${id}/stock`, { stock });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: productKeys.detail(id) });
+      qc.invalidateQueries({ queryKey: productKeys.lists() });
+    },
+  });
+}
+
+/** Xoá món (backend xoá mềm). */
+export function useDeleteProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    meta: { handlesError: true },
+    mutationFn: async (id: number) => {
+      await http.delete(`/products/${id}`);
+      return id;
+    },
+    onSuccess: (id) => {
+      qc.removeQueries({ queryKey: productKeys.detail(id) });
+      qc.invalidateQueries({ queryKey: productKeys.lists() });
+    },
+  });
+}
