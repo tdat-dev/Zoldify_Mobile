@@ -57,10 +57,16 @@ export function BottomSheet({
 }) {
   const insets = useSafeAreaInsets();
   const [keyboard, setKeyboard] = useState(0);
+  // Mở bảng thì đệm về 0 (mở Modal luôn làm bàn phím ẩn). Đặt lúc render khi
+  // `visible` đổi, không setState trong effect.
+  const [wasVisible, setWasVisible] = useState(visible);
+  if (visible !== wasVisible) {
+    setWasVisible(visible);
+    if (visible) setKeyboard(0);
+  }
 
   useEffect(() => {
     if (!visible) return;
-    setKeyboard(0);
     const subs = [
       KeyboardEvents.addListener('keyboardWillShow', (e) => setKeyboard(e.height)),
       KeyboardEvents.addListener('keyboardDidShow', (e) => setKeyboard(e.height)),

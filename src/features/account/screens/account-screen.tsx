@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
-import { Font, Palette, Radius } from '@/components/ui/theme';
+import { Palette, Radius } from '@/components/ui/theme';
 import { useAuthStore } from '@/features/auth/store';
 import { useProfile } from '@/features/auth/api';
 import { RelatedRail } from '@/features/products/components/related-rail';

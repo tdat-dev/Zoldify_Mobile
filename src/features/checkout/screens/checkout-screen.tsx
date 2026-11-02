@@ -103,6 +103,9 @@ export default function CheckoutScreen() {
     const stillThere = selectedId !== null && addresses.some((a) => a.id === selectedId);
     if (stillThere) return;
     const def = addresses.find((a) => a.is_default) ?? addresses[0];
+    // Đồng bộ lựa chọn theo danh sách server; tách ra state dẫn xuất phải đổi
+    // cả luồng chọn tay, để nguyên có chủ đích.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedId(def.id);
   }, [hasSaved, addresses, selectedId]);
 
@@ -110,6 +113,7 @@ export default function CheckoutScreen() {
   useEffect(() => {
     if (selectedId === null) return;
     const a = addresses.find((x) => x.id === selectedId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (a) setAddress(toSelection(a));
   }, [selectedId, addresses]);
 

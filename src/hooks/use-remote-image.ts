@@ -25,9 +25,14 @@ export function useRemoteImage(path?: string | null, opts?: { thumb?: boolean })
   const [step, setStep] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Đổi ảnh (cuộn danh sách tái dùng ô) thì bắt đầu lại từ đầu.
-  useEffect(() => {
+  // Đổi ảnh (cuộn danh sách tái dùng ô) thì bắt đầu lại từ đầu: đặt lúc
+  // render khi `path` đổi, không setState trong effect.
+  const [prevPath, setPrevPath] = useState(path);
+  if (path !== prevPath) {
+    setPrevPath(path);
     setStep(0);
+  }
+  useEffect(() => {
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };

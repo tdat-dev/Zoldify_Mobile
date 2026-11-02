@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
@@ -45,8 +45,13 @@ export default function ShopSettingsScreen() {
   // Điền sẵn từ shop hiện có, kể cả tỉnh/quận/phường lấy hàng đã lưu. Trước
   // đây ba ô này để trống dù /shop/me có đủ, người bán sửa tên shop rồi Lưu là
   // bị bắt chọn lại địa chỉ lấy hàng (D-23, E2E 02/11). Quận/phường có sẵn
-  // mã + tên; tỉnh chỉ lưu tên nên dò theo tên trong danh sách GHN (effect dưới).
-  useEffect(() => {
+  // mã + tên; tỉnh chỉ lưu tên nên dò theo tên trong danh sách GHN (khối dưới).
+  // Điền lúc render khi nguồn đổi (mẫu "chỉnh state khi prop đổi"), không
+  // setState trong effect.
+  const prefillSrc = shop ?? user ?? null;
+  const [prefilled, setPrefilled] = useState<unknown>(null);
+  if (prefillSrc && prefillSrc !== prefilled) {
+    setPrefilled(prefillSrc);
     if (shop) {
       setName(shop.name ?? '');
       setPickupName(shop.pickup_name ?? '');
@@ -61,15 +66,14 @@ export default function ShopSettingsScreen() {
     } else if (user) {
       setPickupName(user.full_name ?? '');
     }
-  }, [shop, user]);
+  }
 
-  useEffect(() => {
-    const savedName = shop?.pickup_province_name;
-    if (province || !savedName || !provinces.data) return;
+  const savedProvince = shop?.pickup_province_name;
+  if (!province && savedProvince && provinces.data) {
     // So không dấu, bỏ tiền tố "Thành phố"/"Tỉnh": GHN và dữ liệu lưu có thể lệch nhau.
-    const found = provinces.data.find((p) => compareVi(p.ProvinceName, savedName) === 0);
-    setProvince(found ? { id: Number(found.ProvinceID), name: found.ProvinceName } : { id: 0, name: savedName });
-  }, [shop, provinces.data, province]);
+    const found = provinces.data.find((p) => compareVi(p.ProvinceName, savedProvince) === 0);
+    setProvince(found ? { id: Number(found.ProvinceID), name: found.ProvinceName } : { id: 0, name: savedProvince });
+  }
 
   const toOptions = (
     items: { [k: string]: any }[] | undefined,

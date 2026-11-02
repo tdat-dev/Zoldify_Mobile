@@ -86,7 +86,9 @@ export function GhnAddressForm({
 
   // Giữ onChange trong ref để effect không phụ thuộc identity của nó (tránh loop).
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
 
   useEffect(() => {
     const shipping_address = [street, wardName, districtName, provinceName].filter(Boolean).join(', ');

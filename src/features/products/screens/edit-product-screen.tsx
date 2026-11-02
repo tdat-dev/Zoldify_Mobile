@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -50,8 +50,9 @@ export default function EditProductScreen() {
   const [loadedId, setLoadedId] = useState<number | null>(null);
 
   // Nạp dữ liệu món vào form một lần (không đè lên chữ người bán đang sửa).
-  useEffect(() => {
-    if (!product || loadedId === product.id) return;
+  // Làm ngay lúc render (mẫu "chỉnh state khi prop đổi" của React), không
+  // setState trong effect.
+  if (product && loadedId !== product.id) {
     setName(product.name ?? '');
     setPrice(String(Math.round(Number(product.price) || 0)));
     setStock(String(product.stock ?? 0));
@@ -60,7 +61,7 @@ export default function EditProductScreen() {
     setCondition(product.condition || 'new');
     setDescription(product.description ?? '');
     setLoadedId(product.id);
-  }, [product, loadedId]);
+  }
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/account'));
   const busy = update.isPending || updateStock.isPending || remove.isPending;

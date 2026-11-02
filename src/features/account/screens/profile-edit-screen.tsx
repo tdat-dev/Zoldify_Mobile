@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,14 +40,17 @@ export default function ProfileEditScreen() {
   const [err, setErr] = useState('');
   const [phoneErr, setPhoneErr] = useState<string | undefined>();
 
-  // Điền sẵn khi profile về (chỉ một lần — state rỗng ban đầu).
-  useEffect(() => {
-    if (!profile) return;
+  // Điền sẵn khi profile về, chỉ một lần: profile tải lại (sau khi lưu, khi
+  // quay lại app) không được đè lên chữ đang sửa. Làm lúc render, không
+  // setState trong effect.
+  const [prefilled, setPrefilled] = useState(false);
+  if (profile && !prefilled) {
+    setPrefilled(true);
     setName(profile.full_name ?? '');
     setPhone(profile.phone_number ?? '');
     setGender(profile.gender ?? '');
     setAvatar(profile.avatar ?? null);
-  }, [profile]);
+  }
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
