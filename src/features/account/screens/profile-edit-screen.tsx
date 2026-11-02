@@ -16,6 +16,7 @@ import { Font, Palette } from '@/components/ui/theme';
 import { authApi, authKeys, useUpdateProfile, type ProfileUser } from '@/features/auth/api';
 import { useAuthStore } from '@/features/auth/store';
 import { uploadImage } from '@/lib/upload';
+import { normalizeVnPhone, vnPhoneError } from '@/lib/validators';
 
 const GENDERS = ['Nam', 'Nữ', 'Khác'];
 
@@ -36,6 +37,7 @@ export default function ProfileEditScreen() {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState('');
+  const [phoneErr, setPhoneErr] = useState<string | undefined>();
 
   // Điền sẵn khi profile về (chỉ một lần — state rỗng ban đầu).
   useEffect(() => {
@@ -78,11 +80,15 @@ export default function ProfileEditScreen() {
       setErr('Tên không được để trống.');
       return;
     }
+    // SĐT không bắt buộc, nhưng đã nhập thì phải đúng: trước đây "123" lưu được (D-15).
+    const pErr = phone.trim() ? vnPhoneError(phone) : null;
+    setPhoneErr(pErr ?? undefined);
+    if (pErr) return;
     setErr('');
     update.mutate(
       {
         full_name: name.trim(),
-        phone_number: phone.trim(),
+        phone_number: phone.trim() ? normalizeVnPhone(phone) : '',
         gender,
         ...(avatar ? { avatar } : {}),
       },
@@ -130,6 +136,7 @@ export default function ProfileEditScreen() {
           onChangeText={setPhone}
           placeholder="090…"
           keyboardType="phone-pad"
+          error={phoneErr}
         />
 
         <View>
