@@ -71,6 +71,18 @@ runs:
         sed -i 's/^org.gradle.jvmargs=.*/org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8/' android/gradle.properties
         echo "kotlin.daemon.jvmargs=-Xmx3g" >> android/gradle.properties
 
+    - name: Check Expo inline modules command
+      shell: bash
+      working-directory: android
+      run: |
+        # Gradle goi lenh nay luc cau hinh va nuot stderr; chay truoc de thay loi.
+        WATCHED=$(sed -n 's/^expo.inlineModules.watchedDirectories=//p' gradle.properties)
+        node --no-warnings --eval "require('expo/bin/autolinking')" \
+          expo-modules-autolinking mirror-kotlin-inline-modules \
+          --kotlin-files-mirror-directory "$GITHUB_WORKSPACE/node_modules/expo/android/src/main/java/inline/modules" \
+          --inline-modules-list-directory "$GITHUB_WORKSPACE/node_modules/expo/android/build/inline/modules" \
+          --watched-directories-serialized "${WATCHED:-[]}"
+
     - uses: gradle/actions/setup-gradle@v4
       with:
         cache-read-only: false
