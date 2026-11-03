@@ -67,7 +67,7 @@ jobs:
         working-directory: android
         run: |
           echo "API_ORIGIN=$EXPO_PUBLIC_API_ORIGIN MEDIA_ORIGIN=$EXPO_PUBLIC_MEDIA_ORIGIN ABIS=$ABIS"
-          ./gradlew assembleRelease -PreactNativeArchitectures="$ABIS"
+          ./gradlew assembleRelease --stacktrace -PreactNativeArchitectures="$ABIS"
 
       - name: Verify signature and API origin
         id: apk
@@ -123,7 +123,7 @@ jobs:
 
       - name: assembleDebug (expo-dev-client)
         working-directory: android
-        run: ./gradlew assembleDebug -PreactNativeArchitectures="$ABIS"
+        run: ./gradlew assembleDebug --stacktrace -PreactNativeArchitectures="$ABIS"
 
       - name: Rename
         id: apk
