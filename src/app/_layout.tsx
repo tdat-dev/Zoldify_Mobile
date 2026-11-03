@@ -71,10 +71,16 @@ function RootNavigator({ appReady }: { appReady: boolean }) {
           dark mode sẽ ra icon trắng trên nền trắng. Màn header xanh tự đè bằng
           ScreenStatusBar khi đang hiện. */}
       <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(app)" />
-        <Stack.Screen name="(auth)" />
-      </Stack>
+      {/* Chỉ dựng màn khi font đã nạp (hoặc nạp lỗi). Dựng sớm thì Android đo
+          chữ bằng font hệ thống, font Be Vietnam Pro nạp xong rộng hơn nhưng
+          khung không đo lại nên chữ bị cắt, VD "Mọi giá" thành "Mọi …" (D-10).
+          Native splash vẫn che màn trong lúc chờ. */}
+      {appReady && (
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(app)" />
+          <Stack.Screen name="(auth)" />
+        </Stack>
+      )}
 
       {/*
         Chỉ dựng overlay khi ĐÃ hydrate xong. Trong lúc đọc token, native
