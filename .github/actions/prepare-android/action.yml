@@ -36,7 +36,7 @@ runs:
         GS_B64: ${{ inputs.google-services-b64 }}
       run: |
         if [ -n "$GS_B64" ]; then
-          printf '%s' "$GS_B64" | tr -d '\r\n ' | base64 -d > google-services.json
+          printf '%s' "$GS_B64" | tr -cd 'A-Za-z0-9+/=' | base64 -d > google-services.json
           echo "google-services.json lay tu secret (project: $(node -p "require('./google-services.json').project_info.project_id"))"
         else
           echo "::warning::Khong co secret GOOGLE_SERVICES_JSON_BASE64, dung google-services.json trong repo"
@@ -57,7 +57,7 @@ runs:
         # android/app/debug.keystore (alias androiddebugkey, pass android).
         # Ghi de bang keystore da dang ky SHA-1 voi Google Sign-In.
         if [ -n "$KS_B64" ]; then
-          printf '%s' "$KS_B64" | tr -d '\r\n ' | base64 -d > android/app/debug.keystore
+          printf '%s' "$KS_B64" | tr -cd 'A-Za-z0-9+/=' | base64 -d > android/app/debug.keystore
         else
           echo "::warning::Khong co secret ANDROID_KEYSTORE_BASE64, dung debug.keystore mac dinh cua template"
         fi
