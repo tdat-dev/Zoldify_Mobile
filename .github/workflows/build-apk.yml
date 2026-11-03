@@ -1,0 +1,143 @@
+name: Build APK
+
+# APK release (staging | prod) va APK dev client, build tren runner GitHub
+# de may dev khong phai chay Gradle. Huong dan: docs/build-apk-ci.md
+
+on:
+  push:
+    branches: ["fix/**", "feat/**", "ci/**", "staging", "main"]
+    paths-ignore: ["docs/**", "**/*.md"]
+  workflow_dispatch:
+    inputs:
+      env:
+        description: Moi truong API nhung vao APK
+        type: choice
+        options: [staging, prod]
+        default: staging
+      abi:
+        description: Kien truc CPU (arm64-v8a la dien thoai that, x86_64 la may ao)
+        type: choice
+        options:
+          - arm64-v8a,x86_64
+          - armeabi-v7a,arm64-v8a,x86,x86_64
+          - arm64-v8a
+          - x86_64
+        default: arm64-v8a,x86_64
+      release:
+        description: Build APK release (JS nhung san, cai la chay)
+        type: boolean
+        default: true
+      dev_client:
+        description: Build them APK dev client (debug, nap JS tu Metro)
+        type: boolean
+        default: false
+
+concurrency:
+  group: build-apk-${{ github.ref }}-${{ inputs.env || 'staging' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # SHA-1 cert da dang ky Android OAuth client (Firebase project zoldify).
+  # Khong khop thi Google Sign-In native se loi, nen chan ngay tai CI.
+  EXPECTED_CERT_SHA1: 5e8f16062ea3cd2c4a0d547876baa6f38cabf625
+  ABIS: ${{ inputs.abi || 'arm64-v8a,x86_64' }}
+
+jobs:
+  release:
+    name: Release APK (${{ inputs.env || 'staging' }})
+    if: github.event_name == 'push' || inputs.release
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      APP_ENV: ${{ inputs.env || 'staging' }}
+      EXPO_PUBLIC_API_ORIGIN: ${{ (inputs.env || 'staging') == 'prod' && (vars.PROD_EXPO_PUBLIC_API_ORIGIN || 'https://api.zoldify.com') || (vars.STAGING_EXPO_PUBLIC_API_ORIGIN || 'https://api-staging.zoldify.com') }}
+      EXPO_PUBLIC_MEDIA_ORIGIN: ${{ (inputs.env || 'staging') == 'prod' && (vars.PROD_EXPO_PUBLIC_MEDIA_ORIGIN || 'https://zoldify.com') || (vars.STAGING_EXPO_PUBLIC_MEDIA_ORIGIN || 'https://zoldify.com') }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/prepare-android
+        with:
+          google-services-b64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+          keystore-b64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+
+      - name: assembleRelease
+        working-directory: android
+        run: |
+          echo "API_ORIGIN=$EXPO_PUBLIC_API_ORIGIN MEDIA_ORIGIN=$EXPO_PUBLIC_MEDIA_ORIGIN ABIS=$ABIS"
+          ./gradlew assembleRelease -PreactNativeArchitectures="$ABIS"
+
+      - name: Verify signature and API origin
+        id: apk
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          SHA1=$("$APKSIGNER" verify --print-certs "$APK" | sed -n 's/.*certificate SHA-1 digest: //p' | head -1)
+          echo "cert SHA-1: $SHA1"
+          if [ "$SHA1" != "$EXPECTED_CERT_SHA1" ]; then
+            echo "::error::APK ky bang cert $SHA1, can $EXPECTED_CERT_SHA1 (Google Sign-In se hong)"
+            exit 1
+          fi
+          HOST=$(echo "$EXPO_PUBLIC_API_ORIGIN" | sed 's#^https\?://##')
+          if ! unzip -p "$APK" assets/index.android.bundle | grep -a -q "$HOST"; then
+            echo "::error::Bundle khong chua $HOST"
+            exit 1
+          fi
+          if [ "$APP_ENV" = "prod" ] && unzip -p "$APK" assets/index.android.bundle | grep -a -q "api-staging.zoldify.com"; then
+            echo "::error::Bundle prod lai chua api-staging"
+            exit 1
+          fi
+          NAME="zoldify-${APP_ENV}-${GITHUB_SHA::7}.apk"
+          mkdir -p out && cp "$APK" "out/$NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          ls -lh out
+          {
+            echo "### $NAME"
+            echo "- API: \`$EXPO_PUBLIC_API_ORIGIN\`"
+            echo "- ABI: \`$ABIS\`"
+            echo "- cert SHA-1: \`$SHA1\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.name }}
+          path: out/${{ steps.apk.outputs.name }}
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
+
+  dev-client:
+    name: Dev client APK
+    if: github.event_name == 'workflow_dispatch' && inputs.dev_client
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/prepare-android
+        with:
+          google-services-b64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+          keystore-b64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+
+      - name: assembleDebug (expo-dev-client)
+        working-directory: android
+        run: ./gradlew assembleDebug -PreactNativeArchitectures="$ABIS"
+
+      - name: Rename
+        id: apk
+        run: |
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          NAME="zoldify-devclient-${GITHUB_SHA::7}.apk"
+          mkdir -p out && cp "$APK" "out/$NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          ls -lh out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.name }}
+          path: out/${{ steps.apk.outputs.name }}
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
