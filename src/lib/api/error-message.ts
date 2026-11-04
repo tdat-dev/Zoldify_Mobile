@@ -5,13 +5,15 @@ import { isAxiosError } from 'axios';
  *
  * Backend NestJS trả `message` là chuỗi, hoặc mảng chuỗi khi ValidationPipe
  * từ chối (vd `["is_default must be a boolean value"]`). Không có `response`
- * nghĩa là request không tới được server: mất mạng, hết giờ, bị huỷ.
+ * nghĩa là request không tới được server: mất mạng, hết giờ, bị huỷ. 500 của
+ * NestJS luôn là "Internal server error" tiếng Anh, không đưa ra cho người dùng.
  */
 export function apiErrorMessage(
   err: unknown,
   fallback = 'Chưa thực hiện được. Thử lại nhé.',
 ): string {
   if (isAxiosError(err)) {
+    if (err.response?.status === 500) return fallback;
     const msg = (err.response?.data as { message?: unknown } | undefined)?.message;
     if (typeof msg === 'string' && msg.trim()) return msg;
     if (Array.isArray(msg) && typeof msg[0] === 'string') return msg[0];

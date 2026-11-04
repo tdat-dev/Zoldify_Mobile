@@ -15,6 +15,7 @@ import { FollowingRail } from '@/features/products/components/following-rail';
 import { TrustStrip } from '@/features/products/components/trust-strip';
 import { QuickLinks } from '@/features/products/components/quick-links';
 import { CategoryChips } from '@/features/categories/components/category-chips';
+import { apiErrorMessage } from '@/lib/api/error-message';
 
 /**
  * Trang chủ theo tư duy CHỢ ĐỒ CŨ (xem docs/ba-home-cho-do-cu.md):
@@ -60,7 +61,7 @@ export default function HomeScreen() {
         <View style={styles.fill}>
           <Text variant="heading">Không tải được sản phẩm</Text>
           <Text variant="bodyMuted" style={styles.hint}>
-            {error instanceof Error ? error.message : 'Vui lòng thử lại.'}
+            {apiErrorMessage(error, 'Vui lòng thử lại.')}
           </Text>
           <View style={styles.retry}>
             <Button title="Thử lại" onPress={() => refetch()} />
