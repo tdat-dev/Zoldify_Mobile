@@ -9,10 +9,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ListRowSkeleton } from '@/components/ui/list-row-skeleton';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
-import { useAuthStore } from '@/features/auth/store';
 import { useOrders } from '@/features/orders/api';
 import { ORDER_TABS, STATUS_META } from '@/features/orders/order-status';
-import { TabPlaceholder } from '@/features/shared/tab-placeholder';
 import { formatVnd } from '@/lib/format';
 import type { Order } from '@/api';
 
@@ -57,10 +55,9 @@ function OrderCard({ order }: { order: Order }) {
   );
 }
 
-/** Đơn mua: khách → mời đăng nhập; đã đăng nhập → tab trạng thái + danh sách. */
+/** Đơn mua: tab trạng thái + danh sách. Khách dừng ở cổng đăng nhập. */
 export default function OrdersScreen() {
   const insets = useSafeAreaInsets();
-  const guest = useAuthStore((s) => s.status) !== 'signedIn';
   const [tab, setTab] = useState('all');
   const { data: orders, isPending, isError, isFetching, refetch } = useOrders();
 
@@ -71,10 +68,6 @@ export default function OrdersScreen() {
       refetch();
     }, [refetch]),
   );
-
-  if (guest) {
-    return <TabPlaceholder title="Đơn mua" note="Đăng nhập để xem đơn hàng của bạn." />;
-  }
 
   const activeTab = ORDER_TABS.find((t) => t.key === tab) ?? ORDER_TABS[0];
   const list = (orders ?? []).filter((o) => activeTab.match(o.status));

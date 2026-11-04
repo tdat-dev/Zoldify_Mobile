@@ -15,7 +15,6 @@ import {
   useRemoveCartItem,
   useUpdateCartQty,
 } from '@/features/cart/api';
-import { useAuthStore } from '@/features/auth/store';
 import { formatVnd } from '@/lib/format';
 import type { Cart } from '@/api';
 
@@ -107,10 +106,9 @@ function CartRow({
   );
 }
 
-/** Giỏ hàng — khách: mời đăng nhập; đã đăng nhập: danh sách thật + tổng tiền. */
+/** Giỏ hàng: danh sách thật + tổng tiền. Khách dừng ở cổng đăng nhập. */
 export default function CartScreen() {
   const insets = useSafeAreaInsets();
-  const guest = useAuthStore((s) => s.status) !== 'signedIn';
   const { data: items, isPending } = useCart();
   useRefetchCartOnFocus();
   const updateQty = useUpdateCartQty();
@@ -128,23 +126,6 @@ export default function CartScreen() {
       <Text variant="title">Giỏ hàng</Text>
     </View>
   );
-
-  if (guest) {
-    return (
-      <View style={styles.root}>
-        {header}
-        <View style={styles.center}>
-          <Text variant="heading" style={styles.line}>Giỏ hàng của bạn</Text>
-          <Text variant="bodyMuted" style={styles.line}>
-            Đăng nhập để lưu giỏ hàng và thanh toán.
-          </Text>
-          <View style={styles.cta}>
-            <Button title="Đăng nhập" onPress={() => router.push('/login')} />
-          </View>
-        </View>
-      </View>
-    );
-  }
 
   if (isPending) {
     return (
@@ -240,9 +221,6 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '45deg' }],
     marginLeft: 4,
   },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
-  line: { textAlign: 'center' },
-  cta: { marginTop: 8, alignSelf: 'stretch', paddingHorizontal: 16 },
   list: { padding: 12 },
   sep: { height: 12 },
   row: {

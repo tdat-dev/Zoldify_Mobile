@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CountBadge } from '@/components/ui/count-badge';
 import { Font, Palette } from '@/components/ui/theme';
+import { tabLoginGate } from '@/features/auth/components/login-gate';
 import { useAuthStore } from '@/features/auth/store';
 import { useUnreadCount } from '@/features/notifications/api';
 
@@ -114,7 +115,10 @@ function TabBar({ state, descriptors, navigation }: TabBarProps) {
 
 export default function TabsLayout() {
   return (
-    <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false }}>
+    <Tabs
+      tabBar={(props) => <TabBar {...props} />}
+      screenOptions={{ headerShown: false }}
+      screenLayout={tabLoginGate}>
       <Tabs.Screen
         name="index"
         options={{

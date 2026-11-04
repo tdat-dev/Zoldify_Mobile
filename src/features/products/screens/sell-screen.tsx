@@ -14,8 +14,6 @@ import { TextField } from '@/components/ui/text-field';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useCreateProduct } from '@/features/products/api';
 import { useCategories } from '@/features/categories/api';
-import { useAuthStore } from '@/features/auth/store';
-import { TabPlaceholder } from '@/features/shared/tab-placeholder';
 import { uploadImage } from '@/lib/upload';
 
 const CONDITIONS = [
@@ -28,10 +26,9 @@ const CONDITIONS = [
 
 const DESC_MAX = 1000;
 
-/** Đăng bán: khách -> mời đăng nhập; đã đăng nhập -> form tạo sản phẩm thật. */
+/** Đăng bán: form tạo sản phẩm thật. Khách dừng ở cổng đăng nhập. */
 export default function SellScreen() {
   const insets = useSafeAreaInsets();
-  const guest = useAuthStore((s) => s.status) !== 'signedIn';
   const { data: categories } = useCategories();
   const create = useCreateProduct();
 
@@ -48,10 +45,6 @@ export default function SellScreen() {
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; price?: string; category?: string; images?: string }>({});
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  if (guest) {
-    return <TabPlaceholder title="Đăng bán" note="Đăng nhập để đăng bán món của bạn." />;
-  }
 
   const selectedCategory = categories?.find((c) => c.id === categoryId) ?? null;
 

@@ -13,9 +13,7 @@ import { KEYBOARD_GAP } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { Font, Palette, Radius } from '@/components/ui/theme';
-import { useAuthStore } from '@/features/auth/store';
 import { useWalletBalance, walletKeys } from '@/features/orders/api';
-import { TabPlaceholder } from '@/features/shared/tab-placeholder';
 import {
   LEDGER_LABEL,
   MIN_TOPUP,
@@ -67,7 +65,6 @@ function dateLabel(iso: string): string {
 export default function WalletScreen() {
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
-  const guest = useAuthStore((s) => s.status) !== 'signedIn';
 
   const balance = useWalletBalance();
   const payments = useWalletTransactions();
@@ -84,9 +81,6 @@ export default function WalletScreen() {
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
-  if (guest) {
-    return <TabPlaceholder title="Ví của tôi" note="Đăng nhập để xem số dư, nạp và rút tiền." onBack={back} />;
-  }
   const available = balance.data?.balance ?? 0;
   const held = Number(balance.data?.pending_withdrawal ?? 0);
 
