@@ -82,7 +82,7 @@ function TabBar({ state, descriptors, navigation }: TabBarProps) {
                 <View style={styles.sellDot}>
                   <Feather name="plus" size={28} color={Palette.white} />
                 </View>
-                <Text style={[styles.label, styles.sellLabel]} numberOfLines={1}>
+                <Text style={[styles.label, styles.sellLabel]} numberOfLines={2}>
                   {label}
                 </Text>
               </View>
@@ -103,7 +103,7 @@ function TabBar({ state, descriptors, navigation }: TabBarProps) {
                 <CountBadge count={unread} ring style={styles.badge} />
               ) : null}
             </View>
-            <Text style={[styles.label, { color }]} numberOfLines={1}>
+            <Text style={[styles.label, { color }]} numberOfLines={2}>
               {label}
             </Text>
           </Pressable>
@@ -163,17 +163,22 @@ const styles = StyleSheet.create({
   item: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    // Canh từ trên xuống: chữ to làm "Thông báo" xuống hai dòng thì icon các ô
+    // vẫn thẳng hàng, thanh tự cao lên theo nhãn dài nhất.
+    justifyContent: 'flex-start',
     gap: 4,
     paddingHorizontal: 4,
   },
-  icon: { height: 26, alignItems: 'center', justifyContent: 'center' },
+  // marginTop 3: giữ đúng vị trí cũ (ô thường thấp hơn ô Đăng bán 6px).
+  icon: { height: 26, marginTop: 3, alignItems: 'center', justifyContent: 'center' },
   // Chấm số chưa đọc, nổi góc trên-phải chuông. Đỏ cảnh báo, viền trắng để tách.
   badge: { position: 'absolute', top: -6, left: 14 },
   // lineHeight 15 cho fontSize 11 → đủ chỗ dấu + chân chữ tiếng Việt.
   // alignSelf:stretch để nhãn LẤP đủ bề rộng ô (item alignItems:center không
   // stretch → Text numberOfLines=1 không có bề rộng xác định, Android đo mơ hồ
   // rồi cắt sớm thành "…"). Có bề rộng rõ + textAlign center → không cắt nữa.
+  // Năm ô chia đều nên ô chỉ rộng ~70px: cỡ chữ máy 1.3 thì "Thông báo" không vừa
+  // một dòng, nhãn cho xuống hai dòng chứ không cắt.
   label: {
     alignSelf: 'stretch',
     fontFamily: Font.semibold,
@@ -182,7 +187,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   // Cụm nút bán: nhô lên bằng marginTop âm (vẫn trong luồng, chiếm chỗ ngang).
-  sellRaise: { alignItems: 'center', gap: 4, marginTop: -22 },
+  sellRaise: { alignSelf: 'stretch', alignItems: 'center', gap: 4, marginTop: -22 },
   sellDot: {
     width: 54,
     height: 54,

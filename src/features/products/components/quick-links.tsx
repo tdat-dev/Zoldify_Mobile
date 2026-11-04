@@ -39,7 +39,7 @@ export function QuickLinks() {
             <View style={styles.thumb}>
               <Image source={l.img} style={styles.img} contentFit="contain" />
             </View>
-            <Text variant="caption" numberOfLines={1} style={styles.label}>
+            <Text variant="caption" style={styles.label}>
               {l.label}
             </Text>
           </Pressable>
@@ -57,7 +57,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   row: { gap: 4, paddingHorizontal: 8 },
-  item: { width: 76, alignItems: 'center', gap: 7, paddingHorizontal: 2 },
+  // minWidth, không phải width: cỡ chữ máy lớn thì ô nở theo nhãn (hàng này cuộn
+  // ngang nên nở được), không cắt "Dưới 100k" thành "Dưới 1…".
+  item: { minWidth: 76, alignItems: 'center', gap: 7, paddingHorizontal: 2 },
   // Không khung: minh hoạ đã có viền và khối riêng, thêm ô viền quanh nó chỉ
   // làm hàng lối tắt trông như lưới nút (theo yêu cầu 28/10).
   thumb: {

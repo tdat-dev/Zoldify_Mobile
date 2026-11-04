@@ -97,7 +97,7 @@ export function ProductCard({ product }: { product: Product }) {
             </>
           ) : null}
           {proof ? (
-            <Text style={styles.proof} numberOfLines={1}>
+            <Text style={styles.proof} numberOfLines={2}>
               {(product.review_count ?? 0) > 0 ? ' · ' : ''}
               {proof}
             </Text>
