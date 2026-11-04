@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CountBadge } from '@/components/ui/count-badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { HeartButton } from '@/components/ui/heart-button';
 import { ImageGallery } from '@/components/ui/image-gallery';
 import { RatingStars } from '@/components/ui/rating';
@@ -23,6 +24,7 @@ import { ReviewCard } from '@/features/reviews/components/review-card';
 import { useAddToCart, useBuyNow, useCartCount } from '@/features/cart/api';
 import { useAuthStore } from '@/features/auth/store';
 import { useRequireAuth } from '@/features/auth/use-require-auth';
+import { isNotFoundError } from '@/lib/api/error-message';
 import { formatVnd } from '@/lib/format';
 import { shareProduct } from '@/lib/share';
 
@@ -45,7 +47,8 @@ export default function ProductDetailScreen() {
   const [added, setAdded] = useState(false);
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const { data: cartCount = 0 } = useCartCount();
-  const { data: product, isPending, isError, refetch } = useProduct(Number(id));
+  const productId = Number(id);
+  const { data: product, isPending, isError, error, refetch } = useProduct(productId);
   // Số thật từ backend (lỗi H-01: trước đây sinh ngẫu nhiên trong mock.ts).
   // Gọi trước các nhánh return sớm để thứ tự hook không đổi.
   const { data: reviewData } = useProductReviews(Number(id), 3);
@@ -123,6 +126,23 @@ export default function ProductDetailScreen() {
       },
     );
   };
+
+  // Món không còn (404) hoặc link sai (id không phải số: query bị tắt nên isPending
+  // đứng mãi): nói thẳng và cho quay lại, không mời "Thử lại" vô ích.
+  if (!Number.isFinite(productId) || isNotFoundError(error)) {
+    return (
+      <View style={styles.root}>
+        {topBar}
+        <EmptyState
+          icon="package"
+          title="Món này không còn nữa"
+          subtitle="Có thể người bán đã gỡ tin hoặc link bị sai."
+          actionLabel="Quay lại"
+          onAction={back}
+        />
+      </View>
+    );
+  }
 
   if (isPending) {
     return (

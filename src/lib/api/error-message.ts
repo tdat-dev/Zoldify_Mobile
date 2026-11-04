@@ -23,3 +23,20 @@ export function apiErrorMessage(
   }
   return fallback;
 }
+
+/** Server trả 404: thứ đang tìm không còn nữa, bấm Thử lại cũng vô ích. */
+export function isNotFoundError(err: unknown): boolean {
+  return isAxiosError(err) && err.response?.status === 404;
+}
+
+/**
+ * Luật thử lại mặc định của query: tối đa 2 lần. 4xx là server đã trả lời dứt
+ * khoát (404 không còn, 401 hết phiên), thử lại chỉ bắt người dùng nhìn skeleton
+ * thêm 3 giây. Chỉ 408/429 là lỗi tạm nên vẫn thử.
+ */
+export function shouldRetryQuery(failureCount: number, err: unknown): boolean {
+  if (failureCount >= 2) return false;
+  const status = isAxiosError(err) ? err.response?.status : undefined;
+  if (status === undefined || status === 408 || status === 429) return true;
+  return status < 400 || status >= 500;
+}
