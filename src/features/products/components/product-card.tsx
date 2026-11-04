@@ -31,7 +31,11 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Pressable
       style={styles.tile}
-      onPress={() => router.push({ pathname: '/products/[id]', params: { id: product.id } })}
+      // navigate, không phải push: đỉnh stack đã là đúng món này thì Expo Router
+      // giữ nguyên màn, nên chạm đúp không chồng hai màn; món khác vẫn mở màn mới.
+      // Không dùng dangerouslySingular: nó kéo màn cũ giữa stack lên đỉnh, chính
+      // Expo Router ghi chú thao tác đó có thể làm treo react-native-screens.
+      onPress={() => router.navigate({ pathname: '/products/[id]', params: { id: product.id } })}
       accessibilityRole="button">
       <View style={styles.imageWrap}>
         {/* Bản thu nhỏ 480px: ô chỉ rộng ~400px, ảnh gốc 1,1-1,6 MB. Hỏng thì
