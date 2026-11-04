@@ -12,7 +12,7 @@ import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useAuthStore } from '@/features/auth/store';
 import { useStartConversation } from '@/features/chat/api';
-import { useFollowCount, useFollowStatus, useToggleFollow } from '@/features/follows/api';
+import { useFollowCount, useFollowStatus, useSetFollow } from '@/features/follows/api';
 import { useInfiniteProducts } from '@/features/products/api';
 import { ProductCard } from '@/features/products/components/product-card';
 import { ProductGridSkeleton } from '@/features/products/components/product-grid-skeleton';
@@ -57,10 +57,10 @@ export default function ShopScreen() {
   const canFollow = !isMe && !!me;
   const { data: followed } = useFollowStatus(sellerId, canFollow);
   const { data: fcount } = useFollowCount(sellerId);
-  const toggleFollow = useToggleFollow(sellerId);
+  const setFollow = useSetFollow(sellerId);
   const onFollow = () => {
     if (!me) return router.push('/login');
-    toggleFollow.mutate();
+    setFollow.mutate(!followed);
   };
 
   const startChat = useStartConversation();
@@ -123,7 +123,7 @@ export default function ShopScreen() {
             <Pressable
               style={[styles.followBtn, followed && styles.followBtnOn]}
               onPress={onFollow}
-              disabled={toggleFollow.isPending}
+              disabled={setFollow.isPending}
               accessibilityRole="button">
               <Feather
                 name={followed ? 'check' : 'plus'}

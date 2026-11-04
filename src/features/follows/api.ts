@@ -13,7 +13,8 @@ export interface FollowedUser {
 
 /**
  * Theo dõi người bán (BE module `follows`).
- *   POST /follows/toggle {following_id}   -> {followed}
+ *   PUT    /follows/:sellerId             -> {followed: true}
+ *   DELETE /follows/:sellerId             -> {followed: false}
  *   GET  /follows/check/:sellerId          -> {followed}   (cần đăng nhập)
  *   GET  /follows/:sellerId/count          -> {follower, following}  (công khai)
  */
@@ -63,20 +64,25 @@ export function useFollowCount(sellerId: number) {
   });
 }
 
-/** Bật/tắt theo dõi. Cập nhật lạc quan trạng thái + số follower. */
-export function useToggleFollow(sellerId: number) {
+/**
+ * Đặt trạng thái theo dõi. Cập nhật lạc quan trạng thái + số follower.
+ *
+ * Gửi đúng ý người bấm chứ không nhờ server lật (Q5/Q6): máy còn hiện "Đang theo
+ * dõi" trong khi máy khác đã bỏ, bấm bỏ theo dõi thì vẫn ra bỏ theo dõi.
+ */
+export function useSetFollow(sellerId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
-      const res = await http.post<ApiResponse<{ followed: boolean }>>('/follows/toggle', {
-        following_id: sellerId,
-      });
+    mutationFn: async (next: boolean) => {
+      const url = `/follows/${sellerId}`;
+      const res = next
+        ? await http.put<ApiResponse<{ followed: boolean }>>(url)
+        : await http.delete<ApiResponse<{ followed: boolean }>>(url);
       return res.data.data.followed;
     },
-    onMutate: async () => {
+    onMutate: async (next) => {
       await qc.cancelQueries({ queryKey: followKeys.status(sellerId) });
       const prev = qc.getQueryData<boolean>(followKeys.status(sellerId)) ?? false;
-      const next = !prev;
       qc.setQueryData(followKeys.status(sellerId), next);
       qc.setQueryData<{ follower: number; following: number }>(followKeys.count(sellerId), (c) =>
         c ? { ...c, follower: Math.max(0, c.follower + (next ? 1 : -1)) } : c,
