@@ -80,7 +80,10 @@ export default function ProductDetailScreen() {
   );
 
   const cartError = (e: unknown) => {
-    const msg = (e as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+    const res = (e as { response?: { status?: number; data?: { message?: unknown } } })?.response;
+    // Hết phiên thì app đã báo bằng hộp thoại, không hiện thêm chữ "Unauthorized".
+    if (res?.status === 401) return;
+    const msg = res?.data?.message;
     setErrMsg(typeof msg === 'string' ? msg : 'Chưa thêm được vào giỏ. Thử lại nhé.');
   };
 

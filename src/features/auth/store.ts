@@ -4,6 +4,7 @@ import { authApi } from '@/features/auth/api';
 import { disconnectChatSocket } from '@/features/chat/socket';
 import { unregisterPushBeforeLogout } from '@/features/notifications/push';
 import { queryClient } from '@/lib/api/query-client';
+import { resetSessionCache } from '@/lib/api/session';
 import { tokenStore } from '@/lib/auth/token-store';
 import type { AuthUser } from '@/api';
 
@@ -31,8 +32,11 @@ interface AuthState {
   signIn: () => Promise<void>;
   /** Người dùng chủ động đăng xuất: báo server rồi xoá phiên. */
   signOut: () => Promise<void>;
-  /** Phiên hết hạn (interceptor 401 đã xoá token) — chỉ cập nhật state. */
-  sessionExpired: () => void;
+  /**
+   * Server từ chối phiên đang mở (interceptor 401 đã xoá token). Trả true nếu
+   * thật sự vừa mất phiên, để nơi gọi báo cho người dùng.
+   */
+  sessionExpired: () => boolean;
   /** Tài khoản vừa bị xoá (token đã bỏ): về khách và bỏ dữ liệu của phiên. */
   accountDeleted: () => void;
   /** Lấy lại profile sau khi tự sửa hồ sơ, để UI phản ánh ngay. */
@@ -65,7 +69,10 @@ async function resolveSession(timeoutMs?: number): Promise<{ status: AuthStatus;
   }
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+/** Đang đăng xuất: 401 của lệnh gỡ push/logout không phải là "hết phiên". */
+let signingOut = false;
+
+export const useAuthStore = create<AuthState>((set, get) => ({
   status: 'hydrating',
   user: null,
 
@@ -78,29 +85,35 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   signOut: async () => {
+    signingOut = true;
     try {
       await unregisterPushBeforeLogout();
       await authApi.logout();
     } finally {
+      signingOut = false;
       disconnectChatSocket();
       set({ status: 'signedOut', user: null });
       // Bỏ mọi dữ liệu của phiên cũ (đơn, đã đánh giá, số thông báo...). Không
       // xoá thì truy vấn bị tắt vẫn trả bản cũ: khách thấy số chưa đọc của người
       // vừa thoát, người đăng nhập sau thoáng thấy dữ liệu người trước.
       // Xoá SAU khi đổi trạng thái để màn đang mở không tải lại bằng phiên cũ.
-      queryClient.clear();
+      resetSessionCache(queryClient);
     }
   },
 
   sessionExpired: () => {
+    // Lúc mở app (hydrating) thì hydrate tự chốt signedOut, chưa có gì để dọn.
+    if (signingOut || get().status !== 'signedIn') return false;
     disconnectChatSocket();
     set({ status: 'signedOut', user: null });
+    resetSessionCache(queryClient);
+    return true;
   },
 
   accountDeleted: () => {
     disconnectChatSocket();
     set({ status: 'signedOut', user: null });
-    queryClient.clear();
+    resetSessionCache(queryClient);
   },
 
   refreshProfile: async () => {

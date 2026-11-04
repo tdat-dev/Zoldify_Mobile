@@ -11,13 +11,14 @@ import {
   DarkTheme,
   DefaultTheme,
   ErrorBoundaryProps,
+  router,
   Stack,
   ThemeProvider,
 } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { Pressable, Text, View, useColorScheme } from 'react-native';
+import { Alert, Pressable, Text, View, useColorScheme } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
@@ -117,11 +118,15 @@ export default function RootLayout() {
     // Đọc token lúc mở app, xác định phiên.
     hydrate();
 
-    // Tầng mạng không tự điều hướng; 401 -> xoá phiên, cổng đăng nhập tự
-    // đẩy về (auth). client.ts không cần biết gì về router.
+    // Tầng mạng không tự điều hướng; 401 -> xoá phiên, màn cần tài khoản tự đổi
+    // thành lời mời đăng nhập. client.ts không cần biết gì về router. Phải nói
+    // cho người dùng biết, không thì app lẳng lặng thành khách giữa chừng.
     setOnSessionExpired(() => {
-      queryClient.clear();
-      sessionExpired();
+      if (!sessionExpired()) return;
+      Alert.alert('Phiên đăng nhập đã hết', 'Bạn đăng nhập lại để tiếp tục nhé.', [
+        { text: 'Để sau', style: 'cancel' },
+        { text: 'Đăng nhập', onPress: () => router.push('/login') },
+      ]);
     });
   }, [hydrate, sessionExpired]);
 

@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { isSessionRejected } from '@/lib/api/session';
 import { API_URL } from '@/lib/config';
 import { tokenStore } from '@/lib/auth/token-store';
 
@@ -54,9 +55,8 @@ http.interceptors.response.use(
       // buyer còn đang tải) về 401 SAU khi token mới đã lưu: bản cũ xoá luôn
       // token mới, app nhảy về trang chủ ở trạng thái khách (D-24, E2E 02/11,
       // chưa tái hiện lại được nhưng đúng trình tự đó).
-      const sent = String(error.config?.headers?.Authorization ?? '').replace(/^Bearer\s+/i, '');
       const current = await tokenStore.getAccessToken();
-      if (!sent || !current || sent === current) {
+      if (isSessionRejected(error.config?.headers?.Authorization, current)) {
         await tokenStore.clear();
         onSessionExpired?.();
       }
