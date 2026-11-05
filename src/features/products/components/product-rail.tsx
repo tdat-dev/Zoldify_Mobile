@@ -22,7 +22,11 @@ export function ProductRail({ title, sort }: { title: string; sort: string }) {
     <View style={styles.wrap}>
       <View style={styles.head}>
         <Text variant="heading">{title}</Text>
-        <Pressable hitSlop={8} onPress={() => router.push('/search')}>
+        {/* Mở danh sách đầy đủ cùng cách sắp của rail (như lối tắt "Mới đăng"),
+            không mở màn tìm kiếm trống bắt gõ từ khoá (D-25, E2E 02/11). */}
+        <Pressable
+          hitSlop={8}
+          onPress={() => router.push({ pathname: '/browse', params: { name: title, sort } })}>
           <Text style={styles.more}>Xem thêm</Text>
         </Pressable>
       </View>

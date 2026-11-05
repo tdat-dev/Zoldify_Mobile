@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
-import { Font, Palette, Radius } from '@/components/ui/theme';
+import { Palette, Radius } from '@/components/ui/theme';
 import { useAuthStore } from '@/features/auth/store';
 import { useProfile } from '@/features/auth/api';
 import { RelatedRail } from '@/features/products/components/related-rail';
@@ -64,6 +64,8 @@ export default function AccountScreen() {
 
           <View style={styles.menu}>
             <MenuRow icon="receipt-outline" label="Đơn mua" first onPress={() => router.push('/orders')} />
+            <MenuRow icon="wallet-outline" label="Ví của tôi" onPress={() => router.push('/wallet' as Href)} />
+            <MenuRow icon="chatbubbles-outline" label="Tin nhắn" onPress={() => router.push('/messages' as Href)} />
             <MenuRow icon="heart-outline" label="Đã lưu" onPress={() => router.push('/saved' as Href)} />
             <MenuRow icon="storefront-outline" label="Shop đang theo dõi" onPress={() => router.push('/following' as Href)} />
             <MenuRow icon="location-outline" label="Địa chỉ của tôi" onPress={() => router.push('/addresses' as Href)} />
@@ -91,6 +93,7 @@ export default function AccountScreen() {
 
           <View style={styles.menu}>
             <MenuRow icon="lock-closed-outline" label={hasPassword === false ? 'Đặt mật khẩu' : 'Đổi mật khẩu'} first onPress={() => router.push('/change-password' as Href)} />
+            <MenuRow icon="trash-outline" label="Xoá tài khoản" onPress={() => router.push('/delete-account' as Href)} />
           </View>
 
           <View style={styles.actions}>

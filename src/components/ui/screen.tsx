@@ -69,7 +69,12 @@ export function Screen({ children, onBack, onClose, title, footer, scroll, cente
       ) : null}
 
       {scroll ? (
+        // mode="layout": chừa chỗ cho bàn phím bằng một View đệm thật ở cuối
+        // nội dung. Chế độ mặc định ("insets", ClippingScrollView trên Android)
+        // không nới vùng cuộn: đang gõ email mà chạm thẳng ô "Nhập lại mật khẩu"
+        // thì ô nằm sau bàn phím, vuốt cũng không cuộn được (D-11, E2E 02/11).
         <KeyboardAwareScrollView
+          mode="layout"
           bottomOffset={KEYBOARD_GAP + footerHeight}
           contentContainerStyle={[styles.content, center && styles.centerContent]}
           keyboardShouldPersistTaps="handled"

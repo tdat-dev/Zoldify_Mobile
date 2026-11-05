@@ -11,6 +11,7 @@ import { AuthIntro } from '@/features/auth/components/auth-intro';
 import { GoogleButton } from '@/features/auth/components/google-button';
 import { OrDivider } from '@/features/auth/components/or-divider';
 import { useSendRegisterOtp } from '@/features/auth/api';
+import { apiErrorMessage } from '@/lib/api/error-message';
 import { googleAvailable } from '@/lib/firebase-config';
 import { useOnboardingStore } from '@/features/onboarding/store';
 
@@ -59,6 +60,16 @@ export default function RegisterScreen() {
     touched.confirm && confirm.length > 0 && confirm !== password ? 'Mật khẩu nhập lại chưa khớp.' : undefined;
 
   const canSubmit = nameValid && emailValid && passValid && confirmValid;
+
+  // Hiện đúng câu backend trả. Email đã có tài khoản thì backend báo "Email đã
+  // được đăng ký": nói rõ và mời đăng nhập, thay vì câu chung "Chưa gửi được
+  // mã" làm người dùng tưởng lỗi mạng (D-12, E2E 02/11).
+  const sendErr = sendOtp.isError
+    ? apiErrorMessage(sendOtp.error, 'Chưa gửi được mã. Kiểm tra lại email hoặc thử lại sau.')
+    : null;
+  const emailTaken =
+    (sendOtp.error as { response?: { status?: number } } | null)?.response?.status === 409 ||
+    (!!sendErr && /đã (được )?đăng ký|đã tồn tại|already/i.test(sendErr));
 
   const onSubmit = () => {
     setTouched({ name: true, email: true, password: true, confirm: true });
@@ -158,11 +169,16 @@ export default function RegisterScreen() {
           onSubmitEditing={onSubmit}
         />
 
-        {sendOtp.isError ? (
+        {sendErr ? (
           <View style={styles.banner}>
             <Text variant="caption" style={styles.error}>
-              Chưa gửi được mã. Kiểm tra lại email hoặc thử lại sau.
+              {emailTaken ? 'Email này đã có tài khoản Zoldify.' : sendErr}
             </Text>
+            {emailTaken ? (
+              <Pressable hitSlop={8} onPress={() => router.replace('/login')} accessibilityRole="button">
+                <Text variant="link">Đăng nhập bằng email này</Text>
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
       </View>
@@ -194,6 +210,7 @@ const styles = StyleSheet.create({
   banner: {
     backgroundColor: Palette.dangerBg,
     borderRadius: 4,
+    gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },

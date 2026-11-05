@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
@@ -9,8 +9,10 @@ import { TextField } from '@/components/ui/text-field';
 import { Palette } from '@/components/ui/theme';
 import { useMyShop, useSaveShop } from '@/features/shop/api';
 import { useDistricts, useProvinces, useWards } from '@/features/shop/ghn-api';
-import { PickerField, type Option } from '@/features/shop/components/picker-field';
+import { SelectField, type SelectOption } from '@/components/ui/select-field';
 import { useAuthStore } from '@/features/auth/store';
+import { compareVi, sortByNameVi } from '@/lib/text';
+import { normalizeVnPhone, vnPhoneError } from '@/lib/validators';
 
 interface Sel {
   id: number | string;
@@ -37,32 +39,65 @@ export default function ShopSettingsScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const provinces = useProvinces();
-  const districts = useDistricts(province ? Number(province.id) : null);
+  const districts = useDistricts(province?.id ? Number(province.id) : null);
   const wards = useWards(district ? Number(district.id) : null);
 
-  // Điền sẵn phần text từ shop hiện có (địa chỉ GHN chọn lại để có id/code).
-  useEffect(() => {
+  // Điền sẵn từ shop hiện có, kể cả tỉnh/quận/phường lấy hàng đã lưu. Trước
+  // đây ba ô này để trống dù /shop/me có đủ, người bán sửa tên shop rồi Lưu là
+  // bị bắt chọn lại địa chỉ lấy hàng (D-23, E2E 02/11). Quận/phường có sẵn
+  // mã + tên; tỉnh chỉ lưu tên nên dò theo tên trong danh sách GHN (khối dưới).
+  // Điền lúc render khi nguồn đổi (mẫu "chỉnh state khi prop đổi"), không
+  // setState trong effect.
+  const prefillSrc = shop ?? user ?? null;
+  const [prefilled, setPrefilled] = useState<unknown>(null);
+  if (prefillSrc && prefillSrc !== prefilled) {
+    setPrefilled(prefillSrc);
     if (shop) {
       setName(shop.name ?? '');
       setPickupName(shop.pickup_name ?? '');
       setPhone(shop.pickup_phone ?? '');
       setAddress(shop.pickup_address ?? '');
+      if (shop.pickup_district_id && shop.pickup_district_name) {
+        setDistrict({ id: Number(shop.pickup_district_id), name: shop.pickup_district_name });
+      }
+      if (shop.pickup_ward_code && shop.pickup_ward_name) {
+        setWard({ id: String(shop.pickup_ward_code), name: shop.pickup_ward_name });
+      }
     } else if (user) {
       setPickupName(user.full_name ?? '');
     }
-  }, [shop, user]);
+  }
+
+  const savedProvince = shop?.pickup_province_name;
+  if (!province && savedProvince && provinces.data) {
+    // So không dấu, bỏ tiền tố "Thành phố"/"Tỉnh": GHN và dữ liệu lưu có thể lệch nhau.
+    const found = provinces.data.find((p) => compareVi(p.ProvinceName, savedProvince) === 0);
+    setProvince(found ? { id: Number(found.ProvinceID), name: found.ProvinceName } : { id: 0, name: savedProvince });
+  }
 
   const toOptions = (
     items: { [k: string]: any }[] | undefined,
     idKey: string,
     nameKey: string,
-  ): Option[] => (items ?? []).map((it) => ({ key: it[idKey], label: it[nameKey] }));
+    current: Sel | null,
+  ): SelectOption[] => {
+    const opts = sortByNameVi(
+      (items ?? []).map((it) => ({ id: it[idKey] as string | number, name: String(it[nameKey]) })),
+      (o) => o.name,
+    );
+    // Giá trị đã lưu mà GHN không còn trả (đổi mã) vẫn hiện được, không mất khi Lưu.
+    if (current && current.id && !opts.some((o) => o.id === current.id)) {
+      return [{ id: current.id, name: current.name }, ...opts];
+    }
+    return opts;
+  };
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (name.trim().length < 2) e.name = 'Nhập tên shop.';
     if (pickupName.trim().length < 2) e.pickupName = 'Nhập tên người lấy hàng.';
-    if (phone.trim().length < 8) e.phone = 'Nhập số điện thoại.';
+    const phoneErr = vnPhoneError(phone);
+    if (phoneErr) e.phone = phoneErr;
     if (!province) e.province = 'Chọn tỉnh/thành.';
     if (!district) e.district = 'Chọn quận/huyện.';
     if (!ward) e.ward = 'Chọn phường/xã.';
@@ -79,7 +114,7 @@ export default function ShopSettingsScreen() {
         hasShop: !!shop,
         name: name.trim(),
         pickup_name: pickupName.trim(),
-        pickup_phone: phone.trim(),
+        pickup_phone: normalizeVnPhone(phone),
         pickup_address: address.trim(),
         pickup_province_name: province!.name,
         pickup_district_id: Number(district!.id),
@@ -126,41 +161,49 @@ export default function ShopSettingsScreen() {
         <TextField label="Tên người lấy hàng" value={pickupName} onChangeText={setPickupName} placeholder="Nguyễn Văn A" error={errors.pickupName} />
         <TextField label="Số điện thoại" value={phone} onChangeText={setPhone} placeholder="09xxxxxxxx" keyboardType="phone-pad" error={errors.phone} />
 
-        <PickerField
+        <SelectField
           label="Tỉnh / Thành"
           placeholder="Chọn tỉnh/thành"
-          value={province?.name}
-          options={toOptions(provinces.data, 'ProvinceID', 'ProvinceName')}
+          value={province?.id || null}
+          options={toOptions(provinces.data, 'ProvinceID', 'ProvinceName', province)}
           loading={provinces.isPending}
           error={errors.province}
-          onSelect={(o) => {
-            setProvince({ id: o.key, name: o.label });
+          onSelect={(id) => {
+            const p = provinces.data?.find((x) => Number(x.ProvinceID) === Number(id));
+            if (!p) return;
+            setProvince({ id: Number(p.ProvinceID), name: p.ProvinceName });
             setDistrict(null);
             setWard(null);
           }}
         />
-        <PickerField
+        <SelectField
           label="Quận / Huyện"
           placeholder={province ? 'Chọn quận/huyện' : 'Chọn tỉnh trước'}
-          value={district?.name}
+          value={district?.id ?? null}
           disabled={!province}
-          options={toOptions(districts.data, 'DistrictID', 'DistrictName')}
+          options={toOptions(districts.data, 'DistrictID', 'DistrictName', district)}
           loading={districts.isFetching}
           error={errors.district}
-          onSelect={(o) => {
-            setDistrict({ id: o.key, name: o.label });
+          onSelect={(id) => {
+            const d = districts.data?.find((x) => Number(x.DistrictID) === Number(id));
+            if (!d) return;
+            setDistrict({ id: Number(d.DistrictID), name: d.DistrictName });
             setWard(null);
           }}
         />
-        <PickerField
+        <SelectField
           label="Phường / Xã"
           placeholder={district ? 'Chọn phường/xã' : 'Chọn quận trước'}
-          value={ward?.name}
+          value={ward?.id ?? null}
           disabled={!district}
-          options={toOptions(wards.data, 'WardCode', 'WardName')}
+          options={toOptions(wards.data, 'WardCode', 'WardName', ward)}
           loading={wards.isFetching}
           error={errors.ward}
-          onSelect={(o) => setWard({ id: o.key, name: o.label })}
+          onSelect={(id) => {
+            const w = wards.data?.find((x) => String(x.WardCode) === String(id));
+            if (!w) return;
+            setWard({ id: String(w.WardCode), name: w.WardName });
+          }}
         />
 
         <TextField label="Địa chỉ chi tiết" value={address} onChangeText={setAddress} placeholder="Số nhà, tên đường…" error={errors.address} />

@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -9,10 +8,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
+import { RemoteImage } from '@/components/ui/remote-image';
 import { BackChevron } from '@/components/ui/back-chevron';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
@@ -26,13 +27,23 @@ import {
 } from '@/features/chat/api';
 import { useChatRealtime } from '@/features/chat/realtime';
 import { timeAgo } from '@/lib/format';
-import { mediaUrl } from '@/lib/media';
 
-function Bubble({ msg, mine, receipt }: { msg: ChatMessage; mine: boolean; receipt?: 'sent' | 'seen' }) {
+function Bubble({
+  msg,
+  mine,
+  receipt,
+  onRetry,
+}: {
+  msg: ChatMessage;
+  mine: boolean;
+  receipt?: 'sent' | 'seen';
+  onRetry?: () => void;
+}) {
+  const failed = msg.localStatus === 'failed';
   return (
     <View>
       <View style={[styles.bubbleRow, mine ? styles.rowMine : styles.rowTheirs]}>
-        <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
+        <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs, failed && styles.bubbleFailed]}>
           {msg.content ? (
             <Text style={[styles.msgText, mine && styles.msgTextMine]}>{msg.content}</Text>
           ) : null}
@@ -42,6 +53,13 @@ function Bubble({ msg, mine, receipt }: { msg: ChatMessage; mine: boolean; recei
       {/* Trạng thái đọc: chỉ hiện dưới tin cuối của mình (kiểu Messenger). */}
       {receipt ? (
         <Text style={styles.receipt}>{receipt === 'seen' ? 'Đã xem' : 'Đã gửi'}</Text>
+      ) : null}
+      {msg.localStatus === 'sending' ? <Text style={styles.receipt}>Đang gửi…</Text> : null}
+      {failed ? (
+        <Pressable onPress={onRetry} hitSlop={6} accessibilityRole="button" style={styles.failedRow}>
+          <Ionicons name="alert-circle" size={13} color={Palette.dangerFg} />
+          <Text style={styles.failedText}>Chưa gửi được. Chạm để gửi lại</Text>
+        </Pressable>
       ) : null}
     </View>
   );
@@ -64,6 +82,17 @@ export default function ChatThreadScreen() {
   const [text, setText] = useState('');
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
+  // Né bàn phím bằng chiều cao bàn phím đo trực tiếp (height âm khi mở), không
+  // đo vị trí view trên màn. Bản cũ dùng KeyboardAvoidingView + automaticOffset:
+  // trên Android edge-to-edge phép đo vị trí lệch nên phần đệm ra 0, thanh nhập
+  // nằm sau bàn phím (D-18, E2E 02/11). Trừ insets.bottom vì thanh nhập đã tự
+  // chừa khoảng đó; bàn phím mở thì nó nằm sát mép trên bàn phím.
+  const keyboard = useReanimatedKeyboardAnimation();
+  const bottomInset = insets.bottom;
+  const avoidStyle = useAnimatedStyle(() => ({
+    paddingBottom: Math.max(-keyboard.height.value - bottomInset, 0),
+  }));
+
   // Tin (thật, không phải tin tạm id âm) cuối cùng do mình gửi -> gắn nhãn Đã xem/Đã gửi.
   const lastMineId = (() => {
     const list = messages ?? [];
@@ -83,8 +112,19 @@ export default function ChatThreadScreen() {
     const content = text.trim();
     if (!content || send.isPending) return;
     setText('');
-    // Ưu tiên gửi qua socket (realtime 2 chiều); socket chưa nối thì fallback REST.
-    if (!realtime.send(content)) send.mutate(content);
+    deliver(content);
+  };
+
+  // Ưu tiên gửi qua socket (realtime 2 chiều); socket chưa nối thì fallback REST.
+  // REST hỏng thì trả nội dung về ô nhập để không mất chữ đã gõ.
+  const deliver = (content: string) => {
+    if (realtime.send(content)) return;
+    send.mutate(content, { onError: () => setText((t) => t || content) });
+  };
+
+  const retry = (msg: ChatMessage) => {
+    realtime.discard(msg.id);
+    deliver(msg.content);
   };
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/messages'));
@@ -112,22 +152,14 @@ export default function ChatThreadScreen() {
           style={styles.productBar}
           onPress={() => router.push({ pathname: '/products/[id]', params: { id: conv.product!.id } })}>
           <View style={styles.productThumb}>
-            {mediaUrl(conv.product.image) ? (
-              <Image source={mediaUrl(conv.product.image)} style={styles.productImg} contentFit="cover" />
-            ) : null}
+            <RemoteImage path={conv.product.image} thumb style={styles.productImg} contentFit="cover" />
           </View>
           <Text variant="body" numberOfLines={1} style={styles.productName}>{conv.product.name}</Text>
           <Ionicons name="chevron-forward" size={16} color={Palette.inkFaint} />
         </Pressable>
       ) : null}
 
-      {/* Tự đo vị trí trên màn (automaticOffset); trừ insets.bottom vì thanh nhập
-          đã chừa sẵn khoảng đó — khi bàn phím mở, nó nằm sát mép bàn phím. */}
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior="padding"
-        automaticOffset
-        keyboardVerticalOffset={-insets.bottom}>
+      <Animated.View style={[styles.flex, avoidStyle]}>
         {isPending ? (
           <View style={styles.center}><ActivityIndicator size="large" color={Palette.brand} /></View>
         ) : (
@@ -138,6 +170,9 @@ export default function ChatThreadScreen() {
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+            // Bàn phím mở làm khung danh sách thấp lại: kéo về tin mới nhất.
+            onLayout={() => listRef.current?.scrollToEnd({ animated: false })}
+            keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
               <View style={styles.emptyMsg}><Text variant="bodyMuted">Gửi lời chào để bắt đầu nhé.</Text></View>
             }
@@ -148,6 +183,7 @@ export default function ChatThreadScreen() {
                   msg={item}
                   mine={mine}
                   receipt={mine && item.id === lastMineId ? (item.is_read ? 'seen' : 'sent') : undefined}
+                  onRetry={() => retry(item)}
                 />
               );
             }}
@@ -170,7 +206,7 @@ export default function ChatThreadScreen() {
             <Ionicons name="send" size={18} color={Palette.white} />
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </Animated.View>
     </View>
   );
 }
@@ -220,6 +256,9 @@ const styles = StyleSheet.create({
   msgTextMine: { color: Palette.white },
   msgTime: { fontFamily: Font.regular, fontSize: 10.5, color: Palette.inkFaint, marginTop: 3, alignSelf: 'flex-end' },
   msgTimeMine: { color: 'rgba(255,255,255,0.75)' },
+  bubbleFailed: { opacity: 0.6 },
+  failedRow: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-end', marginTop: 3 },
+  failedText: { fontFamily: Font.medium, fontSize: 11.5, color: Palette.dangerFg },
   receipt: { fontFamily: Font.regular, fontSize: 11, color: Palette.inkFaint, alignSelf: 'flex-end', marginTop: 3, marginRight: 2 },
   inputBar: {
     flexDirection: 'row',

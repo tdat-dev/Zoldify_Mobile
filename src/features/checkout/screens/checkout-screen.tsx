@@ -1,12 +1,14 @@
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image } from 'expo-image';
+import * as Crypto from 'expo-crypto';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { RemoteImage } from '@/components/ui/remote-image';
 import { BackChevron } from '@/components/ui/back-chevron';
 import { KEYBOARD_GAP } from '@/components/ui/screen';
 import { Button } from '@/components/ui/button';
@@ -14,12 +16,12 @@ import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useAddresses, type Address } from '@/features/addresses/api';
-import { useCart } from '@/features/cart/api';
+import { isCartItemAvailable, useCart, useRefetchCartOnFocus } from '@/features/cart/api';
 import { type GhnAddressSelection } from '@/features/checkout/ghn-address-form';
-import { useCreateOrder, useShippingQuote } from '@/features/orders/api';
-import type { CreateOrderDto } from '@/api';
+import { useCreateOrder, usePayOrderWithWallet, useShippingQuote, useWalletBalance } from '@/features/orders/api';
+import type { CreateOrderDto, Order } from '@/api';
+import { apiErrorMessage } from '@/lib/api/error-message';
 import { formatVnd } from '@/lib/format';
-import { mediaUrl } from '@/lib/media';
 
 const EMPTY_ADDRESS: GhnAddressSelection = {
   receiver_name: '',
@@ -62,7 +64,11 @@ export default function CheckoutScreen() {
   // `only` = mua ngay 1 món: chỉ thanh toán đúng cart item đó, không phải cả giỏ.
   const { only } = useLocalSearchParams<{ only?: string }>();
   const { data: cart = [], isPending } = useCart();
-  const items = only ? cart.filter((i) => String(i.id) === String(only)) : cart;
+  useRefetchCartOnFocus();
+  const picked = only ? cart.filter((i) => String(i.id) === String(only)) : cart;
+  // Món hết hàng/không còn bán: bỏ ra, không thì một món kéo cả đơn hỏng.
+  const items = picked.filter(isCartItemAvailable);
+  const soldOutCount = picked.length - items.length;
   const { data: addresses = [], isSuccess: addressesLoaded } = useAddresses();
   const [address, setAddress] = useState<GhnAddressSelection>(EMPTY_ADDRESS);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -95,6 +101,9 @@ export default function CheckoutScreen() {
     const stillThere = selectedId !== null && addresses.some((a) => a.id === selectedId);
     if (stillThere) return;
     const def = addresses.find((a) => a.is_default) ?? addresses[0];
+    // Đồng bộ lựa chọn theo danh sách server; tách ra state dẫn xuất phải đổi
+    // cả luồng chọn tay, để nguyên có chủ đích.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedId(def.id);
   }, [hasSaved, addresses, selectedId]);
 
@@ -102,11 +111,19 @@ export default function CheckoutScreen() {
   useEffect(() => {
     if (selectedId === null) return;
     const a = addresses.find((x) => x.id === selectedId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (a) setAddress(toSelection(a));
   }, [selectedId, addresses]);
 
   const quote = useShippingQuote();
   const create = useCreateOrder();
+  // Một khoá cho cả phiên thanh toán: lần trước lỗi mà chưa tạo đơn thì server
+  // xử lý như mới, lần trước đã tạo (chỉ mất phản hồi) thì trả lại đúng đơn đó.
+  const idempotencyKey = useRef<string | null>(null);
+  idempotencyKey.current ??= Crypto.randomUUID();
+  const pay = usePayOrderWithWallet();
+  const wallet = useWalletBalance();
+  const submitting = create.isPending || pay.isPending;
 
   const subtotal = useMemo(
     () => items.reduce((acc, i) => acc + Number(i.product?.price ?? 0) * (i.quantity ?? 1), 0),
@@ -122,7 +139,16 @@ export default function CheckoutScreen() {
     : quote.data && (quote.data.ok === false || feeFailure)
       ? `GHN chưa giao được tới địa chỉ này: ${feeFailure ?? 'không rõ lý do'}. Chọn địa chỉ khác nhé.`
       : null;
+  // GHN báo không có tuyến tới quận nhận: thường do địa chỉ lưu mã quận cũ mà
+  // GHN đã ngừng phục vụ (D-04, E2E 02/11: quận 2045). Nói rõ và cho mở ngay
+  // địa chỉ đó để chọn lại quận, thay vì chỉ bảo "chọn địa chỉ khác".
+  const noRoute = !!feeFailure && /tuyến|route|quận nhận|district/i.test(feeFailure);
   const grandTotal = subtotal + shippingFee;
+  const currency = items[0]?.product?.currency;
+  // Biết chắc ví không đủ thì không cho đặt: tạo đơn xong mới trừ hụt là để
+  // lại một đơn chưa trả mà kho đã bị giữ (web đã chặn từ trước).
+  const walletShort =
+    payment === 'wallet' && wallet.data !== undefined && !feeError && wallet.data.balance < grandTotal;
 
   const addressReady = !!address.receiver_name && !!address.receiver_phone && !!address.shipping_address;
   const ghnReady = !!address.ghn_district_id && !!address.ghn_ward_code;
@@ -144,6 +170,16 @@ export default function CheckoutScreen() {
       setErrMsg('Nhập đủ người nhận, số điện thoại và địa chỉ nhé.');
       return;
     }
+    // Không có mã quận/phường GHN thì server không tính được phí và đơn lên
+    // với phí ship 0đ. Bắt sửa địa chỉ trước khi cho đặt.
+    if (!ghnReady) {
+      setErrMsg('Địa chỉ này chưa có quận/phường theo GHN nên chưa tính được phí ship. Sửa địa chỉ rồi đặt lại nhé.');
+      return;
+    }
+    if (walletShort) {
+      setErrMsg('Ví không đủ tiền cho đơn này. Nạp thêm hoặc chọn trả khi nhận hàng nhé.');
+      return;
+    }
     const dto: CreateOrderDto = {
       receiver_name: address.receiver_name,
       receiver_phone: address.receiver_phone,
@@ -156,13 +192,42 @@ export default function CheckoutScreen() {
       payment_method: payment,
       cart_item_ids: items.map((i) => i.id),
     };
-    create.mutate(dto, {
-      onSuccess: () => router.replace('/orders'),
+    create.mutate({ dto, idempotencyKey: idempotencyKey.current ?? undefined }, {
+      onSuccess: (created) => {
+        if (payment === 'wallet') void payWithWallet(created);
+        else router.replace('/orders');
+      },
       onError: (e) => {
         const msg = (e as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
         setErrMsg(Array.isArray(msg) ? String(msg[0]) : typeof msg === 'string' ? msg : 'Đặt hàng chưa được. Thử lại nhé.');
       },
     });
+  };
+
+  // POST /orders với 'wallet' chỉ TẠO đơn, chưa trừ tiền: phải gọi tiếp
+  // POST /payments cho từng đơn. Trước đây app dừng ở bước tạo đơn rồi báo
+  // thành công, ví không bị trừ đồng nào.
+  const payWithWallet = async (created: Order | Order[]) => {
+    const orders = Array.isArray(created) ? created : [created];
+    let failed: { order: Order; message: string } | null = null;
+    for (const o of orders) {
+      try {
+        await pay.mutateAsync(o.id);
+      } catch (e) {
+        failed ??= { order: o, message: apiErrorMessage(e, 'Chưa trừ được tiền trong ví.') };
+      }
+    }
+    if (!failed) {
+      router.replace('/orders');
+      return;
+    }
+    // Đơn đã có nhưng chưa trả: đưa tới chi tiết đơn (nơi trả lại được), không
+    // phải màn thành công.
+    router.replace({ pathname: '/orders/[id]', params: { id: String(failed.order.id) } });
+    Alert.alert(
+      'Đơn đã tạo nhưng chưa thanh toán',
+      `${failed.message}\n\nĐơn vẫn được giữ. Nạp thêm ví rồi bấm "Trả bằng ví" trong chi tiết đơn, hoặc huỷ đơn nếu không mua nữa.`,
+    );
   };
 
   const header = (
@@ -172,7 +237,9 @@ export default function CheckoutScreen() {
     </View>
   );
 
-  if (isPending) {
+  // Đặt xong giỏ được làm mới nên `items` rỗng trong lúc còn trừ ví: giữ
+  // vòng chờ thay vì nháy màn "Chưa có món".
+  if (isPending || (submitting && items.length === 0)) {
     return (
       <View style={styles.root}>
         {header}
@@ -188,7 +255,7 @@ export default function CheckoutScreen() {
       <View style={styles.root}>
         {header}
         <View style={styles.center}>
-          <Text variant="heading">Chưa có món để thanh toán</Text>
+          <Text variant="heading">{soldOutCount > 0 ? 'Món đã hết hàng' : 'Chưa có món để thanh toán'}</Text>
           <View style={styles.emptyCta}>
             <Button title="Về giỏ hàng" variant="secondary" onPress={() => router.replace('/cart')} />
           </View>
@@ -220,9 +287,22 @@ export default function CheckoutScreen() {
                 </View>
                 <Text variant="bodyMuted" style={styles.addrLine}>{address.shipping_address}</Text>
                 {!ghnReady ? (
-                  <Text variant="caption" style={styles.warn}>
-                    Thiếu mã vùng GHN — sửa địa chỉ để tính được phí ship.
-                  </Text>
+                  <>
+                    <Text variant="caption" style={styles.warn}>
+                      Địa chỉ này thiếu quận/phường theo GHN nên chưa tính được phí ship. Sửa lại địa
+                      chỉ (chọn quận, phường) hoặc chọn địa chỉ khác để đặt hàng.
+                    </Text>
+                    {selectedId !== null ? (
+                      <Pressable
+                        hitSlop={8}
+                        style={styles.fixAddr}
+                        onPress={() => router.push({ pathname: '/addresses/[id]', params: { id: selectedId } })}
+                        accessibilityRole="button">
+                        <Feather name="edit-2" size={13} color={Palette.brand} />
+                        <Text style={styles.pickEditText}>Sửa địa chỉ này</Text>
+                      </Pressable>
+                    ) : null}
+                  </>
                 ) : null}
               </View>
             ) : (
@@ -255,23 +335,27 @@ export default function CheckoutScreen() {
         {/* Món */}
         <View style={styles.card}>
           <Text variant="heading" style={styles.noteHead}>{items.length} món</Text>
+          {soldOutCount > 0 ? (
+            <Text variant="caption" style={[styles.warn, styles.soldOutNote]}>
+              {soldOutCount} món trong giỏ đã hết hàng nên không có trong đơn này.
+            </Text>
+          ) : null}
           <View style={styles.itemList}>
             {items.map((it) => {
-              const uri = mediaUrl(it.product?.image);
               return (
                 <View key={it.id} style={styles.itemRow}>
                   <View style={styles.itemThumb}>
-                    {uri ? <Image source={uri} style={styles.itemThumbImg} contentFit="cover" /> : null}
+                    <RemoteImage path={it.product?.image} thumb style={styles.itemThumbImg} contentFit="cover" />
                   </View>
                   <View style={styles.itemBody}>
                     <Text variant="body" numberOfLines={2}>{it.product?.name}</Text>
                     <Text variant="caption">
-                      {formatVnd(it.product?.price)}
+                      {formatVnd(it.product?.price, it.product?.currency)}
                       {it.quantity > 1 ? ` × ${it.quantity}` : ''}
                     </Text>
                   </View>
                   <Text style={styles.itemTotal}>
-                    {formatVnd(Number(it.product?.price ?? 0) * (it.quantity ?? 1))}
+                    {formatVnd(Number(it.product?.price ?? 0) * (it.quantity ?? 1), it.product?.currency)}
                   </Text>
                 </View>
               );
@@ -297,7 +381,11 @@ export default function CheckoutScreen() {
                   />
                   <View style={styles.payInfo}>
                     <Text variant="subheading">{opt.title}</Text>
-                    <Text variant="caption">{opt.desc}</Text>
+                    <Text variant="caption">
+                      {opt.value === 'wallet' && wallet.data
+                        ? `Số dư: ${formatVnd(wallet.data.balance, currency)}`
+                        : opt.desc}
+                    </Text>
                   </View>
                   <Feather name={opt.icon} size={18} color={Palette.inkMuted} />
                 </Pressable>
@@ -310,12 +398,12 @@ export default function CheckoutScreen() {
         <View style={styles.card}>
           <View style={styles.sumRow}>
             <Text variant="bodyMuted">Tiền hàng</Text>
-            <Text style={styles.sumValue}>{formatVnd(subtotal)}</Text>
+            <Text style={styles.sumValue}>{formatVnd(subtotal, currency)}</Text>
           </View>
           <View style={styles.sumRow}>
             <Text variant="bodyMuted">Phí vận chuyển</Text>
             <Text style={styles.sumValue}>
-              {!ghnReady ? 'Chọn địa chỉ' : quote.isPending ? 'Đang tính…' : feeError ? 'Chưa tính được' : shippingFee === 0 ? 'Miễn phí' : formatVnd(shippingFee)}
+              {!ghnReady ? 'Chọn địa chỉ' : quote.isPending ? 'Đang tính…' : feeError ? 'Chưa tính được' : shippingFee === 0 ? 'Miễn phí' : formatVnd(shippingFee, currency)}
             </Text>
           </View>
 
@@ -338,7 +426,29 @@ export default function CheckoutScreen() {
             </Text>
           ) : null}
           {feeError && ghnReady && !quote.isPending ? (
-            <Text variant="caption" style={styles.errText}>{feeError}</Text>
+            noRoute && selectedId !== null ? (
+              <View>
+                <Text variant="caption" style={styles.errText}>
+                  GHN chưa có tuyến giao tới quận/huyện của địa chỉ này. Quận có thể đã đổi mã sau
+                  sáp nhập: chọn lại quận/huyện cho địa chỉ, hoặc chọn địa chỉ khác.
+                </Text>
+                <Pressable
+                  hitSlop={8}
+                  style={styles.fixAddr}
+                  onPress={() => router.push({ pathname: '/addresses/[id]', params: { id: selectedId } })}
+                  accessibilityRole="button">
+                  <Feather name="edit-2" size={13} color={Palette.brand} />
+                  <Text style={styles.pickEditText}>Chọn lại quận/huyện</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Text variant="caption" style={styles.errText}>{feeError}</Text>
+            )
+          ) : null}
+          {walletShort && wallet.data ? (
+            <Text variant="caption" style={[styles.errText, styles.walletShort]}>
+              Ví còn {formatVnd(wallet.data.balance, currency)}, thiếu {formatVnd(grandTotal - wallet.data.balance, currency)}. Nạp thêm hoặc chọn trả khi nhận hàng nhé.
+            </Text>
           ) : null}
         </View>
 
@@ -350,9 +460,7 @@ export default function CheckoutScreen() {
       </KeyboardAwareScrollView>
 
       {/* Bảng chọn địa chỉ đã lưu */}
-      <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setPickerOpen(false)} />
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 8 }]}>
+      <BottomSheet visible={pickerOpen} onClose={() => setPickerOpen(false)} style={styles.sheet}>
           <View style={styles.sheetHead}>
             <Text variant="heading">Chọn địa chỉ</Text>
             <Pressable hitSlop={8} onPress={() => setPickerOpen(false)} accessibilityLabel="Đóng">
@@ -407,19 +515,18 @@ export default function CheckoutScreen() {
               onPress={() => { setPickerOpen(false); router.push('/addresses/new'); }}
             />
           </View>
-        </View>
-      </Modal>
+      </BottomSheet>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.totalRow}>
           <Text variant="bodyMuted">Tổng thanh toán</Text>
-          <Text style={styles.total}>{formatVnd(grandTotal)}</Text>
+          <Text style={styles.total}>{formatVnd(grandTotal, currency)}</Text>
         </View>
         <Button
-          title={create.isPending ? 'Đang đặt…' : 'Đặt hàng'}
+          title={pay.isPending ? 'Đang trừ ví…' : create.isPending ? 'Đang đặt…' : 'Đặt hàng'}
           onPress={onSubmit}
-          loading={create.isPending}
-          disabled={!addressReady || create.isPending || (ghnReady && !!feeError)}
+          loading={submitting}
+          disabled={!addressReady || !ghnReady || submitting || !!feeError || walletShort}
         />
       </View>
     </View>
@@ -457,7 +564,6 @@ const styles = StyleSheet.create({
   addrPhone: {},
   addrLine: { color: Palette.ink },
   addrHint: { color: Palette.inkFaint },
-  backdrop: { flex: 1, backgroundColor: 'rgba(25,32,41,0.4)' },
   sheet: {
     backgroundColor: Palette.white,
     borderTopLeftRadius: Radius.modal,
@@ -500,8 +606,10 @@ const styles = StyleSheet.create({
   pickDefaultText: { fontFamily: Font.semibold, fontSize: 10.5, color: Palette.white },
   pickEdit: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 12 },
   pickEditText: { fontFamily: Font.semibold, fontSize: 12.5, color: Palette.brand },
+  fixAddr: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginTop: 6 },
   sheetFooter: { padding: 16, borderTopWidth: 1, borderTopColor: Palette.line },
   noteHead: { marginBottom: 12 },
+  soldOutNote: { marginTop: -4, marginBottom: 12 },
   noteInput: { minHeight: 60, textAlignVertical: 'top', paddingTop: 10 },
   itemList: { gap: 12 },
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -537,6 +645,7 @@ const styles = StyleSheet.create({
   warn: { color: Palette.pendingFg, marginTop: 8 },
   errBox: { backgroundColor: Palette.dangerBg, borderRadius: Radius.control, paddingHorizontal: 12, paddingVertical: 10 },
   errText: { color: Palette.dangerFg },
+  walletShort: { marginTop: 8 },
   footer: {
     paddingHorizontal: 16,
     paddingTop: 12,

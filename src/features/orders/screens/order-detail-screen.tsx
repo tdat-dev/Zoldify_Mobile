@@ -1,20 +1,19 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import { ScrollView } from 'react-native';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { RemoteImage } from '@/components/ui/remote-image';
 import { BackChevron } from '@/components/ui/back-chevron';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
-import { useCancelOrder, useConfirmReceived, useOrder } from '@/features/orders/api';
+import { useCancelOrder, useConfirmReceived, useOrder, usePayOrderWithWallet } from '@/features/orders/api';
 import { useMyReviewedProducts } from '@/features/reviews/api';
 import { STATUS_META, type OrderStatus } from '@/features/orders/order-status';
-import { formatVnd } from '@/lib/format';
-import { mediaUrl } from '@/lib/media';
+import { apiErrorMessage } from '@/lib/api/error-message';
+import { formatDateTime, formatVnd } from '@/lib/format';
 
 // Các mốc theo dõi cho đơn bình thường (đơn huỷ hiển thị riêng).
 const STEPS: { key: OrderStatus; label: string }[] = [
@@ -62,6 +61,9 @@ export default function OrderDetailScreen() {
   const { data: order, isPending, isError, refetch } = useOrder(Number(id));
   const cancel = useCancelOrder();
   const confirm = useConfirmReceived();
+  // isPending của một hook chỉ theo lượt gọi cuối, mà ở đây gọi cho từng người bán.
+  const [receiving, setReceiving] = useState(false);
+  const pay = usePayOrderWithWallet();
   // Món nào đã đánh giá: hỏi server (trước đây nhớ trên máy, lỗi H-01).
   const { data: reviewedSet } = useMyReviewedProducts();
 
@@ -106,6 +108,9 @@ export default function OrderDetailScreen() {
   const canCancel = order.status === 'pending' || order.status === 'confirmed';
   const canReceive = order.status === 'shipping';
   const canReview = order.status === 'delivered';
+  // Chọn ví lúc đặt mà trừ tiền chưa được (thiếu số dư...): đơn còn chờ và
+  // chưa trả thì cho trả lại ngay tại đây.
+  const canPayWallet = order.payment_method === 'wallet' && !order.is_paid && order.status === 'pending';
   // Vận đơn GHN bị từ chối: nói rõ cho người mua thay vì để đơn nằm im ở "Đã
   // xác nhận" (lỗi H-08 test E2E, đơn ORD-20260930-785). Chỉ khi đơn còn chờ
   // gửi: đơn đã huỷ mà vẫn hứa "sẽ được giao" là nói sai (thấy khi test 05/10).
@@ -114,9 +119,50 @@ export default function OrderDetailScreen() {
     ? order.shipments?.find((s) => s.status === 'failed')
     : undefined;
 
-  const onReceive = () => {
-    sellerIds.forEach((sid) => confirm.mutate({ orderId: order.id, sellerId: sid }));
+  const onPayWallet = () => {
+    pay.mutate(order.id, {
+      onSuccess: () => Alert.alert('Đã thanh toán', 'Đã trừ tiền trong ví cho đơn này.'),
+      onError: (e) => Alert.alert('Chưa thanh toán được', apiErrorMessage(e, 'Chưa trừ được tiền trong ví.')),
+    });
   };
+
+  // Xác nhận cho TẤT CẢ người bán trong đơn cùng lúc, chờ hết rồi báo MỘT lần.
+  const doReceive = async () => {
+    setReceiving(true);
+    const results = await Promise.allSettled(
+      sellerIds.map((sid) => confirm.mutateAsync({ orderId: order.id, sellerId: sid })),
+    );
+    setReceiving(false);
+    const failed = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+    if (failed.length === 0) {
+      Alert.alert('Đã xác nhận nhận hàng', 'Cảm ơn bạn. Giờ bạn có thể đánh giá món đã mua.');
+      return;
+    }
+    const reason = apiErrorMessage(failed[0].reason);
+    Alert.alert(
+      'Chưa xác nhận xong',
+      failed.length === results.length
+        ? reason
+        : `Đã xác nhận ${results.length - failed.length}/${results.length} người bán. Phần còn lại chưa được: ${reason}`,
+    );
+  };
+
+  // Nhận hàng là giải ngân cho người bán, huỷ đơn không hoàn tác được: hỏi lại trước.
+  const onReceive = () =>
+    Alert.alert(
+      'Bạn đã nhận đủ hàng?',
+      'Xác nhận xong, tiền được chuyển cho người bán và không lấy lại được. Chỉ bấm khi đã nhận và kiểm tra hàng.',
+      [
+        { text: 'Chưa', style: 'cancel' },
+        { text: 'Đã nhận hàng', onPress: () => void doReceive() },
+      ],
+    );
+
+  const onCancel = () =>
+    Alert.alert('Huỷ đơn này?', 'Đơn bị huỷ thì không hoàn tác được.', [
+      { text: 'Không huỷ', style: 'cancel' },
+      { text: 'Huỷ đơn', style: 'destructive', onPress: () => cancel.mutate(order.id) },
+    ]);
 
   return (
     <View style={styles.root}>
@@ -128,6 +174,17 @@ export default function OrderDetailScreen() {
             {order.tracking_code ? <Text variant="caption">Vận đơn: {order.tracking_code}</Text> : null}
           </View>
           <Timeline status={order.status} />
+          {/* Đơn đã trả rồi bị huỷ thì tiền về ví (backend giữ is_paid). Trước
+              đây màn chỉ ghi "Đã huỷ", người mua phải tự mở ví đoán xem đã
+              được hoàn chưa (test máy ảo 27/10). */}
+          {(order.status === 'cancelled' || order.status === 'refunded') && order.is_paid ? (
+            <View style={styles.refund}>
+              <Ionicons name="wallet-outline" size={16} color={Palette.successFg} />
+              <Text variant="caption" style={styles.refundText}>
+                Đã hoàn {formatVnd(order.final_amount, order.currency)} vào ví Zoldify.
+              </Text>
+            </View>
+          ) : null}
           {failedShipment ? (
             <View style={styles.shipFail}>
               <Ionicons name="alert-circle-outline" size={16} color={Palette.dangerFg} />
@@ -143,27 +200,58 @@ export default function OrderDetailScreen() {
         <View style={styles.card}>
           <Text variant="heading" style={styles.h}>Giao tới</Text>
           <Text variant="subheading">{order.receiver_name} · {order.receiver_phone}</Text>
-          <Text variant="bodyMuted" style={styles.addr}>{order.shipping_address}</Text>
+          <Text variant="bodyMuted" style={styles.addr}>{fullAddress(order)}</Text>
+        </View>
+
+        {/* Ngày đặt, cách thanh toán: trước đây không hiện (D-13, E2E 02/11).
+            Lý do huỷ chưa có vì API đơn hàng chưa trả trường này. */}
+        <View style={styles.card}>
+          <Text variant="heading" style={styles.h}>Thông tin đơn</Text>
+          {order.created_at ? (
+            <View style={styles.sumRow}>
+              <Text variant="bodyMuted">Ngày đặt</Text>
+              <Text style={styles.sumV}>{formatDateTime(order.created_at)}</Text>
+            </View>
+          ) : null}
+          <View style={styles.sumRow}>
+            <Text variant="bodyMuted">Thanh toán</Text>
+            <Text style={styles.sumV}>{PAYMENT_LABEL[order.payment_method] ?? order.payment_method}</Text>
+          </View>
+          <View style={styles.sumRow}>
+            <Text variant="bodyMuted">Trạng thái tiền</Text>
+            <Text style={styles.sumV}>
+              {order.is_paid
+                ? `Đã trả${order.paid_at ? ` lúc ${formatDateTime(order.paid_at)}` : ''}`
+                : order.payment_method === 'cod'
+                  ? 'Trả khi nhận hàng'
+                  : 'Chưa trả'}
+            </Text>
+          </View>
+          {order.note ? (
+            <View style={styles.noteRow}>
+              <Text variant="bodyMuted">Ghi chú</Text>
+              <Text variant="body">{order.note}</Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.card}>
           <Text variant="heading" style={styles.h}>{items.length} món</Text>
           <View style={styles.items}>
             {items.map((it) => {
-              const uri = mediaUrl(it.product_image);
               const pid = it.product?.id;
               const reviewed = pid ? (reviewedSet?.has(pid) ?? false) : false;
               return (
                 <View key={it.id} style={styles.itemGroup}>
                   <View style={styles.itemRow}>
                     <View style={styles.thumb}>
-                      {uri ? <Image source={uri} style={styles.thumbImg} contentFit="cover" /> : null}
+                      <RemoteImage path={it.product_image} thumb style={styles.thumbImg} contentFit="cover" />
                     </View>
                     <View style={styles.itemBody}>
                       <Text variant="body" numberOfLines={2}>{it.product_name}</Text>
-                      <Text variant="caption">{formatVnd(it.price)}{it.quantity > 1 ? ` × ${it.quantity}` : ''}</Text>
+                      <Text variant="caption">{formatVnd(it.price, order.currency)}{it.quantity > 1 ? ` × ${it.quantity}` : ''}</Text>
                     </View>
-                    <Text style={styles.itemTotal}>{formatVnd(it.subtotal)}</Text>
+                    <Text style={styles.itemTotal}>{formatVnd(it.subtotal, order.currency)}</Text>
                   </View>
                   {canReview && pid ? (
                     reviewed ? (
@@ -191,38 +279,45 @@ export default function OrderDetailScreen() {
         <View style={styles.card}>
           <View style={styles.sumRow}>
             <Text variant="bodyMuted">Tiền hàng</Text>
-            <Text style={styles.sumV}>{formatVnd(order.total_amount)}</Text>
+            <Text style={styles.sumV}>{formatVnd(order.total_amount, order.currency)}</Text>
           </View>
           <View style={styles.sumRow}>
             <Text variant="bodyMuted">Phí vận chuyển</Text>
-            <Text style={styles.sumV}>{order.shipping_fee === 0 ? 'Miễn phí' : formatVnd(order.shipping_fee)}</Text>
+            <Text style={styles.sumV}>{order.shipping_fee === 0 ? 'Miễn phí' : formatVnd(order.shipping_fee, order.currency)}</Text>
           </View>
           {order.discount_amount > 0 ? (
             <View style={styles.sumRow}>
               <Text variant="bodyMuted">Giảm giá</Text>
-              <Text style={styles.sumV}>-{formatVnd(order.discount_amount)}</Text>
+              <Text style={styles.sumV}>-{formatVnd(order.discount_amount, order.currency)}</Text>
             </View>
           ) : null}
           <View style={[styles.sumRow, styles.sumTotal]}>
             <Text variant="subheading">Tổng cộng</Text>
-            <Text style={styles.total}>{formatVnd(order.final_amount)}</Text>
+            <Text style={styles.total}>{formatVnd(order.final_amount, order.currency)}</Text>
           </View>
         </View>
 
-        {canReceive || canCancel ? (
+        {canPayWallet || canReceive || canCancel ? (
           <View style={styles.actions}>
+            {canPayWallet ? (
+              <Button
+                title={pay.isPending ? 'Đang trừ ví…' : 'Trả bằng ví'}
+                onPress={onPayWallet}
+                loading={pay.isPending}
+              />
+            ) : null}
             {canReceive ? (
               <Button
-                title={confirm.isPending ? 'Đang xác nhận…' : 'Đã nhận hàng'}
+                title={receiving ? 'Đang xác nhận…' : 'Đã nhận hàng'}
                 onPress={onReceive}
-                loading={confirm.isPending}
+                loading={receiving}
               />
             ) : null}
             {canCancel ? (
               <Button
                 title={cancel.isPending ? 'Đang huỷ…' : 'Huỷ đơn'}
                 variant="secondary"
-                onPress={() => cancel.mutate(order.id)}
+                onPress={onCancel}
                 loading={cancel.isPending}
               />
             ) : null}
@@ -233,7 +328,31 @@ export default function OrderDetailScreen() {
   );
 }
 
+const PAYMENT_LABEL: Record<string, string> = {
+  cod: 'Tiền mặt khi nhận hàng (COD)',
+  wallet: 'Ví Zoldify',
+  payos: 'Chuyển khoản qua PayOS',
+  bank_transfer: 'Chuyển khoản ngân hàng',
+  momo: 'MoMo',
+  vnpay: 'VNPay',
+};
+
+/**
+ * Địa chỉ giao đầy đủ. Có đơn chỉ lưu "số nhà, phường" trong shipping_address
+ * còn quận/tỉnh nằm ở cột riêng (E2E 02/11: "1 Smoke C5, Phường Xuân Phương"):
+ * ghép thêm phần còn thiếu.
+ */
+function fullAddress(order: { shipping_address?: string; district?: string; province?: string }): string {
+  let addr = order.shipping_address ?? '';
+  const has = (part: string) => addr.toLowerCase().includes(part.toLowerCase());
+  for (const part of [order.district, order.province]) {
+    if (part && !has(part)) addr = addr ? `${addr}, ${part}` : part;
+  }
+  return addr;
+}
+
 const styles = StyleSheet.create({
+  noteRow: { gap: 2, paddingVertical: 4 },
   root: { flex: 1, backgroundColor: Palette.surfacePage },
   header: {
     flexDirection: 'row',
@@ -281,6 +400,17 @@ const styles = StyleSheet.create({
   stepLabel: { marginTop: 6, textAlign: 'center', fontSize: 10.5 },
   stepLabelOn: { color: Palette.brand, fontFamily: Font.semibold },
   cancelled: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 4 },
+  refund: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: Radius.control,
+    backgroundColor: Palette.successBg,
+  },
+  refundText: { flex: 1, color: Palette.successFg },
   items: { gap: 12 },
   itemGroup: { gap: 8 },
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },

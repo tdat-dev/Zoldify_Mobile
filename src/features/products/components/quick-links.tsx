@@ -13,12 +13,14 @@ import { Palette, Radius } from '@/components/ui/theme';
  */
 const LINKS = [
   { label: 'Đăng bán', img: require('../../../../assets/images/ql-sell.png'), href: '/sell' },
-  { label: 'Mới đăng', img: require('../../../../assets/images/ql-new.png'), href: '/search' },
-  { label: 'Dưới 100k', img: require('../../../../assets/images/ql-deal.png'), href: '/search' },
+  { label: 'Mới đăng', img: require('../../../../assets/images/ql-new.png'), href: { pathname: '/browse', params: { name: 'Mới đăng', sort: 'newest' } } },
+  { label: 'Dưới 100k', img: require('../../../../assets/images/ql-deal.png'), href: { pathname: '/browse', params: { name: 'Dưới 100k', price_max: '100000' } } },
   { label: 'Đơn mua', img: require('../../../../assets/images/ql-order.png'), href: '/orders' },
-  { label: 'Ví của tôi', img: require('../../../../assets/images/ql-wallet.png'), href: '/account' },
+  { label: 'Ví của tôi', img: require('../../../../assets/images/ql-wallet.png'), href: '/wallet' },
   { label: 'Tin nhắn', img: require('../../../../assets/images/ql-chat.png'), href: '/messages' },
 ] as const;
+// Mới đăng / Dưới 100k mở thẳng danh sách đã lọc (/browse), không mở màn tìm
+// kiếm trống; Ví mở màn ví thật (trước trỏ /account, không có gì về ví). 28/10.
 
 export function QuickLinks() {
   return (
@@ -37,7 +39,7 @@ export function QuickLinks() {
             <View style={styles.thumb}>
               <Image source={l.img} style={styles.img} contentFit="contain" />
             </View>
-            <Text variant="caption" numberOfLines={1} style={styles.label}>
+            <Text variant="caption" style={styles.label}>
               {l.label}
             </Text>
           </Pressable>
@@ -55,18 +57,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   row: { gap: 4, paddingHorizontal: 8 },
-  item: { width: 76, alignItems: 'center', gap: 7, paddingHorizontal: 2 },
+  // minWidth, không phải width: cỡ chữ máy lớn thì ô nở theo nhãn (hàng này cuộn
+  // ngang nên nở được), không cắt "Dưới 100k" thành "Dưới 1…".
+  item: { minWidth: 76, alignItems: 'center', gap: 7, paddingHorizontal: 2 },
+  // Không khung: minh hoạ đã có viền và khối riêng, thêm ô viền quanh nó chỉ
+  // làm hàng lối tắt trông như lưới nút (theo yêu cầu 28/10).
   thumb: {
     width: 56,
     height: 56,
-    borderRadius: Radius.control,
-    backgroundColor: Palette.white,
-    borderWidth: 1,
-    borderColor: Palette.line,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
   },
-  img: { width: 44, height: 44 },
+  img: { width: 52, height: 52 },
   label: { textAlign: 'center', color: Palette.ink },
 });

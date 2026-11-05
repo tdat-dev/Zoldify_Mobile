@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { isSessionRejected } from '@/lib/api/session';
 import { API_URL } from '@/lib/config';
 import { tokenStore } from '@/lib/auth/token-store';
 
@@ -36,22 +37,29 @@ http.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     if (error.response?.status === 401) {
-      // CHƯA CÓ REFRESH TOKEN.
+      // APP CHƯA DÙNG REFRESH TOKEN.
       //
-      // Backend trả refresh_token lúc đăng nhập và có sẵn cột
-      // refresh_token + token_version trên bảng users, NHƯNG chưa có route
-      // POST /auth/refresh để đổi lấy access token mới. Kiểm ngày 08/08:
-      // openapi.json không có endpoint nào như vậy.
+      // Backend ĐÃ CÓ route POST /auth/refresh (body RefreshTokenDto, trả
+      // LoginResponseDto như lúc đăng nhập; có trong openapi.json). Phía app
+      // chưa nối vào: gặp 401 là xoá phiên và về màn đăng nhập.
       //
       // Access token mặc định sống 1 ngày (JWT_ACCESS_EXPIRE), nên hiện
-      // người dùng bị đăng xuất mỗi ngày một lần — khó chịu chứ không
-      // chặn. Khi backend thêm route refresh thì sửa đúng chỗ này: gọi
-      // refresh, gom các request đồng thời vào MỘT lần gọi (single-flight),
-      // rồi chạy lại request cũ. Không có single-flight thì lúc mở app
-      // 20 request song song sẽ bắn 20 lệnh refresh, và vì backend tăng
-      // token_version mỗi lần nên 19 cái sau sẽ vô hiệu hoá cái đầu.
-      await tokenStore.clear();
-      onSessionExpired?.();
+      // người dùng bị đăng xuất mỗi ngày một lần, khó chịu chứ không chặn.
+      // Khi làm refresh thì sửa đúng chỗ này: gọi refresh, gom các request
+      // đồng thời vào MỘT lần gọi (single-flight), rồi chạy lại request cũ.
+      // Không có single-flight thì lúc mở app 20 request song song sẽ bắn
+      // 20 lệnh refresh, và vì backend tăng token_version mỗi lần nên 19 cái
+      // sau sẽ vô hiệu hoá cái đầu.
+      // Chỉ xoá phiên khi chính token ĐANG LƯU bị từ chối. Request bay từ phiên
+      // cũ (VD đăng xuất buyer, đăng nhập seller trong lúc thông báo/giỏ của
+      // buyer còn đang tải) về 401 SAU khi token mới đã lưu: bản cũ xoá luôn
+      // token mới, app nhảy về trang chủ ở trạng thái khách (D-24, E2E 02/11,
+      // chưa tái hiện lại được nhưng đúng trình tự đó).
+      const current = await tokenStore.getAccessToken();
+      if (isSessionRejected(error.config?.headers?.Authorization, current)) {
+        await tokenStore.clear();
+        onSessionExpired?.();
+      }
     }
     return Promise.reject(error);
   },

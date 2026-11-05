@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,7 +15,9 @@ import { TextField } from '@/components/ui/text-field';
 import { Font, Palette } from '@/components/ui/theme';
 import { authApi, authKeys, useUpdateProfile, type ProfileUser } from '@/features/auth/api';
 import { useAuthStore } from '@/features/auth/store';
+import { apiErrorMessage } from '@/lib/api/error-message';
 import { uploadImage } from '@/lib/upload';
+import { normalizeVnPhone, vnPhoneError } from '@/lib/validators';
 
 const GENDERS = ['Nam', 'Nữ', 'Khác'];
 
@@ -36,15 +38,19 @@ export default function ProfileEditScreen() {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState('');
+  const [phoneErr, setPhoneErr] = useState<string | undefined>();
 
-  // Điền sẵn khi profile về (chỉ một lần — state rỗng ban đầu).
-  useEffect(() => {
-    if (!profile) return;
+  // Điền sẵn khi profile về, chỉ một lần: profile tải lại (sau khi lưu, khi
+  // quay lại app) không được đè lên chữ đang sửa. Làm lúc render, không
+  // setState trong effect.
+  const [prefilled, setPrefilled] = useState(false);
+  if (profile && !prefilled) {
+    setPrefilled(true);
     setName(profile.full_name ?? '');
     setPhone(profile.phone_number ?? '');
     setGender(profile.gender ?? '');
     setAvatar(profile.avatar ?? null);
-  }, [profile]);
+  }
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -78,11 +84,15 @@ export default function ProfileEditScreen() {
       setErr('Tên không được để trống.');
       return;
     }
+    // SĐT không bắt buộc, nhưng đã nhập thì phải đúng: trước đây "123" lưu được (D-15).
+    const pErr = phone.trim() ? vnPhoneError(phone) : null;
+    setPhoneErr(pErr ?? undefined);
+    if (pErr) return;
     setErr('');
     update.mutate(
       {
         full_name: name.trim(),
-        phone_number: phone.trim(),
+        phone_number: phone.trim() ? normalizeVnPhone(phone) : '',
         gender,
         ...(avatar ? { avatar } : {}),
       },
@@ -91,7 +101,9 @@ export default function ProfileEditScreen() {
           await refreshProfile();
           back();
         },
-        onError: () => setErr('Lưu hồ sơ thất bại. Thử lại nhé.'),
+        // Hiện đúng lý do backend trả (VD số đã có người dùng) hoặc báo mất mạng,
+        // thay vì một câu chung không biết sửa gì (D-26).
+        onError: (e) => setErr(apiErrorMessage(e, 'Lưu hồ sơ thất bại. Thử lại nhé.')),
       },
     );
   };
@@ -130,6 +142,7 @@ export default function ProfileEditScreen() {
           onChangeText={setPhone}
           placeholder="090…"
           keyboardType="phone-pad"
+          error={phoneErr}
         />
 
         <View>

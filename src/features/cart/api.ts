@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 
 import http from '@/lib/api/client';
 import type { ApiResponse, Cart, Paginated } from '@/api';
@@ -9,6 +11,18 @@ export const cartKeys = {
   list: () => [...cartKeys.all, 'list'] as const,
   count: () => [...cartKeys.all, 'count'] as const,
 };
+
+/**
+ * Món trong giỏ còn mua được không: hết kho (stock <= 0) hoặc tin không còn
+ * đăng bán (đã bán, bị gỡ) thì không. Một món như vậy lọt vào POST /orders là
+ * cả đơn bị từ chối, nên giỏ và thanh toán đều phải loại ra.
+ */
+export function isCartItemAvailable(item: Cart): boolean {
+  const p = item.product;
+  if (!p) return false;
+  if ((p.stock ?? 1) <= 0) return false;
+  return !p.status || p.status === 'active';
+}
 
 /** Đếm số món (ưu tiên meta.total, không có thì cộng dồn quantity). */
 function totalOf(data?: Paginated<Cart> | null): number {
@@ -51,6 +65,20 @@ export function useCart() {
   });
 }
 
+/**
+ * Lấy lại giỏ mỗi lần màn được focus. Giỏ đổi ngoài tầm mắt (món bị mua mất,
+ * người bán đổi giá) mà staleTime 60s lại giữ bản cũ, nên vào giỏ/thanh toán
+ * phải hỏi lại server. Query đang tắt (khách) thì invalidate không gọi gì.
+ */
+export function useRefetchCartOnFocus() {
+  const qc = useQueryClient();
+  useFocusEffect(
+    useCallback(() => {
+      qc.invalidateQueries({ queryKey: cartKeys.all }, { cancelRefetch: false });
+    }, [qc]),
+  );
+}
+
 /** Thêm vào giỏ. Làm mới cả danh sách lẫn badge. */
 export function useAddToCart() {
   const qc = useQueryClient();
@@ -60,6 +88,40 @@ export function useAddToCart() {
       const res = await http.post<ApiResponse<Cart>>('/cart', {
         product_id: input.product_id,
         quantity: input.quantity ?? 1,
+      });
+      return res.data.data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: cartKeys.all }),
+  });
+}
+
+/**
+ * Mua ngay: dòng giỏ của món này phải có ĐÚNG số đang chọn.
+ *
+ * POST /cart cộng dồn vào dòng sẵn có, nên giỏ đang có 2 mà bấm mua ngay 1 thì
+ * sang thanh toán thành 3, hoặc bị từ chối vì vượt kho. Món đã có trong giỏ
+ * thì PATCH về đúng số, chưa có thì thêm mới.
+ */
+export function useBuyNow() {
+  const qc = useQueryClient();
+  return useMutation({
+    meta: { handlesError: true },
+    mutationFn: async (input: { product_id: number; quantity: number }) => {
+      const list = await http.get<ApiResponse<Paginated<Cart>>>('/cart', {
+        params: { currentPage: 1, limit: 100 },
+      });
+      const existing = (list.data.data?.result ?? []).find(
+        (i) => Number(i.product?.id) === Number(input.product_id),
+      );
+      if (existing) {
+        const res = await http.patch<ApiResponse<Cart>>(`/cart/${existing.id}`, {
+          quantity: input.quantity,
+        });
+        return res.data.data ?? existing;
+      }
+      const res = await http.post<ApiResponse<Cart>>('/cart', {
+        product_id: input.product_id,
+        quantity: input.quantity,
       });
       return res.data.data;
     },

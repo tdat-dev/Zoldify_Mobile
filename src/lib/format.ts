@@ -1,11 +1,25 @@
+/** Tiền tệ không có phần lẻ (ISO 4217 minor unit = 0). */
+const ZERO_DECIMAL = new Set(['VND', 'JPY', 'KRW']);
+
 /**
- * Định dạng tiền VND. Tự chèn dấu chấm hàng nghìn vì Hermes (RN) không có
- * Intl đầy đủ nên toLocaleString hay trả số trơn không nhóm.
+ * Định dạng tiền. Tự chèn dấu nhóm hàng nghìn vì Hermes (RN) không có Intl
+ * đầy đủ nên toLocaleString hay trả số trơn không nhóm.
+ *
+ * `currency` là mã ISO 4217 của sản phẩm/đơn (`product.currency`,
+ * `order.currency`). Không truyền hoặc 'VND' thì giữ dạng cũ "1.890.000đ";
+ * tiền khác in kèm mã ("12.50 USD") thay vì gắn nhầm chữ "đ".
  */
-export function formatVnd(value: number): string {
-  const n = Math.round(value || 0);
-  const grouped = String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return `${grouped}đ`;
+export function formatVnd(value: number, currency?: string | null): string {
+  const code = (currency || 'VND').toUpperCase();
+  if (code === 'VND') {
+    const n = Math.round(value || 0);
+    const grouped = String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return `${grouped}đ`;
+  }
+  const fixed = (Number(value) || 0).toFixed(ZERO_DECIMAL.has(code) ? 0 : 2);
+  const [int, frac] = fixed.split('.');
+  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `${frac ? `${grouped}.${frac}` : grouped} ${code}`;
 }
 
 /**
@@ -23,4 +37,13 @@ export function timeAgo(iso?: string | null): string {
   if (sec < 7 * 86400) return `${Math.floor(sec / 86400)} ngày`;
   const d = new Date(then);
   return `${d.getDate()}/${d.getMonth() + 1}`;
+}
+
+/** Ngày giờ đầy đủ "dd/mm/yyyy hh:mm" (đơn hàng, giao dịch). Sai định dạng thì rỗng. */
+export function formatDateTime(iso?: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }

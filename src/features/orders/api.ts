@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import http from '@/lib/api/client';
-import type { ApiResponse, CreateOrderDto, Order, Paginated } from '@/api';
+import type { ApiResponse, CreateOrderDto, Order, Paginated, Payment } from '@/api';
 import { useAuthStore } from '@/features/auth/store';
 import { cartKeys } from '@/features/cart/api';
 
@@ -36,6 +36,32 @@ export interface OrderShipment {
 
 /** Chi tiết đơn kèm vận đơn (schema OpenAPI chưa khai trường này). */
 export type OrderDetail = Order & { shipments?: OrderShipment[] };
+
+/** Số dư ví Zoldify (GET /payments/wallet/balance). */
+export interface WalletBalance {
+  balance: number;
+  pending_withdrawal: number;
+}
+export const walletKeys = {
+  balance: ['wallet', 'balance'] as const,
+};
+
+/**
+ * Số dư ví của tôi. Checkout cần nó để báo thiếu tiền TRƯỚC khi tạo đơn: trước
+ * đây đơn được tạo rồi bước trừ ví mới hỏng, để lại một đơn treo giữ kho.
+ */
+export function useWalletBalance() {
+  const signedIn = useAuthStore((s) => s.status === 'signedIn');
+  return useQuery({
+    queryKey: walletKeys.balance,
+    queryFn: async () => {
+      const res = await http.get<ApiResponse<WalletBalance>>('/payments/wallet/balance');
+      return { ...res.data.data, balance: Number(res.data.data?.balance ?? 0) };
+    },
+    enabled: signedIn,
+    staleTime: 15_000,
+  });
+}
 
 export const orderKeys = {
   all: ['orders'] as const,
@@ -90,13 +116,44 @@ export function useCreateOrder() {
   const qc = useQueryClient();
   return useMutation({
     meta: { handlesError: true },
-    mutationFn: async (dto: CreateOrderDto) => {
-      const res = await http.post<ApiResponse<Order>>('/orders', dto);
+    // `idempotencyKey`: một khoá cho mọi lần gửi lại của cùng một lần đặt. Mất
+    // phản hồi sau khi server đã tạo đơn rồi bấm lại thì nhận về đúng đơn cũ.
+    mutationFn: async ({ dto, idempotencyKey }: { dto: CreateOrderDto; idempotencyKey?: string }) => {
+      const res = await http.post<ApiResponse<Order>>('/orders', dto, {
+        headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+      });
       return res.data.data;
     },
-    onSuccess: () => {
+    // Cả khi lỗi: đặt hỏng thường vì hết hàng/đổi giá, giỏ phải lấy lại cho đúng.
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: cartKeys.all });
       qc.invalidateQueries({ queryKey: orderKeys.all });
+    },
+  });
+}
+
+/**
+ * Trả một đơn bằng ví Zoldify (POST /payments). Tạo đơn với payment_method
+ * 'wallet' KHÔNG trừ tiền: chỉ bước này mới trừ ví, tách ký quỹ và chuyển đơn
+ * sang "Đã xác nhận". Thiếu số dư hay đơn vừa đổi trạng thái (409) thì đơn vẫn
+ * còn nhưng chưa trả, người mua trả lại ở màn chi tiết đơn.
+ */
+export function usePayOrderWithWallet() {
+  const qc = useQueryClient();
+  return useMutation({
+    meta: { handlesError: true },
+    mutationFn: async (orderId: number) => {
+      const res = await http.post<ApiResponse<Payment>>('/payments', {
+        order_id: orderId,
+        payment_method: 'wallet',
+      });
+      return res.data.data;
+    },
+    // Trả được hay không thì trạng thái đơn trên server cũng có thể đã đổi,
+    // và số dư ví cũng vậy.
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: orderKeys.all });
+      qc.invalidateQueries({ queryKey: walletKeys.balance });
     },
   });
 }
@@ -109,7 +166,12 @@ export function useCancelOrder() {
       const res = await http.patch<ApiResponse<Order>>(`/orders/${id}/cancel`);
       return res.data.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: orderKeys.all }),
+    // Cả khi lỗi (vd 409: người bán vừa đổi trạng thái) để màn hiện đúng trạng thái mới.
+    // Huỷ đơn đã trả thì tiền về ví: làm mới số dư luôn.
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: orderKeys.all });
+      qc.invalidateQueries({ queryKey: walletKeys.balance });
+    },
   });
 }
 
@@ -117,13 +179,15 @@ export function useCancelOrder() {
 export function useConfirmReceived() {
   const qc = useQueryClient();
   return useMutation({
+    // Màn chi tiết đơn gọi cho nhiều người bán một lượt và gộp lỗi thành một thông báo.
+    meta: { handlesError: true },
     mutationFn: async (input: { orderId: number; sellerId: number }) => {
       await http.patch<ApiResponse<unknown>>(
         `/orders/${input.orderId}/shipments/${input.sellerId}/received`,
       );
       return input;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: orderKeys.all }),
+    onSettled: () => qc.invalidateQueries({ queryKey: orderKeys.all }),
   });
 }
 

@@ -81,12 +81,14 @@ export function Button({
 }
 
 const styles = StyleSheet.create({
+  // minHeight: nhãn dài ở cỡ chữ máy lớn xuống hai dòng thì nút cao theo, không cắt.
   base: {
-    height: 48,
+    minHeight: 48,
     borderRadius: Radius.control,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 18,
+    paddingVertical: 8,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   primary: { backgroundColor: Palette.brand },

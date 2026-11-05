@@ -9,7 +9,6 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ListRowSkeleton } from '@/components/ui/list-row-skeleton';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
-import { useAuthStore } from '@/features/auth/store';
 import { notificationRoute } from '@/features/notifications/route';
 import {
   useMarkAllNotificationsRead,
@@ -19,7 +18,6 @@ import {
   type AppNotification,
   type NotificationType,
 } from '@/features/notifications/api';
-import { TabPlaceholder } from '@/features/shared/tab-placeholder';
 import { timeAgo } from '@/lib/format';
 
 const META: Record<NotificationType, { icon: keyof typeof Ionicons.glyphMap; fg: string; bg: string }> = {
@@ -58,7 +56,6 @@ function NotificationRow({ item, onPress }: { item: AppNotification; onPress: ()
 /** Tab Thông báo — nhóm theo đã/chưa đọc bằng nền, tap để đọc + điều hướng. */
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
-  const guest = useAuthStore((s) => s.status) !== 'signedIn';
 
   const { data, isPending, isError, isFetching, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useNotifications();
@@ -66,11 +63,7 @@ export default function NotificationsScreen() {
   const markRead = useMarkNotificationRead();
   const markAll = useMarkAllNotificationsRead();
 
-  useFocusEffect(useCallback(() => { if (!guest) refetch(); }, [guest, refetch]));
-
-  if (guest) {
-    return <TabPlaceholder title="Thông báo" note="Đăng nhập để nhận thông báo đơn hàng, tin nhắn." />;
-  }
+  useFocusEffect(useCallback(() => { refetch(); }, [refetch]));
 
   const items = data?.pages.flatMap((p) => p.result) ?? [];
 

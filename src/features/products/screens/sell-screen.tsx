@@ -1,10 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { KEYBOARD_GAP } from '@/components/ui/screen';
 import { PhotoUploadGrid } from '@/components/ui/photo-upload-grid';
@@ -13,8 +14,6 @@ import { TextField } from '@/components/ui/text-field';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useCreateProduct } from '@/features/products/api';
 import { useCategories } from '@/features/categories/api';
-import { useAuthStore } from '@/features/auth/store';
-import { TabPlaceholder } from '@/features/shared/tab-placeholder';
 import { uploadImage } from '@/lib/upload';
 
 const CONDITIONS = [
@@ -27,10 +26,9 @@ const CONDITIONS = [
 
 const DESC_MAX = 1000;
 
-/** Đăng bán: khách -> mời đăng nhập; đã đăng nhập -> form tạo sản phẩm thật. */
+/** Đăng bán: form tạo sản phẩm thật. Khách dừng ở cổng đăng nhập. */
 export default function SellScreen() {
   const insets = useSafeAreaInsets();
-  const guest = useAuthStore((s) => s.status) !== 'signedIn';
   const { data: categories } = useCategories();
   const create = useCreateProduct();
 
@@ -47,10 +45,6 @@ export default function SellScreen() {
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; price?: string; category?: string; images?: string }>({});
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  if (guest) {
-    return <TabPlaceholder title="Đăng bán" note="Đăng nhập để đăng bán món của bạn." />;
-  }
 
   const selectedCategory = categories?.find((c) => c.id === categoryId) ?? null;
 
@@ -204,9 +198,7 @@ export default function SellScreen() {
       </View>
 
       {/* Picker danh mục — modal trượt từ đáy, danh sách đầy đủ. */}
-      <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
-        <Pressable style={styles.sheetBackdrop} onPress={() => setPickerOpen(false)} />
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 8 }]}>
+      <BottomSheet visible={pickerOpen} onClose={() => setPickerOpen(false)} style={styles.sheet}>
           <View style={styles.sheetHead}>
             <Text variant="heading">Chọn danh mục</Text>
             <Pressable hitSlop={8} onPress={() => setPickerOpen(false)}>
@@ -230,8 +222,7 @@ export default function SellScreen() {
               );
             })}
           </ScrollView>
-        </View>
-      </Modal>
+      </BottomSheet>
     </View>
   );
 }
@@ -286,7 +277,6 @@ const styles = StyleSheet.create({
     borderTopColor: Palette.line,
     backgroundColor: Palette.white,
   },
-  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(25,32,41,0.4)' },
   sheet: {
     backgroundColor: Palette.white,
     borderTopLeftRadius: Radius.modal,

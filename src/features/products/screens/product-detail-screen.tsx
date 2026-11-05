@@ -1,27 +1,30 @@
 import Feather from '@expo/vector-icons/Feather';
-import { StatusBar } from 'expo-status-bar';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CountBadge } from '@/components/ui/count-badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { HeartButton } from '@/components/ui/heart-button';
 import { ImageGallery } from '@/components/ui/image-gallery';
 import { RatingStars } from '@/components/ui/rating';
+import { ScreenStatusBar } from '@/components/ui/screen-status-bar';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
-import { useProduct } from '@/features/products/api';
+import { useDeleteProduct, useProduct } from '@/features/products/api';
 import { CONDITION_LABEL, isFreshCondition } from '@/features/products/filters';
-import { RelatedRail } from '@/features/products/components/related-rail';
+import { ProductRelatedRails } from '@/features/products/components/related-rail';
 import { ProductDetailSkeleton } from '@/features/products/components/product-detail-skeleton';
 import { useStartConversation } from '@/features/chat/api';
 import { useProductReviews, useSellerStats } from '@/features/reviews/api';
 import { ReviewCard } from '@/features/reviews/components/review-card';
-import { useAddToCart, useCartCount } from '@/features/cart/api';
+import { useAddToCart, useBuyNow, useCartCount } from '@/features/cart/api';
 import { useAuthStore } from '@/features/auth/store';
 import { useRequireAuth } from '@/features/auth/use-require-auth';
+import { isNotFoundError } from '@/lib/api/error-message';
 import { formatVnd } from '@/lib/format';
 import { shareProduct } from '@/lib/share';
 
@@ -34,12 +37,18 @@ export default function ProductDetailScreen() {
   const me = useAuthStore((s) => s.user);
   const startConv = useStartConversation();
   const addToCart = useAddToCart();
+  const buyNow = useBuyNow();
+  const removeProduct = useDeleteProduct();
   const [mode, setMode] = useState<null | 'add' | 'buy'>(null);
+  // Khoá chạm đúp: `mode` là state nên tới lần render sau nút mới khoá, chạm
+  // nhanh hai lần trong khe đó là thêm vào giỏ hai lần. Ref đổi ngay lập tức.
+  const busyRef = useRef(false);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const { data: cartCount = 0 } = useCartCount();
-  const { data: product, isPending, isError, refetch } = useProduct(Number(id));
+  const productId = Number(id);
+  const { data: product, isPending, isError, error, refetch } = useProduct(productId);
   // Số thật từ backend (lỗi H-01: trước đây sinh ngẫu nhiên trong mock.ts).
   // Gọi trước các nhánh return sớm để thứ tự hook không đổi.
   const { data: reviewData } = useProductReviews(Number(id), 3);
@@ -50,7 +59,7 @@ export default function ProductDetailScreen() {
   // Thanh trên: back + ô tìm kiếm + tin nhắn + giỏ (đồng nhất với trang chủ).
   const topBar = (
     <View style={[styles.topbar, { paddingTop: insets.top + 8 }]}>
-      <StatusBar style="light" />
+      <ScreenStatusBar style="light" />
       <Pressable style={styles.tbBack} hitSlop={8} onPress={back} accessibilityLabel="Quay lại">
         <View style={styles.chevron} />
       </Pressable>
@@ -65,22 +74,23 @@ export default function ProductDetailScreen() {
       </Pressable>
       <Pressable style={styles.tbIcon} hitSlop={4} onPress={() => router.push('/cart')}>
         <Feather name="shopping-cart" size={22} color={Palette.white} />
-        {cartCount > 0 ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{cartCount > 99 ? '99+' : String(cartCount)}</Text>
-          </View>
-        ) : null}
+        <CountBadge count={cartCount} size={16} style={styles.badge} />
       </Pressable>
     </View>
   );
 
   const cartError = (e: unknown) => {
-    const msg = (e as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+    const res = (e as { response?: { status?: number; data?: { message?: unknown } } })?.response;
+    // Hết phiên thì app đã báo bằng hộp thoại, không hiện thêm chữ "Unauthorized".
+    if (res?.status === 401) return;
+    const msg = res?.data?.message;
     setErrMsg(typeof msg === 'string' ? msg : 'Chưa thêm được vào giỏ. Thử lại nhé.');
   };
 
   const onAdd = () => {
     if (guest) return requireAuth();
+    if (busyRef.current) return;
+    busyRef.current = true;
     setErrMsg(null);
     setMode('add');
     addToCart.mutate(
@@ -91,26 +101,51 @@ export default function ProductDetailScreen() {
           setTimeout(() => setAdded(false), 1500);
         },
         onError: cartError,
-        onSettled: () => setMode(null),
+        onSettled: () => {
+          busyRef.current = false;
+          setMode(null);
+        },
       },
     );
   };
 
   const onBuy = () => {
     if (guest) return requireAuth();
+    if (busyRef.current) return;
+    busyRef.current = true;
     setErrMsg(null);
     setMode('buy');
-    // Mua ngay: thêm vào giỏ rồi vào THẲNG thanh toán, chỉ món này (param `only`).
-    // Đặt xong backend tự xoá cart item nên không đọng trong giỏ.
-    addToCart.mutate(
+    // Mua ngay: đặt dòng giỏ về đúng số đang chọn rồi vào THẲNG thanh toán, chỉ
+    // món này (param `only`). Đặt xong backend tự xoá cart item.
+    buyNow.mutate(
       { product_id: product!.id, quantity: qty },
       {
         onSuccess: (item) => router.push({ pathname: '/checkout', params: { only: item.id } }),
         onError: cartError,
-        onSettled: () => setMode(null),
+        onSettled: () => {
+          busyRef.current = false;
+          setMode(null);
+        },
       },
     );
   };
+
+  // Món không còn (404) hoặc link sai (id không phải số: query bị tắt nên isPending
+  // đứng mãi): nói thẳng và cho quay lại, không mời "Thử lại" vô ích.
+  if (!Number.isFinite(productId) || isNotFoundError(error)) {
+    return (
+      <View style={styles.root}>
+        {topBar}
+        <EmptyState
+          icon="package"
+          title="Món này không còn nữa"
+          subtitle="Có thể người bán đã gỡ tin hoặc link bị sai."
+          actionLabel="Quay lại"
+          onAction={back}
+        />
+      </View>
+    );
+  }
 
   if (isPending) {
     return (
@@ -143,6 +178,24 @@ export default function ProductDetailScreen() {
   const joinedYear = seller ? new Date(seller.created_at).getFullYear() : null;
   const rating = { rating: Number(product.rating_avg ?? 0), count: product.review_count ?? 0 };
   const reviews = reviewData?.reviews ?? [];
+  // Món của chính mình: không mua/nhắn được (server cũng chặn), thay bằng quản lý
+  // món (D-22, E2E 02/11).
+  const isOwner = !!me && !!seller && me.id === seller.id;
+
+  const onDelete = () => {
+    Alert.alert('Xoá món này?', 'Món sẽ không còn hiện trên Zoldify nữa.', [
+      { text: 'Giữ lại', style: 'cancel' },
+      {
+        text: 'Xoá',
+        style: 'destructive',
+        onPress: () =>
+          removeProduct.mutate(product.id, {
+            onSuccess: back,
+            onError: () => setErrMsg('Chưa xoá được món. Thử lại nhé.'),
+          }),
+      },
+    ]);
+  };
 
   const onMessage = () => {
     if (guest) return requireAuth();
@@ -202,7 +255,7 @@ export default function ProductDetailScreen() {
           </View>
 
           <Text variant="title" style={styles.name}>{product.name}</Text>
-          <Text style={styles.price}>{formatVnd(product.price)}</Text>
+          <Text style={styles.price}>{formatVnd(product.price, product.currency)}</Text>
 
           {rating.count > 0 ? (
             <View style={styles.ratingRow}>
@@ -277,10 +330,12 @@ export default function ProductDetailScreen() {
                 </View>
                 <Feather name="chevron-right" size={16} color={Palette.inkFaint} />
               </Pressable>
-              <Pressable style={styles.msgBtn} onPress={onMessage} accessibilityRole="button">
-                <Feather name="message-circle" size={15} color={Palette.brand} />
-                <Text style={styles.msgText}>Nhắn</Text>
-              </Pressable>
+              {!isOwner ? (
+                <Pressable style={styles.msgBtn} onPress={onMessage} accessibilityRole="button">
+                  <Feather name="message-circle" size={15} color={Palette.brand} />
+                  <Text style={styles.msgText}>Nhắn</Text>
+                </Pressable>
+              ) : null}
             </View>
           ) : null}
 
@@ -328,20 +383,7 @@ export default function ProductDetailScreen() {
           )}
         </View>
 
-        {seller ? (
-          <RelatedRail
-            title="Thêm từ shop này"
-            filters={{ seller_id: seller.id }}
-            excludeId={product.id}
-          />
-        ) : null}
-        {product.category ? (
-          <RelatedRail
-            title="Sản phẩm tương tự"
-            filters={{ category_id: product.category.id }}
-            excludeId={product.id}
-          />
-        ) : null}
+        <ProductRelatedRails product={product} />
       </ScrollView>
 
       {errMsg ? (
@@ -351,34 +393,83 @@ export default function ProductDetailScreen() {
       ) : null}
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
-        <View style={styles.footerBtn}>
-          <Button
-            title={added ? 'Đã thêm ✓' : 'Thêm vào giỏ'}
-            variant="secondary"
-            loading={mode === 'add'}
-            disabled={mode !== null}
-            onPress={onAdd}
-          />
-        </View>
-        <View style={styles.footerBtn}>
-          <Button
-            title="Mua ngay"
-            loading={mode === 'buy'}
-            disabled={mode !== null}
-            onPress={onBuy}
-          />
-        </View>
+        {isOwner ? (
+          <>
+            <View style={styles.footerBtn}>
+              <Button
+                title="Xoá món"
+                variant="secondary"
+                loading={removeProduct.isPending}
+                onPress={onDelete}
+              />
+            </View>
+            <View style={styles.footerBtn}>
+              <Button
+                title="Sửa món"
+                disabled={removeProduct.isPending}
+                onPress={() => router.push({ pathname: '/edit-product/[id]', params: { id: product.id } })}
+              />
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.footerBtn}>
+              <Button
+                title={added ? 'Đã thêm ✓' : 'Thêm vào giỏ'}
+                variant="secondary"
+                loading={mode === 'add'}
+                disabled={mode !== null}
+                onPress={onAdd}
+              />
+            </View>
+            <View style={styles.footerBtn}>
+              <Button
+                title="Mua ngay"
+                loading={mode === 'buy'}
+                disabled={mode !== null}
+                onPress={onBuy}
+              />
+            </View>
+          </>
+        )}
       </View>
     </View>
   );
 }
 
-/** Một dòng thông tin món: nhãn xám bên trái, giá trị bên phải. */
+/** Số dòng hiện sẵn của một giá trị; dài hơn thì có nút Xem thêm. */
+const INFO_LINES = 2;
+
+/**
+ * Một dòng thông tin món: nhãn xám bên trái, giá trị bên phải. Giá trị dài
+ * (thông số nhiều dòng) cắt ở 2 dòng kèm "Xem thêm"; trước đây cắt cứng, người
+ * mua không đọc được hết thông số (D-03, E2E 02/11).
+ */
 function InfoRow({ label, value }: { label: string; value: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [overflow, setOverflow] = useState(false);
   return (
     <View style={styles.infoRow}>
       <Text variant="caption" style={styles.infoLabel}>{label}</Text>
-      <Text variant="label" style={styles.infoValue} numberOfLines={2}>{value}</Text>
+      <View style={styles.infoValueWrap}>
+        <Text variant="label" style={styles.infoValue} numberOfLines={expanded ? undefined : INFO_LINES}>
+          {value}
+        </Text>
+        {/* Bản đo ẩn, không giới hạn dòng: biết giá trị có dài hơn 2 dòng không. */}
+        <Text
+          variant="label"
+          style={[styles.infoValue, styles.infoMeasure]}
+          onTextLayout={(e) => setOverflow(e.nativeEvent.lines.length > INFO_LINES)}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants">
+          {value}
+        </Text>
+        {overflow ? (
+          <Pressable onPress={() => setExpanded((v) => !v)} hitSlop={8} accessibilityRole="button">
+            <Text style={styles.infoMore}>{expanded ? 'Thu gọn' : 'Xem thêm'}</Text>
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -421,19 +512,7 @@ const styles = StyleSheet.create({
   },
   searchPlaceholder: { flex: 1, fontFamily: Font.regular, fontSize: 13.5, color: Palette.inkFaint },
   tbIcon: { width: 38, height: 40, alignItems: 'center', justifyContent: 'center' },
-  badge: {
-    position: 'absolute',
-    right: 2,
-    top: 2,
-    minWidth: 16,
-    height: 16,
-    paddingHorizontal: 4,
-    borderRadius: 999,
-    backgroundColor: Palette.price,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: { fontFamily: Font.bold, fontSize: 9.5, color: Palette.white },
+  badge: { position: 'absolute', right: 2, top: 2 },
   chevron: {
     width: 11,
     height: 11,
@@ -517,7 +596,10 @@ const styles = StyleSheet.create({
   infoList: { gap: 10 },
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   infoLabel: { width: 96 },
-  infoValue: { flex: 1, color: Palette.ink },
+  infoValueWrap: { flex: 1 },
+  infoValue: { color: Palette.ink },
+  infoMeasure: { position: 'absolute', left: 0, right: 0, top: 0, opacity: 0, pointerEvents: 'none' },
+  infoMore: { fontFamily: Font.semibold, fontSize: 13, color: Palette.brand, marginTop: 4 },
   footer: {
     flexDirection: 'row',
     gap: 10,

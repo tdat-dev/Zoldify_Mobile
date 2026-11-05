@@ -1,0 +1,79 @@
+name: Prepare Android project
+description: >
+  Cai Node + JDK 17, npm ci, dat google-services.json, chay expo prebuild
+  (dung lai android/), khoi phuc keystore ky va bat cache Gradle.
+
+inputs:
+  google-services-b64:
+    description: google-services.json dang base64 (secret GOOGLE_SERVICES_JSON_BASE64)
+    required: false
+    default: ""
+  keystore-b64:
+    description: keystore ky APK dang base64 (secret ANDROID_KEYSTORE_BASE64)
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: "17"
+
+    - name: npm ci
+      shell: bash
+      run: npm ci --no-audit --no-fund
+
+    - name: Restore google-services.json
+      shell: bash
+      env:
+        GS_B64: ${{ inputs.google-services-b64 }}
+      run: |
+        if [ -n "$GS_B64" ]; then
+          printf '%s' "$GS_B64" | tr -cd 'A-Za-z0-9+/=' | base64 -d > google-services.json
+          echo "google-services.json lay tu secret (project: $(node -p "require('./google-services.json').project_info.project_id"))"
+        else
+          echo "::warning::Khong co secret GOOGLE_SERVICES_JSON_BASE64, dung google-services.json trong repo"
+        fi
+
+    - name: expo prebuild (android)
+      shell: bash
+      env:
+        CI: "1"
+      run: npx expo prebuild --platform android --no-install
+
+    - name: Restore signing keystore
+      shell: bash
+      env:
+        KS_B64: ${{ inputs.keystore-b64 }}
+      run: |
+        # build.gradle do prebuild sinh ra ky ca debug lan release bang
+        # android/app/debug.keystore (alias androiddebugkey, pass android).
+        # Ghi de bang keystore da dang ky SHA-1 voi Google Sign-In.
+        if [ -n "$KS_B64" ]; then
+          printf '%s' "$KS_B64" | tr -cd 'A-Za-z0-9+/=' | base64 -d > android/app/debug.keystore
+        else
+          echo "::warning::Khong co secret ANDROID_KEYSTORE_BASE64, dung debug.keystore mac dinh cua template"
+        fi
+        keytool -list -v -keystore android/app/debug.keystore -storepass android | grep -E 'Alias name|SHA1:'
+        grep -nE "signingConfig|storeFile" android/app/build.gradle
+
+    - name: Tune Gradle memory
+      shell: bash
+      run: |
+        # Runner 16GB RAM; mac dinh 2GB de bi OOM o buoc compile Kotlin/C++.
+        sed -i 's/^org.gradle.jvmargs=.*/org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8/' android/gradle.properties
+        # File do prebuild sinh khong co xuong dong cuoi; noi thang se dinh vao
+        # dong expo.inlineModules.watchedDirectories=[] va Expo doc JSON hong.
+        printf '\nkotlin.daemon.jvmargs=-Xmx3g\n' >> android/gradle.properties
+        tail -3 android/gradle.properties
+
+    - uses: gradle/actions/setup-gradle@v4
+      with:
+        cache-read-only: false

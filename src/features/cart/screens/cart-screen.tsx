@@ -1,21 +1,21 @@
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { RemoteImage } from '@/components/ui/remote-image';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListRowSkeleton } from '@/components/ui/list-row-skeleton';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import {
+  isCartItemAvailable,
   useCart,
+  useRefetchCartOnFocus,
   useRemoveCartItem,
   useUpdateCartQty,
 } from '@/features/cart/api';
-import { useAuthStore } from '@/features/auth/store';
 import { formatVnd } from '@/lib/format';
-import { mediaUrl } from '@/lib/media';
 import type { Cart } from '@/api';
 
 /** Bộ tăng/giảm số lượng — phẳng 4px, hairline; nút trừ khoá ở mức 1. */
@@ -61,28 +61,33 @@ function CartRow({
   onQty: (next: number) => void;
   onRemove: () => void;
 }) {
-  const uri = mediaUrl(item.product?.image);
+  const soldOut = !isCartItemAvailable(item);
+  // Server tự giảm số lượng về đúng tồn kho và gửi kèm số cũ. Không báo thì
+  // người mua thấy số tự đổi mà không biết vì sao.
+  const adjustedFrom = (item as Cart & { quantity_adjusted_from?: number }).quantity_adjusted_from;
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, soldOut && styles.rowSoldOut]}>
       <Pressable
         style={styles.thumb}
         onPress={() =>
           router.push({ pathname: '/products/[id]', params: { id: item.product.id } })
         }>
-        {uri ? (
-          <Image source={uri} style={styles.thumbImg} contentFit="cover" />
-        ) : null}
+        <RemoteImage path={item.product?.image} thumb style={styles.thumbImg} contentFit="cover" />
       </Pressable>
 
       <View style={styles.rowBody}>
         <Text variant="body" numberOfLines={2} style={styles.rowName}>
           {item.product?.name}
         </Text>
-        <Text style={styles.rowPrice}>{formatVnd(item.product?.price)}</Text>
+        <Text style={[styles.rowPrice, soldOut && styles.rowPriceOff]}>{formatVnd(item.product?.price, item.product?.currency)}</Text>
         <View style={styles.rowFooter}>
           {/* Đồ cũ thường là món DUY NHẤT (stock 1) — ẩn bộ +/− cho khỏi giống
               sàn nhiều số lượng; chỉ hiện khi người bán có >1 cùng món. */}
-          {(item.product?.stock ?? 1) > 1 ? (
+          {soldOut ? (
+            <View style={styles.soldTag}>
+              <Text style={styles.soldTagText}>Hết hàng</Text>
+            </View>
+          ) : (item.product?.stock ?? 1) > 1 ? (
             <QtyStepper value={item.quantity} onChange={onQty} disabled={busy} />
           ) : (
             <Text style={styles.unique}>Món duy nhất</Text>
@@ -91,16 +96,21 @@ function CartRow({
             <Text style={styles.remove}>Xoá</Text>
           </Pressable>
         </View>
+        {!soldOut && adjustedFrom && adjustedFrom > item.quantity ? (
+          <Text variant="caption" style={styles.adjusted}>
+            Chỉ còn {item.quantity} món, đã giảm từ {adjustedFrom}.
+          </Text>
+        ) : null}
       </View>
     </View>
   );
 }
 
-/** Giỏ hàng — khách: mời đăng nhập; đã đăng nhập: danh sách thật + tổng tiền. */
+/** Giỏ hàng: danh sách thật + tổng tiền. Khách dừng ở cổng đăng nhập. */
 export default function CartScreen() {
   const insets = useSafeAreaInsets();
-  const guest = useAuthStore((s) => s.status) !== 'signedIn';
   const { data: items, isPending } = useCart();
+  useRefetchCartOnFocus();
   const updateQty = useUpdateCartQty();
   const remove = useRemoveCartItem();
 
@@ -117,23 +127,6 @@ export default function CartScreen() {
     </View>
   );
 
-  if (guest) {
-    return (
-      <View style={styles.root}>
-        {header}
-        <View style={styles.center}>
-          <Text variant="heading" style={styles.line}>Giỏ hàng của bạn</Text>
-          <Text variant="bodyMuted" style={styles.line}>
-            Đăng nhập để lưu giỏ hàng và thanh toán.
-          </Text>
-          <View style={styles.cta}>
-            <Button title="Đăng nhập" onPress={() => router.push('/login')} />
-          </View>
-        </View>
-      </View>
-    );
-  }
-
   if (isPending) {
     return (
       <View style={styles.root}>
@@ -144,7 +137,11 @@ export default function CartScreen() {
   }
 
   const list = items ?? [];
-  const total = list.reduce(
+  // Món hết hàng vẫn hiện để người mua biết và tự xoá, nhưng không tính tiền
+  // và không đưa sang thanh toán (thanh toán cũng lọc lại).
+  const buyable = list.filter(isCartItemAvailable);
+  const soldOutCount = list.length - buyable.length;
+  const total = buyable.reduce(
     (acc, i) => acc + Number(i.product?.price ?? 0) * (i.quantity ?? 1),
     0,
   );
@@ -186,10 +183,18 @@ export default function CartScreen() {
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.totalRow}>
           <Text variant="bodyMuted">Tạm tính</Text>
-          <Text style={styles.total}>{formatVnd(total)}</Text>
+          <Text style={styles.total}>{formatVnd(total, buyable[0]?.product?.currency)}</Text>
         </View>
-        <Text variant="caption" style={styles.note}>Phí vận chuyển tính ở bước thanh toán.</Text>
-        <Button title="Thanh toán" onPress={() => router.push('/checkout')} />
+        <Text variant="caption" style={styles.note}>
+          {soldOutCount > 0
+            ? `${soldOutCount} món đã hết hàng, không tính vào đơn. Phí vận chuyển tính ở bước thanh toán.`
+            : 'Phí vận chuyển tính ở bước thanh toán.'}
+        </Text>
+        <Button
+          title="Thanh toán"
+          onPress={() => router.push('/checkout')}
+          disabled={buyable.length === 0}
+        />
       </View>
     </View>
   );
@@ -216,9 +221,6 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '45deg' }],
     marginLeft: 4,
   },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
-  line: { textAlign: 'center' },
-  cta: { marginTop: 8, alignSelf: 'stretch', paddingHorizontal: 16 },
   list: { padding: 12 },
   sep: { height: 12 },
   row: {
@@ -249,6 +251,10 @@ const styles = StyleSheet.create({
   rowFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   remove: { fontFamily: Font.medium, fontSize: 13, color: Palette.inkMuted },
   unique: { fontFamily: Font.semibold, fontSize: 12, color: Palette.inkMuted },
+  rowSoldOut: { opacity: 0.6 },
+  rowPriceOff: { color: Palette.inkMuted, textDecorationLine: 'line-through' },
+  soldTag: { backgroundColor: Palette.neutralBg, borderRadius: Radius.control, paddingHorizontal: 6, paddingVertical: 2 },
+  soldTagText: { fontFamily: Font.semibold, fontSize: 12, color: Palette.neutralFg },
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -285,4 +291,5 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   note: { color: Palette.pendingFg },
+  adjusted: { color: Palette.pendingFg, marginTop: 6 },
 });

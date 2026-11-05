@@ -1,7 +1,9 @@
-import { StatusBar } from 'expo-status-bar';
+import { useScrollToTop } from 'expo-router';
+import { useRef } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { ScreenStatusBar } from '@/components/ui/screen-status-bar';
 import { Text } from '@/components/ui/text';
 import { Palette } from '@/components/ui/theme';
 import { useInfiniteProducts } from '@/features/products/api';
@@ -13,6 +15,7 @@ import { FollowingRail } from '@/features/products/components/following-rail';
 import { TrustStrip } from '@/features/products/components/trust-strip';
 import { QuickLinks } from '@/features/products/components/quick-links';
 import { CategoryChips } from '@/features/categories/components/category-chips';
+import { apiErrorMessage } from '@/lib/api/error-message';
 
 /**
  * Trang chủ theo tư duy CHỢ ĐỒ CŨ (xem docs/ba-home-cho-do-cu.md):
@@ -20,6 +23,12 @@ import { CategoryChips } from '@/features/categories/components/category-chips';
  * 2 cột CUỘN VÔ HẠN, khối chính). Khách chưa đăng nhập vẫn lượn được.
  */
 export default function HomeScreen() {
+  // Đang ở Trang chủ mà bấm lại tab Trang chủ thì cuộn về đầu, như mọi app
+  // (D-09, E2E 02/11). Thanh tab tự dựng vẫn phát sự kiện tabPress nên hook
+  // chuẩn của react-navigation bắt được.
+  const listRef = useRef<FlatList>(null);
+  useScrollToTop(listRef);
+
   const {
     data,
     isPending,
@@ -37,7 +46,7 @@ export default function HomeScreen() {
   if (isPending) {
     return (
       <View style={styles.root}>
-        <StatusBar style="light" />
+        <ScreenStatusBar style="light" />
         <HomeHeader />
         <ProductGridSkeleton count={6} />
       </View>
@@ -47,12 +56,12 @@ export default function HomeScreen() {
   if (isError) {
     return (
       <View style={styles.root}>
-        <StatusBar style="light" />
+        <ScreenStatusBar style="light" />
         <HomeHeader />
         <View style={styles.fill}>
           <Text variant="heading">Không tải được sản phẩm</Text>
           <Text variant="bodyMuted" style={styles.hint}>
-            {error instanceof Error ? error.message : 'Vui lòng thử lại.'}
+            {apiErrorMessage(error, 'Vui lòng thử lại.')}
           </Text>
           <View style={styles.retry}>
             <Button title="Thử lại" onPress={() => refetch()} />
@@ -64,9 +73,10 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="dark" />
+      <ScreenStatusBar style="light" />
       <HomeHeader />
       <FlatList
+        ref={listRef}
         data={items}
         keyExtractor={(item) => String(item.id)}
         numColumns={2}

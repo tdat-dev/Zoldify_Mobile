@@ -2,7 +2,7 @@ import { MutationCache, QueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { Alert } from 'react-native';
 
-import { apiErrorMessage } from './error-message';
+import { apiErrorMessage, shouldRetryQuery } from './error-message';
 
 declare module '@tanstack/react-query' {
   interface Register {
@@ -40,8 +40,9 @@ export const queryClient = new QueryClient({
       staleTime: 60 * 1000,
       // Giữ trong bộ nhớ 5 phút sau khi màn hình đóng.
       gcTime: 5 * 60 * 1000,
-      // Mạng 4G rớt gói là chuyện thường, thử lại 2 lần.
-      retry: 2,
+      // Mạng 4G rớt gói là chuyện thường, thử lại 2 lần. Server đã từ chối dứt
+      // khoát (404, 401...) thì thôi.
+      retry: shouldRetryQuery,
       // Trên di động không có khái niệm "focus cửa sổ" như trình duyệt,
       // để mặc định true sẽ gọi lại API mỗi lần chuyển màn hình.
       refetchOnWindowFocus: false,

@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CountBadge } from '@/components/ui/count-badge';
 import { Avatar } from '@/components/ui/avatar';
 import { BackChevron } from '@/components/ui/back-chevron';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,6 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ListRowSkeleton } from '@/components/ui/list-row-skeleton';
 import { Text } from '@/components/ui/text';
 import { Font, Palette } from '@/components/ui/theme';
-import { useAuthStore } from '@/features/auth/store';
 import { useConversations, type Conversation } from '@/features/chat/api';
 import { timeAgo } from '@/lib/format';
 
@@ -34,7 +34,7 @@ function ConversationRow({ item }: { item: Conversation }) {
           {preview}
         </Text>
       </View>
-      {unread ? <View style={styles.badge}><Text style={styles.badgeText}>{item.unread_count}</Text></View> : null}
+      {unread ? <CountBadge count={item.unread_count} size={20} color={Palette.brand} /> : null}
     </Pressable>
   );
 }
@@ -42,10 +42,9 @@ function ConversationRow({ item }: { item: Conversation }) {
 /** Danh sách hội thoại (thay placeholder). Mở từ icon tin nhắn / Nhắn người bán. */
 export default function ConversationListScreen() {
   const insets = useSafeAreaInsets();
-  const guest = useAuthStore((s) => s.status) !== 'signedIn';
   const { data: list, isPending, isError, isFetching, refetch } = useConversations();
 
-  useFocusEffect(useCallback(() => { if (!guest) refetch(); }, [guest, refetch]));
+  useFocusEffect(useCallback(() => { refetch(); }, [refetch]));
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -55,19 +54,6 @@ export default function ConversationListScreen() {
       <Text variant="title">Tin nhắn</Text>
     </View>
   );
-
-  if (guest) {
-    return (
-      <View style={styles.root}>
-        {header}
-        <View style={styles.center}>
-          <Text variant="heading" style={styles.line}>Tin nhắn của bạn</Text>
-          <Text variant="bodyMuted" style={styles.line}>Đăng nhập để nhắn với người bán.</Text>
-          <View style={styles.cta}><Button title="Đăng nhập" onPress={() => router.push('/login')} /></View>
-        </View>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.root}>
@@ -113,7 +99,6 @@ const styles = StyleSheet.create({
     borderBottomColor: Palette.line,
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
-  line: { textAlign: 'center' },
   cta: { marginTop: 8, alignSelf: 'stretch', paddingHorizontal: 24 },
   list: { paddingVertical: 4 },
   sep: { height: 1, backgroundColor: Palette.line, marginLeft: 76 },
@@ -124,6 +109,4 @@ const styles = StyleSheet.create({
   time: { color: Palette.inkFaint },
   product: { color: Palette.inkFaint },
   previewUnread: { color: Palette.ink, fontFamily: Font.semibold },
-  badge: { minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, backgroundColor: Palette.brand, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { fontFamily: Font.bold, fontSize: 11, color: Palette.white },
 });

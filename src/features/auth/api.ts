@@ -92,8 +92,11 @@ export const authApi = {
     });
   },
 
-  async profile(): Promise<ProfileUser> {
-    const res = await http.get<ApiResponse<ProfileUser>>('/auth/profile');
+  /** `timeoutMs` ngắn dùng lúc mở app: splash không phải chờ hết 20 giây mặc định. */
+  async profile(timeoutMs?: number): Promise<ProfileUser> {
+    const res = await http.get<ApiResponse<ProfileUser>>('/auth/profile', {
+      ...(timeoutMs ? { timeout: timeoutMs } : {}),
+    });
     return res.data.data;
   },
 
@@ -123,6 +126,22 @@ export const authApi = {
     if (data?.access_token && data?.refresh_token) {
       await tokenStore.save(data.access_token, data.refresh_token);
     }
+  },
+
+  /**
+   * Xoá tài khoản của chính mình: DELETE /auth/account { password? }.
+   * Tài khoản Google chưa đặt mật khẩu thì không gửi password. Google Play bắt
+   * app cho đăng ký phải cho xoá tài khoản ngay trong app (D-14, E2E 02/11).
+   * Thành công thì bỏ token ở máy luôn, phiên cũ không còn dùng được nữa.
+   */
+  async deleteAccount(password?: string): Promise<void> {
+    // Có mật khẩu thì gửi trong `data` của axios; tài khoản chỉ có Google thì
+    // không gửi body nào (hợp đồng với backend).
+    await http.delete<ApiResponse<MessageResponse>>(
+      '/auth/account',
+      password ? { data: { password } } : undefined,
+    );
+    await tokenStore.clear();
   },
 
   /**
@@ -205,6 +224,14 @@ export function useChangePassword() {
       authApi.changePassword(v.oldPassword, v.newPassword),
     // Đặt mật khẩu xong → has_password đổi → làm mới hồ sơ để menu cập nhật nhãn.
     onSuccess: () => qc.invalidateQueries({ queryKey: authKeys.profile() }),
+  });
+}
+
+/** Xoá tài khoản. `password` bỏ trống với tài khoản Google chưa đặt mật khẩu. */
+export function useDeleteAccount() {
+  return useMutation({
+    meta: { handlesError: true },
+    mutationFn: (password?: string) => authApi.deleteAccount(password),
   });
 }
 

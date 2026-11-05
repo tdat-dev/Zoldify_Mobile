@@ -1,11 +1,9 @@
 import { Image } from 'expo-image';
 import * as SplashScreen from 'expo-splash-screen';
 import { useState } from 'react';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-
-import { Font } from '@/components/ui/theme';
 
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
 const DURATION = 600;
@@ -35,7 +33,9 @@ export function AnimatedSplashOverlay() {
     },
   });
 
-  const image = <Text style={styles.zMark}>Z</Text>;
+  // Cùng ảnh chữ Zoldify với splash gốc (app.json, expo-splash-screen) để lúc
+  // chuyển từ splash native sang overlay không bị nháy logo khác (D-01).
+  const image = <Image style={styles.wordmark} source={require('@/assets/images/splash-logo.png')} contentFit="contain" />;
 
   return animate ? (
     <Animated.View
@@ -133,11 +133,9 @@ const styles = StyleSheet.create({
     width: 76,
     height: 71,
   },
-  zMark: {
-    fontFamily: Font.extrabold,
-    fontSize: 68,
-    lineHeight: 76,
-    color: '#FFFFFF',
+  wordmark: {
+    width: 200,
+    height: 61,
   },
   background: {
     borderRadius: 40,
@@ -148,7 +146,7 @@ const styles = StyleSheet.create({
   },
   splashOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#208AEF',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,

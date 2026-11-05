@@ -43,7 +43,6 @@ function ShopRow({ shop }: { shop: FollowedUser }) {
 export default function FollowingScreen() {
   const insets = useSafeAreaInsets();
   const me = useAuthStore((s) => s.user);
-  const guest = useAuthStore((s) => s.status) !== 'signedIn';
   const { data: shops, isPending, isError, refetch, isFetching } = useFollowing(me?.id);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/account'));
@@ -54,21 +53,6 @@ export default function FollowingScreen() {
       <Text variant="title">Đang theo dõi</Text>
     </View>
   );
-
-  if (guest) {
-    return (
-      <View style={styles.root}>
-        {header}
-        <EmptyState
-          icon="users"
-          title="Theo dõi shop yêu thích"
-          subtitle="Đăng nhập để theo dõi người bán và xem hàng mới của họ."
-          actionLabel="Đăng nhập"
-          onAction={() => router.push('/login')}
-        />
-      </View>
-    );
-  }
 
   return (
     <View style={styles.root}>

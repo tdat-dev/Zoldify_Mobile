@@ -10,6 +10,8 @@ export interface ChatMessage {
   is_read: boolean;
   created_at: string;
   sender?: { id: number; full_name?: string; avatar?: string };
+  /** Chỉ có ở tin tạm (id âm) trên máy: đang chờ server nhận, hoặc gửi hỏng. */
+  localStatus?: 'sending' | 'failed';
 }
 
 export interface Conversation {
