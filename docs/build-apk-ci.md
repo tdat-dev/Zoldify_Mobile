@@ -45,6 +45,16 @@ adb install -r D:\Zoldify\apk\ci\zoldify-staging-xxxxxxx.apk\zoldify-staging-xxx
 
 Build lần đầu (chưa có cache) mất khoảng 30 đến 40 phút; các lần sau nhanh hơn nhờ cache Gradle.
 
+## Phát hành cho người dùng
+
+Android phát qua GitHub Release của repo này. Nút "Tải app cho Android" ở footer zoldify.com trỏ tới `releases/latest/download/Zoldify.apk`, nên mỗi bản phát hành **phải** có file tên đúng `Zoldify.apk` và phải là bản Latest. Thiếu file là nút tải trả 404.
+
+```
+gh release create android-<yyyy-mm-dd> Zoldify.apk Zoldify-<yyyy-mm-dd>-prod.apk -R tdat-dev/Zoldify_Mobile --target <sha trên main> --latest
+```
+
+Bản phát hành iOS phải tạo với `--latest=false`, không thì `latest` chuyển sang bản đó và nút tải Android hỏng theo.
+
 ## Dùng dev client với staging
 
 1. Tải và cài `zoldify-devclient-<sha>.apk` lên máy (một lần, đến khi native đổi).
