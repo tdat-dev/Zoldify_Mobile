@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import Constants from 'expo-constants';
 import { isSessionRejected } from '@/lib/api/session';
 import { API_URL } from '@/lib/config';
 import { tokenStore } from '@/lib/auth/token-store';
@@ -13,6 +14,10 @@ import { tokenStore } from '@/lib/auth/token-store';
 const http = axios.create({
   baseURL: API_URL,
   timeout: 20000,
+  // App không có cập nhật bắt buộc, nên backend phải phân biệt được bản cũ thì
+  // mới siết được luật mới (ví dụ bắt buộc ghi chú tình trạng) mà không làm hỏng
+  // người đang dùng bản cũ. Bản trước không gửi gì để phân biệt.
+  headers: { 'X-App-Version': Constants.expoConfig?.version ?? 'unknown' },
 });
 
 http.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {

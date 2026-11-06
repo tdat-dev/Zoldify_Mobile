@@ -345,6 +345,13 @@ export default function ProductDetailScreen() {
           <Text variant="heading" style={styles.descHead}>Thông tin</Text>
           <View style={styles.infoList}>
             <InfoRow label="Tình trạng" value={condLabel} />
+            {product.condition_note ? <InfoRow label="Ghi chú" value={product.condition_note} /> : null}
+            {product.province_name ? (
+              <InfoRow
+                label="Khu vực"
+                value={[product.district_name, product.province_name].filter(Boolean).join(', ')}
+              />
+            ) : null}
             {product.brand ? <InfoRow label="Thương hiệu" value={product.brand} /> : null}
             {product.spec ? <InfoRow label="Thông số" value={product.spec} /> : null}
             <InfoRow label="Giao hàng" value={product.is_freeship ? 'Miễn phí vận chuyển' : 'Tính phí theo đơn'} />

@@ -16,13 +16,15 @@ import { useCreateProduct } from '@/features/products/api';
 import { useCategories } from '@/features/categories/api';
 import { uploadImage } from '@/lib/upload';
 
+// Cùng thang và cùng nhãn với web. Bản cũ có thêm `used`, ngoài thang của backend.
 const CONDITIONS = [
-  { value: 'new', label: 'Mới' },
+  { value: 'new', label: 'Mới, chưa dùng' },
   { value: 'like_new', label: 'Như mới' },
-  { value: 'good', label: 'Tốt' },
-  { value: 'fair', label: 'Khá' },
-  { value: 'used', label: 'Đã dùng' },
+  { value: 'good', label: 'Còn tốt' },
+  { value: 'fair', label: 'Cũ, dùng được' },
 ];
+
+const NOTE_MAX = 500;
 
 const DESC_MAX = 1000;
 
@@ -39,11 +41,12 @@ export default function SellScreen() {
   const [brand, setBrand] = useState('');
   const [size, setSize] = useState('');
   const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [condition, setCondition] = useState('new');
+  const [condition, setCondition] = useState('good');
+  const [conditionNote, setConditionNote] = useState('');
   const [description, setDescription] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; price?: string; category?: string; images?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; price?: string; category?: string; images?: string; conditionNote?: string }>({});
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const selectedCategory = categories?.find((c) => c.id === categoryId) ?? null;
@@ -54,6 +57,9 @@ export default function SellScreen() {
     if (name.trim().length < 3) next.name = 'Nhập tên món (từ 3 ký tự).';
     if (!(Number(price) > 0)) next.price = 'Nhập giá hợp lệ.';
     if (!categoryId) next.category = 'Chọn một danh mục.';
+    if (condition !== 'new' && !conditionNote.trim()) {
+      next.conditionNote = 'Kể rõ tình trạng món đồ để người mua yên tâm.';
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -73,6 +79,7 @@ export default function SellScreen() {
         stock: Math.max(1, Number(stock) || 1),
         category_id: categoryId!,
         condition,
+        condition_note: conditionNote.trim() || undefined,
         image: uploaded[0],
         images: uploaded,
         brand: brand.trim() || undefined,
@@ -158,6 +165,16 @@ export default function SellScreen() {
                 );
               })}
             </View>
+            <TextField
+              label={condition === 'new' ? 'Mô tả tình trạng thật (không bắt buộc)' : 'Mô tả tình trạng thật'}
+              value={conditionNote}
+              onChangeText={(t) => setConditionNote(t.slice(0, NOTE_MAX))}
+              placeholder="Xước nhẹ ở góc trái, pin 84%, còn hộp và sạc."
+              error={errors.conditionNote}
+              multiline
+              numberOfLines={3}
+              style={styles.multiline}
+            />
           </View>
 
           <View>
