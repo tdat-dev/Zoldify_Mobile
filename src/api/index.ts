@@ -25,7 +25,14 @@ export interface Paginated<T> {
 }
 
 export type User = Schemas['User'];
-export type Product = Schemas['Product'];
+// Bốn trường mới khai tay: tạo lại schema.d.ts lúc này kéo theo nhiều thay đổi
+// không liên quan. Bỏ phần giao khi chạy lại gen:api.
+export type Product = Schemas['Product'] & {
+  condition_note?: string | null;
+  province_name?: string | null;
+  province_slug?: string | null;
+  district_name?: string | null;
+};
 export type Category = Schemas['Category'];
 export type CategoryListItem = Schemas['CategoryListItemDto'];
 export type Order = Schemas['Order'];
@@ -51,6 +58,8 @@ export type MessageResponse = Schemas['MessageResponseDto'];
 export type SendRegisterOtpDto = Schemas['SendRegisterOtpDto'];
 export type VerifyRegisterOtpDto = Schemas['VerifyRegisterOtpDto'];
 
-export type CreateProductDto = Schemas['CreateProductDto'];
+export type CreateProductDto = Schemas['CreateProductDto'] & {
+  condition_note?: string;
+};
 export type CreateOrderDto = Schemas['CreateOrderDto'];
 export type CreateCartDto = Schemas['CreateCartDto'];
