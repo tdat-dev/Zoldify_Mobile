@@ -17,10 +17,19 @@ import {
   useUpdateProduct,
   useUpdateProductStock,
 } from '@/features/products/api';
-import { CONDITION_LABEL } from '@/features/products/filters';
+import { CONDITION_FULL_LABEL } from '@/features/products/filters';
+import { ConditionDetailsFields } from '@/features/products/components/condition-details-fields';
+import {
+  EMPTY_DURABILITY,
+  fromForm,
+  hasBattery,
+  toForm,
+  type DurabilityError,
+  type DurabilityForm,
+} from '@/features/products/condition-details';
 import { apiErrorMessage } from '@/lib/api/error-message';
 
-const CONDITIONS = ['new', 'like_new', 'good', 'fair', 'used'];
+const CONDITIONS = ['new', 'like_new', 'good', 'fair', 'used', 'refurbished'];
 const DESC_MAX = 1000;
 
 /**
@@ -45,6 +54,8 @@ export default function EditProductScreen() {
   const [spec, setSpec] = useState('');
   const [condition, setCondition] = useState('new');
   const [description, setDescription] = useState('');
+  const [durability, setDurability] = useState<DurabilityForm>(EMPTY_DURABILITY);
+  const [durabilityErrors, setDurabilityErrors] = useState<DurabilityError[]>([]);
   const [errors, setErrors] = useState<{ name?: string; price?: string; stock?: string }>({});
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loadedId, setLoadedId] = useState<number | null>(null);
@@ -60,6 +71,7 @@ export default function EditProductScreen() {
     setSpec(product.spec ?? '');
     setCondition(product.condition || 'new');
     setDescription(product.description ?? '');
+    setDurability(toForm(product.condition_details));
     setLoadedId(product.id);
   }
 
@@ -74,7 +86,9 @@ export default function EditProductScreen() {
     if (!(Number(price) > 0)) next.price = 'Nhập giá hợp lệ.';
     if (stock === '' || !Number.isInteger(Number(stock))) next.stock = 'Nhập số lượng.';
     setErrors(next);
-    if (Object.keys(next).length) return;
+    const doBen = fromForm(durability, hasBattery(product.category?.slug));
+    setDurabilityErrors(doBen.errors);
+    if (Object.keys(next).length || doBen.errors.length) return;
     setErrorMsg(null);
     try {
       await update.mutateAsync({
@@ -83,6 +97,8 @@ export default function EditProductScreen() {
         brand: brand.trim() || undefined,
         spec: spec.trim() || undefined,
         condition,
+        // null chứ không bỏ trường: người bán xoá hết ô thì thẻ phải mất theo.
+        condition_details: doBen.details,
         description: description.trim() || undefined,
       });
       if (Number(stock) !== product.stock) await updateStock.mutateAsync(Number(stock));
@@ -169,11 +185,17 @@ export default function EditProductScreen() {
                   const on = condition === c;
                   return (
                     <Pressable key={c} onPress={() => setCondition(c)} style={[styles.chip, on && styles.chipOn]}>
-                      <Text style={[styles.chipText, on && styles.chipTextOn]}>{CONDITION_LABEL[c] ?? c}</Text>
+                      <Text style={[styles.chipText, on && styles.chipTextOn]}>{CONDITION_FULL_LABEL[c] ?? c}</Text>
                     </Pressable>
                   );
                 })}
               </View>
+              <ConditionDetailsFields
+                value={durability}
+                onChange={setDurability}
+                withBattery={hasBattery(product?.category?.slug)}
+                errors={durabilityErrors}
+              />
             </View>
 
             <View>

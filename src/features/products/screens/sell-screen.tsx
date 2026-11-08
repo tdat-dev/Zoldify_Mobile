@@ -15,14 +15,21 @@ import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useCreateProduct } from '@/features/products/api';
 import { useCategories } from '@/features/categories/api';
 import { uploadImage } from '@/lib/upload';
+import { CONDITION_FULL_LABEL } from '@/features/products/filters';
+import { ConditionDetailsFields } from '@/features/products/components/condition-details-fields';
+import {
+  EMPTY_DURABILITY,
+  fromForm,
+  hasBattery,
+  type DurabilityError,
+  type DurabilityForm,
+} from '@/features/products/condition-details';
 
-// Cùng thang và cùng nhãn với web. Bản cũ có thêm `used`, ngoài thang của backend.
-const CONDITIONS = [
-  { value: 'new', label: 'Mới, chưa dùng' },
-  { value: 'like_new', label: 'Như mới' },
-  { value: 'good', label: 'Còn tốt' },
-  { value: 'fair', label: 'Cũ, dùng được' },
-];
+// Cùng thang 6 mức và cùng nhãn với web (lib/product-condition.ts).
+const CONDITIONS = ['new', 'like_new', 'good', 'fair', 'used', 'refurbished'].map((value) => ({
+  value,
+  label: CONDITION_FULL_LABEL[value],
+}));
 
 const NOTE_MAX = 500;
 
@@ -43,6 +50,8 @@ export default function SellScreen() {
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [condition, setCondition] = useState('good');
   const [conditionNote, setConditionNote] = useState('');
+  const [durability, setDurability] = useState<DurabilityForm>(EMPTY_DURABILITY);
+  const [durabilityErrors, setDurabilityErrors] = useState<DurabilityError[]>([]);
   const [description, setDescription] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -50,6 +59,7 @@ export default function SellScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const selectedCategory = categories?.find((c) => c.id === categoryId) ?? null;
+  const withBattery = hasBattery(selectedCategory?.slug);
 
   const validate = () => {
     const next: typeof errors = {};
@@ -61,7 +71,9 @@ export default function SellScreen() {
       next.conditionNote = 'Kể rõ tình trạng món đồ để người mua yên tâm.';
     }
     setErrors(next);
-    return Object.keys(next).length === 0;
+    const loiDoBen = fromForm(durability, withBattery).errors;
+    setDurabilityErrors(loiDoBen);
+    return Object.keys(next).length === 0 && loiDoBen.length === 0;
   };
 
   const onSubmit = async () => {
@@ -80,6 +92,7 @@ export default function SellScreen() {
         category_id: categoryId!,
         condition,
         condition_note: conditionNote.trim() || undefined,
+        condition_details: fromForm(durability, withBattery).details ?? undefined,
         image: uploaded[0],
         images: uploaded,
         brand: brand.trim() || undefined,
@@ -174,6 +187,12 @@ export default function SellScreen() {
               multiline
               numberOfLines={3}
               style={styles.multiline}
+            />
+            <ConditionDetailsFields
+              value={durability}
+              onChange={setDurability}
+              withBattery={withBattery}
+              errors={durabilityErrors}
             />
           </View>
 

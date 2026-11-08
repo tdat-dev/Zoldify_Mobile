@@ -15,7 +15,8 @@ import { ScreenStatusBar } from '@/components/ui/screen-status-bar';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useDeleteProduct, useProduct } from '@/features/products/api';
-import { CONDITION_LABEL, isFreshCondition } from '@/features/products/filters';
+import { CONDITION_FULL_LABEL, isFreshCondition } from '@/features/products/filters';
+import { durabilityRows } from '@/features/products/condition-details';
 import { ProductRelatedRails } from '@/features/products/components/related-rail';
 import { ProductDetailSkeleton } from '@/features/products/components/product-detail-skeleton';
 import { useStartConversation } from '@/features/chat/api';
@@ -172,7 +173,8 @@ export default function ProductDetailScreen() {
   }
 
   const fresh = isFreshCondition(product.condition);
-  const condLabel = CONDITION_LABEL[product.condition] ?? product.condition;
+  const condLabel = CONDITION_FULL_LABEL[product.condition] ?? product.condition;
+  const doBen = durabilityRows(product.condition_details);
   const images = product.images?.length ? product.images : product.image ? [product.image] : [];
   const seller = product.seller;
   const joinedYear = seller ? new Date(seller.created_at).getFullYear() : null;
@@ -356,6 +358,18 @@ export default function ProductDetailScreen() {
             {product.spec ? <InfoRow label="Thông số" value={product.spec} /> : null}
             <InfoRow label="Giao hàng" value={product.is_freeship ? 'Miễn phí vận chuyển' : 'Tính phí theo đơn'} />
           </View>
+
+          {doBen.length ? (
+            <>
+              <View style={styles.divider} />
+              <Text variant="heading" style={styles.descHead}>Độ bền</Text>
+              <View style={styles.infoList}>
+                {doBen.map((r) => (
+                  <InfoRow key={r.label} label={r.label} value={r.value} />
+                ))}
+              </View>
+            </>
+          ) : null}
 
           <View style={styles.divider} />
 
