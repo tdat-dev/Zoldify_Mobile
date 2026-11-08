@@ -1,3 +1,4 @@
+import type { ConditionDetails } from '@/features/products/condition-details';
 import type { components } from './schema';
 
 /**
@@ -29,6 +30,7 @@ export type User = Schemas['User'];
 // không liên quan. Bỏ phần giao khi chạy lại gen:api.
 export type Product = Schemas['Product'] & {
   condition_note?: string | null;
+  condition_details?: ConditionDetails | null;
   province_name?: string | null;
   province_slug?: string | null;
   district_name?: string | null;
@@ -60,6 +62,7 @@ export type VerifyRegisterOtpDto = Schemas['VerifyRegisterOtpDto'];
 
 export type CreateProductDto = Schemas['CreateProductDto'] & {
   condition_note?: string;
+  condition_details?: ConditionDetails | null;
 };
 export type CreateOrderDto = Schemas['CreateOrderDto'];
 export type CreateCartDto = Schemas['CreateCartDto'];
