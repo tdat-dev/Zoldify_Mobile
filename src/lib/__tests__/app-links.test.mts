@@ -1,14 +1,12 @@
 // Chạy: npm test.
 /// <reference types="node" />
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
-import { duongDanTrongApp, linkWebZoldify } from '../app-links.ts';
+import { duongDanTrongApp } from '../app-links.ts';
 
 const root = new URL('../../../', import.meta.url);
-
-const moWeb = (url: string) => `/open-web?url=${encodeURIComponent(url)}`;
 
 test('link món hàng của web mở màn món hàng, bỏ tham số theo dõi', () => {
   assert.equal(duongDanTrongApp('https://zoldify.com/iphone-16-pro-max-256gb-i1'), '/products/1');
@@ -26,15 +24,20 @@ test('link shop mở màn shop', () => {
   assert.equal(duongDanTrongApp('https://zoldify.com/shop/9'), '/shop/9');
 });
 
-test('link web app chưa có màn riêng thì mở trang web trong app, không rơi vào màn lỗi', () => {
-  for (const url of [
-    'https://zoldify.com/product/create',
-    'https://zoldify.com/product/5/edit',
-    'https://zoldify.com/shop/orders',
-    'https://zoldify.com/dien-thoai/apple',
-    'https://zoldify.com/hang-i0',
-  ]) {
-    assert.equal(duongDanTrongApp(url), moWeb(url), url);
+test('trang riêng của người bán trên web mở màn tương ứng trong app', () => {
+  assert.equal(duongDanTrongApp('https://zoldify.com/product/create'), '/sell');
+  assert.equal(duongDanTrongApp('https://zoldify.com/product/5/edit'), '/edit-product/5');
+  assert.equal(duongDanTrongApp('https://zoldify.com/shop/orders'), '/sales');
+  assert.equal(duongDanTrongApp('https://zoldify.com/shop/settings'), '/shop/settings');
+});
+
+// Máy ảo 08/11: bản đầu mở link lạ bằng tab trình duyệt. Không có tab Chrome thì
+// expo-web-browser bắn intent VIEW, Android giao lại cho app (đã xác minh) và app
+// mở web lần nữa, quay vòng không dừng. Link app nhận được phải luôn ra một màn
+// trong app, không bao giờ trả về trình duyệt.
+test('link web app không có màn tương ứng thì về Trang chủ, không bao giờ mở web', () => {
+  for (const url of ['https://zoldify.com/dien-thoai/dell-inspiron', 'https://zoldify.com/hang-i0', 'https://zoldify.com/shop/a/b']) {
+    assert.equal(duongDanTrongApp(url), '/', url);
   }
 });
 
@@ -44,12 +47,8 @@ test('đường dẫn trong app và link tên miền khác giữ nguyên', () =>
   }
 });
 
-test('màn mở web chỉ nhận link https của zoldify.com', () => {
-  assert.equal(linkWebZoldify('https://zoldify.com/dien-thoai/apple'), 'https://zoldify.com/dien-thoai/apple');
-  assert.equal(linkWebZoldify('https://www.zoldify.com/a'), 'https://www.zoldify.com/a');
-  for (const bad of ['https://evil.com/a', 'http://zoldify.com/a', 'javascript:alert(1)', 'https://zoldify.com.evil.com/a', undefined, '']) {
-    assert.equal(linkWebZoldify(bad), null, String(bad));
-  }
+test('app không còn màn mở web (nguồn của vòng lặp)', () => {
+  assert.equal(existsSync(new URL('src/app/open-web.tsx', root)), false);
 });
 
 test('app.json khai App Links tự xác minh cho đúng link món hàng, link cũ và shop', () => {
