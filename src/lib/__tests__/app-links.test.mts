@@ -60,8 +60,47 @@ test('app.json khai App Links tự xác minh cho đúng link món hàng, link c�
   // Chỉ zoldify.com: www chuyển hướng 301 nên không xác minh được, mà Android dưới 12
   // trượt một host là bỏ xác minh cả bộ lọc.
   assert.deepEqual([...new Set(data.map((d) => d.host))], ['zoldify.com']);
+  assert.deepEqual(data.filter((d) => d.pathPrefix).map((d) => d.pathPrefix).sort(), ['/product/', '/shop/']);
   assert.deepEqual(
-    data.map((d) => d.pathPattern ?? d.pathPrefix).sort(),
-    ['/.*-i.*', '/product/', '/shop/'],
+    data.filter((d) => d.pathAdvancedPattern).map((d) => d.pathAdvancedPattern),
+    ['/[a-z0-9-]*-i[1-9][0-9]*'],
   );
+  // Máy ảo 08/11: mẫu `/.*-i.*` KHÔNG bắt được /iphone-16-pro-max-256gb-i1 và link
+  // mở Chrome. `.*` của pathPattern dừng ở dấu `-` đầu tiên và không quay lui,
+  // nên cần một mẫu cho mỗi số dấu `-` đứng trước `-i`.
+  const globs = new Set(data.filter((d) => d.pathPattern).map((d) => d.pathPattern));
+  for (let k = 1; k <= 40; k++) assert.ok(globs.has('/' + '.*-'.repeat(k) + 'i.*'), `thiếu mẫu ${k} dấu -`);
+});
+
+/** Mô phỏng PatternMatcher PATTERN_SIMPLE_GLOB của Android: `.*` nhảy tới lần gặp đầu
+ * tiên của ký tự kế tiếp trong mẫu, không quay lui. */
+function khopGlobAndroid(mau: string, chuoi: string): boolean {
+  let im = 0;
+  let ip = 0;
+  while (ip < mau.length) {
+    if (mau[ip] === '.' && mau[ip + 1] === '*') {
+      ip += 2;
+      if (ip >= mau.length) return true;
+      while (im < chuoi.length && chuoi[im] !== mau[ip]) im++;
+      continue;
+    }
+    if (im >= chuoi.length || (mau[ip] !== '.' && mau[ip] !== chuoi[im])) return false;
+    im++;
+    ip++;
+  }
+  return im === chuoi.length;
+}
+
+test('mẫu cho Android 11 trở xuống bắt link món hàng thật và không bắt trang khác', () => {
+  const { expo } = JSON.parse(readFileSync(new URL('app.json', root), 'utf8'));
+  const data = expo.android.intentFilters.find((f: { autoVerify?: boolean }) => f.autoVerify).data as Record<string, string>[];
+  const khop = (p: string) =>
+    data.some((d) => (d.pathPattern && khopGlobAndroid(d.pathPattern, p)) || (d.pathPrefix && p.startsWith(d.pathPrefix)));
+  assert.equal(khopGlobAndroid('/.*-i.*', '/iphone-16-pro-max-256gb-i1'), false);
+  for (const p of ['/iphone-16-pro-max-256gb-i1', '/ao-i2', '/may-in-hp-i5', '/product/1', '/shop/shop-zoldify-1']) {
+    assert.ok(khop(p), p);
+  }
+  for (const p of ['/', '/login', '/cart', '/dien-thoai', '/checkout', '/payment/result', '/wallet']) {
+    assert.ok(!khop(p), p);
+  }
 });
