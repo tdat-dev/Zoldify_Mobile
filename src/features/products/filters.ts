@@ -10,7 +10,21 @@ export const CONDITION_LABEL: Record<string, string> = {
   like_new: 'Như mới',
   good: 'Tốt',
   fair: 'Khá',
-  used: 'Đã dùng',
+  used: 'Cũ',
+  refurbished: 'Tân trang',
+};
+
+/**
+ * Nhãn có phần trăm, cùng thang với web: chỗ đủ rộng (đăng bán, sửa tin, chi
+ * tiết) dùng nhãn này để người mua so được giữa hai tin. Thẻ hàng và bộ lọc
+ * hẹp nên giữ nhãn ngắn ở trên.
+ */
+export const CONDITION_FULL_LABEL: Record<string, string> = {
+  new: 'Mới 100%',
+  like_new: 'Như mới 99%',
+  good: 'Tốt 95%',
+  fair: 'Khá 85–90%',
+  used: 'Cũ 70–80%',
   refurbished: 'Tân trang',
 };
 
