@@ -40,7 +40,15 @@ function manTuDuongWeb(doan: string[]): string | null {
     const m = MON_HANG.exec(doan[1]);
     if (m) return `/products/${m[1]}`;
   }
+  // Trang riêng của người bán trên web cũng nằm dưới /product/ và /shop/, nên
+  // App Links bắt cả chúng; app có màn tương ứng thì mở màn đó.
+  if (doan.length === 2 && doan[0] === 'product' && doan[1] === 'create') return '/sell';
+  if (doan.length === 3 && doan[0] === 'product' && doan[2] === 'edit' && MA_SO.test(doan[1])) {
+    return `/edit-product/${doan[1]}`;
+  }
   if (doan.length === 2 && doan[0] === 'shop') {
+    if (doan[1] === 'orders') return '/sales';
+    if (doan[1] === 'settings') return '/shop/settings';
     const m = SHOP.exec(doan[1]);
     if (m) return `/shop/${m[1]}`;
   }
@@ -50,9 +58,11 @@ function manTuDuongWeb(doan: string[]): string | null {
 /**
  * Đường dẫn trong app cho một URL hệ điều hành đưa vào. Không phải link web
  * zoldify.com thì trả nguyên văn (scheme `zoldify://`, thông báo đẩy, route app).
- * Link web app chưa có màn riêng (danh mục, trang đích, trang của người bán trên
- * web) thì mở trang web ngay trong app, vì Android đã giao link cho app, trả về
- * trình duyệt là không được.
+ *
+ * Link web không có màn tương ứng thì về Trang chủ, KHÔNG mở lại trình duyệt.
+ * Máy ảo 08/11: bản đầu mở link lạ bằng expo-web-browser; không có tab Chrome thì
+ * nó bắn intent VIEW, Android giao lại cho app (đã xác minh cho zoldify.com) và
+ * app mở web lần nữa, quay vòng không dừng.
  */
 export function duongDanTrongApp(path: string): string {
   let url: URL;
@@ -63,16 +73,5 @@ export function duongDanTrongApp(path: string): string {
   }
   if (url.protocol !== 'https:' || !WEB_HOSTS.has(url.hostname)) return path;
   const doan = url.pathname.split('/').filter(Boolean).map(giaiMa);
-  return manTuDuongWeb(doan) ?? `/open-web?url=${encodeURIComponent(url.href)}`;
-}
-
-/** Link màn mở web được phép mở: chỉ https của zoldify.com, chặn link lạ chèn vào. */
-export function linkWebZoldify(raw: string | undefined): string | null {
-  if (!raw) return null;
-  try {
-    const url = new URL(raw);
-    return url.protocol === 'https:' && WEB_HOSTS.has(url.hostname) ? url.href : null;
-  } catch {
-    return null;
-  }
+  return manTuDuongWeb(doan) ?? '/';
 }
