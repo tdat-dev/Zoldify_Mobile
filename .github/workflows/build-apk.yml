@@ -31,9 +31,16 @@ on:
         description: Build them APK dev client (debug, nap JS tu Metro)
         type: boolean
         default: false
+      publish:
+        description: Tao GitHub Release (can env prod; main la Latest, nhanh khac chi la ban nhap)
+        type: boolean
+        default: false
 
+# Push len main la phat hanh cho nguoi dung, nen main build ban prod. Nhanh khac
+# van build staging de test. Bieu thuc nay lap lai o duoi vi `name` cua job va
+# `concurrency` khong doc duoc `env`.
 concurrency:
-  group: build-apk-${{ github.ref }}-${{ inputs.env || 'staging' }}
+  group: build-apk-${{ github.ref }}-${{ inputs.env || (github.ref == 'refs/heads/main' && 'prod' || 'staging') }}
   cancel-in-progress: true
 
 permissions:
@@ -47,14 +54,16 @@ env:
 
 jobs:
   release:
-    name: Release APK (${{ inputs.env || 'staging' }})
+    name: Release APK (${{ inputs.env || (github.ref == 'refs/heads/main' && 'prod' || 'staging') }})
     if: github.event_name == 'push' || inputs.release
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    outputs:
+      name: ${{ steps.apk.outputs.name }}
     env:
-      APP_ENV: ${{ inputs.env || 'staging' }}
-      EXPO_PUBLIC_API_ORIGIN: ${{ (inputs.env || 'staging') == 'prod' && (vars.PROD_EXPO_PUBLIC_API_ORIGIN || 'https://api.zoldify.com') || (vars.STAGING_EXPO_PUBLIC_API_ORIGIN || 'https://api-staging.zoldify.com') }}
-      EXPO_PUBLIC_MEDIA_ORIGIN: ${{ (inputs.env || 'staging') == 'prod' && (vars.PROD_EXPO_PUBLIC_MEDIA_ORIGIN || 'https://zoldify.com') || (vars.STAGING_EXPO_PUBLIC_MEDIA_ORIGIN || 'https://zoldify.com') }}
+      APP_ENV: ${{ inputs.env || (github.ref == 'refs/heads/main' && 'prod' || 'staging') }}
+      EXPO_PUBLIC_API_ORIGIN: ${{ (inputs.env || (github.ref == 'refs/heads/main' && 'prod' || 'staging')) == 'prod' && (vars.PROD_EXPO_PUBLIC_API_ORIGIN || 'https://api.zoldify.com') || (vars.STAGING_EXPO_PUBLIC_API_ORIGIN || 'https://api-staging.zoldify.com') }}
+      EXPO_PUBLIC_MEDIA_ORIGIN: ${{ (inputs.env || (github.ref == 'refs/heads/main' && 'prod' || 'staging')) == 'prod' && (vars.PROD_EXPO_PUBLIC_MEDIA_ORIGIN || 'https://zoldify.com') || (vars.STAGING_EXPO_PUBLIC_MEDIA_ORIGIN || 'https://zoldify.com') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -107,6 +116,109 @@ jobs:
           retention-days: 14
           compression-level: 0
           if-no-files-found: error
+
+  # Truoc day moi lan phat hanh phai co nguoi tai artifact ve roi tu tao Release.
+  # Job nay lam thay buoc do. Nut "Tai app cho Android" tren zoldify.com tro toi
+  # releases/latest/download/Zoldify.apk, nen file phai ten dung Zoldify.apk va
+  # ban do phai la Latest; ban nhap tu nhanh khac khong bao gio duoc thanh Latest.
+  publish:
+    name: GitHub Release
+    needs: release
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.publish)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      APK_NAME: ${{ needs.release.outputs.name }}
+      APP_ENV: ${{ inputs.env || (github.ref == 'refs/heads/main' && 'prod' || 'staging') }}
+      IS_MAIN: ${{ github.ref == 'refs/heads/main' }}
+      MANUAL: ${{ github.event_name == 'workflow_dispatch' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Co can phat hanh khong
+        id: check
+        run: |
+          if [ "$APP_ENV" != "prod" ]; then
+            echo "::error::Chi phat hanh APK prod, lan nay la $APP_ENV (APK staging tro vao api-staging)"
+            exit 1
+          fi
+          # Ban Android truoc do: bo ban nhap va ban iOS, lay ban moi nhat.
+          PREV=$(gh release list --limit 50 --json tagName,isDraft,publishedAt \
+            --jq '[.[] | select(.isDraft | not) | select(.tagName | startswith("android-"))] | sort_by(.publishedAt) | last | .tagName // ""')
+          echo "ban truoc: ${PREV:-chua co}"
+          echo "prev=$PREV" >> "$GITHUB_OUTPUT"
+          # Commit chi sua CI hoac tai lieu thi app khong doi: tao Release moi chi
+          # lam rac danh sach va bat moi nguoi cai lai cung mot ban. Chay tay thi
+          # van phat hanh, vi do la nguoi bam chu dong muon co ban moi.
+          if [ "$MANUAL" != "true" ] && [ -n "$PREV" ] && git rev-parse -q --verify "refs/tags/$PREV" >/dev/null \
+            && git diff --quiet "$PREV" HEAD -- . ':(exclude).github' ':(exclude)docs' ':(exclude)*.md'; then
+            echo "::notice::Tu $PREV toi nay chi doi CI hoac tai lieu, khong tao Release moi"
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/download-artifact@v4
+        if: steps.check.outputs.go == 'true'
+        with:
+          name: ${{ env.APK_NAME }}
+          path: dl
+
+      - name: Tao Release
+        if: steps.check.outputs.go == 'true'
+        env:
+          PREV: ${{ steps.check.outputs.prev }}
+        run: |
+          DATE=$(TZ=Asia/Ho_Chi_Minh date +%F)
+          DATE_VN=$(TZ=Asia/Ho_Chi_Minh date +%d/%m/%Y)
+          SHA7=${GITHUB_SHA::7}
+          TAG="android-$DATE-$SHA7"
+          [ "$IS_MAIN" = "true" ] || TAG="$TAG-nhap"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::notice::Release $TAG da co (chay lai), khong tao them"
+            exit 0
+          fi
+          mkdir -p out
+          cp "dl/$APK_NAME" out/Zoldify.apk
+          cp "dl/$APK_NAME" "out/Zoldify-$DATE-$SHA7-prod.apk"
+
+          # Ghi chu lay tu tieu de commit tu ban truoc, bo commit ci/docs/test/chore/style
+          # vi nguoi tai app khong can biet. Nen sua lai ghi chu tren GitHub cho de doc.
+          RANGE=HEAD
+          if [ -n "$PREV" ] && git rev-parse -q --verify "refs/tags/$PREV" >/dev/null; then RANGE="$PREV..HEAD"; fi
+          LOG=$(git log --no-merges --format='- %s' "$RANGE" | grep -v -E '^- (ci|docs|test|chore|style)(\(|:|!)' | head -30 || true)
+          {
+            echo "## Có gì mới"
+            echo
+            if [ -n "$LOG" ]; then echo "$LOG"; else echo "- Không có thay đổi tính năng nào trong commit."; fi
+            echo
+            echo 'Bản Android cài từ file `Zoldify.apk`, đè lên bản cũ được.'
+            echo
+            echo "Build tự động từ commit \`$SHA7\`, lượt chạy $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          } > notes.md
+          cat notes.md
+
+          if [ "$IS_MAIN" = "true" ]; then
+            gh release create "$TAG" out/Zoldify.apk "out/Zoldify-$DATE-$SHA7-prod.apk" \
+              --target "$GITHUB_SHA" --title "Zoldify Android, $DATE_VN" --notes-file notes.md --latest
+            LATEST=$(gh release view --json tagName --jq .tagName)
+            if [ "$LATEST" != "$TAG" ]; then
+              echo "::error::Latest dang la $LATEST chu khong phai $TAG, nut tai tren web se tai ban cu"
+              exit 1
+            fi
+          else
+            gh release create "$TAG" out/Zoldify.apk "out/Zoldify-$DATE-$SHA7-prod.apk" \
+              --target "$GITHUB_SHA" --title "Zoldify Android, $DATE_VN (nhap)" --notes-file notes.md --draft --latest=false
+          fi
+          gh release view "$TAG" --json assets --jq '.assets[].name' | grep -qx Zoldify.apk \
+            || { echo "::error::Release $TAG thieu Zoldify.apk"; exit 1; }
+          echo "### Release $TAG" >> "$GITHUB_STEP_SUMMARY"
+          echo "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
 
   dev-client:
     name: Dev client APK
