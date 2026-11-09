@@ -290,7 +290,8 @@ const styles = StyleSheet.create({
     backgroundColor: Palette.white,
   },
   pickerPlaceholder: { color: Palette.inkFaint },
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  // Cách ô mô tả bên dưới; thiếu khoảng này nhãn ô dính sát hàng chip.
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   chip: {
     borderRadius: Radius.control,
     borderWidth: 1,

@@ -47,7 +47,7 @@ export function ConditionDetailsFields({
               value={value.battery}
               onChangeText={(t) => set('battery', chiSo(t))}
               keyboardType="number-pad"
-              placeholder="87"
+              placeholder="VD: 87"
               error={loi('battery', `Từ 0 đến ${LIMITS.battery}.`)}
             />
           </View>
@@ -58,7 +58,7 @@ export function ConditionDetailsFields({
             value={value.usedMonths}
             onChangeText={(t) => set('usedMonths', chiSo(t))}
             keyboardType="number-pad"
-            placeholder="0"
+            placeholder="VD: 12"
             error={loi('usedMonths', `Từ 0 đến ${LIMITS.usedMonths}.`)}
           />
         </View>
@@ -68,7 +68,7 @@ export function ConditionDetailsFields({
             value={value.warrantyMonths}
             onChangeText={(t) => set('warrantyMonths', chiSo(t))}
             keyboardType="number-pad"
-            placeholder="0"
+            placeholder="VD: 6"
             error={loi('warrantyMonths', `Từ 0 đến ${LIMITS.warrantyMonths}.`)}
           />
         </View>
