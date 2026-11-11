@@ -187,15 +187,12 @@ jobs:
           cp "dl/$APK_NAME" out/Zoldify.apk
           cp "dl/$APK_NAME" "out/Zoldify-$DATE-$SHA7-prod.apk"
 
-          # Ghi chu lay tu tieu de commit tu ban truoc, bo commit ci/docs/test/chore/style
-          # vi nguoi tai app khong can biet. Nen sua lai ghi chu tren GitHub cho de doc.
+          # Ghi chu lay tu tieu de commit tu ban truoc. scripts/ghi-chu-phat-hanh.mjs bo
+          # tien to feat:/fix:, bo commit ci/docs/test/chore va chia muc Moi, Sua loi.
           RANGE=HEAD
           if [ -n "$PREV" ] && git rev-parse -q --verify "refs/tags/$PREV" >/dev/null; then RANGE="$PREV..HEAD"; fi
-          LOG=$(git log --no-merges --format='- %s' "$RANGE" | grep -v -E '^- (ci|docs|test|chore|style)(\(|:|!)' | head -30 || true)
           {
-            echo "## Có gì mới"
-            echo
-            if [ -n "$LOG" ]; then echo "$LOG"; else echo "- Không có thay đổi tính năng nào trong commit."; fi
+            git log --no-merges --format='%s' "$RANGE" | node scripts/ghi-chu-phat-hanh.mjs
             echo
             echo 'Bản Android cài từ file `Zoldify.apk`, đè lên bản cũ được.'
             echo
