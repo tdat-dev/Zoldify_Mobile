@@ -36,6 +36,11 @@ test('ghi chú không còn chữ feat/fix nào và có hai mục', () => {
   assert.match(md, /## Sửa lỗi\n\n- Sửa vị trí cuộn/);
 });
 
+test('khoảng trắng thừa trong tiêu đề gộp lại một dấu cách', () => {
+  // Commit thật trên main 11/11, Release android-2026-11-11-6343fc1 in ra "thêm  giỏ".
+  assert.deepEqual(phanLoai(['Sửa nút thêm  giỏ hàng']).sua, ['Sửa nút thêm giỏ hàng']);
+});
+
 test('trùng tiêu đề chỉ ghi một lần, bỏ dấu chấm cuối, viết hoa chữ đầu', () => {
   assert.deepEqual(phanLoai(['fix: ảnh bị mờ.', 'fix: Ảnh bị mờ', 'perf: mở app nhanh hơn']), {
     moi: ['Mở app nhanh hơn'],

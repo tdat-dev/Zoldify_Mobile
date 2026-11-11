@@ -27,7 +27,9 @@ export function phanLoai(tieuDe) {
     const m = TIEN_TO.exec(s);
     const loai = m ? m[1].toLowerCase() : null;
     if (loai && BO_QUA.has(loai)) continue;
-    const noiDung = chuHoaDau((m ? s.slice(m[0].length) : s).replace(/[.\s]+$/, ''));
+    const noiDung = chuHoaDau(
+      (m ? s.slice(m[0].length) : s).replace(/\s+/g, ' ').replace(/[.\s]+$/, ''),
+    );
     if (!noiDung || daCo.has(noiDung.toLowerCase())) continue;
     daCo.add(noiDung.toLowerCase());
     const laSua = loai ? loai === 'fix' : LA_SUA.test(noiDung);
