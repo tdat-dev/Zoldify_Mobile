@@ -29,7 +29,234 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathAdvancedPattern": "/[a-z0-9-]*-i[1-9][0-9]*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPattern": "/.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-.*-i.*"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPrefix": "/product/"
+            },
+            {
+              "scheme": "https",
+              "host": "zoldify.com",
+              "pathPrefix": "/shop/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "output": "static",
