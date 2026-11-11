@@ -52,7 +52,7 @@ Android phát qua GitHub Release của repo này. Nút "Tải app cho Android" �
 
 **Từ 08/11/2026 việc này tự chạy:** merge vào `main` là job `publish` build APK prod rồi tạo Release `android-<yyyy-mm-dd>-<sha>` gồm `Zoldify.apk` và `Zoldify-<yyyy-mm-dd>-<sha>-prod.apk`, đặt làm Latest, rồi tự kiểm Latest đúng là bản vừa tạo và có `Zoldify.apk`. Không ai phải build hay tải tay nữa.
 
-- Ghi chú "Có gì mới" lấy từ tiêu đề commit kể từ bản Android trước, bỏ commit `ci`, `docs`, `test`, `chore`, `style`. Nên vào trang Release sửa lại cho người dùng dễ đọc.
+- Ghi chú lấy từ tiêu đề commit kể từ bản Android trước, soạn bằng `scripts/ghi-chu-phat-hanh.mjs`: bỏ tiền tố `feat:`, `fix:`, bỏ commit `ci`, `docs`, `test`, `chore`, `style`, `build`, `refactor`, rồi chia hai mục "Có gì mới" và "Sửa lỗi". Commit không theo tiền tố thì bắt đầu bằng "Sửa" là vào mục Sửa lỗi. Viết tiêu đề commit như câu cho người dùng đọc là ghi chú không cần sửa tay.
 - Nếu từ bản trước tới giờ chỉ đổi `.github/`, `docs/` hoặc file `.md` thì không tạo Release, vì app không đổi gì.
 - Muốn phát hành lại dù không đổi code: Actions, "Build APK", "Run workflow" trên `main`, chọn `env` là `prod` và tick `publish`.
 - Bản nháp tạo từ nhánh khác có đuôi `-nhap`; xem xong thì xoá bằng `gh release delete <tag> -R tdat-dev/Zoldify_Mobile --yes`.
