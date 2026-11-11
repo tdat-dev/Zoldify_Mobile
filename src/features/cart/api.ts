@@ -79,18 +79,24 @@ export function useRefetchCartOnFocus() {
   );
 }
 
+/**
+ * POST /cart một dòng — dùng chung cho nút trên màn sản phẩm và cho việc chạy
+ * lại hành động đang chờ sau đăng nhập (M-01, `finishLogin` cần gọi ngoài hook).
+ */
+export async function postAddToCart(input: { product_id: number; quantity?: number }): Promise<Cart> {
+  const res = await http.post<ApiResponse<Cart>>('/cart', {
+    product_id: input.product_id,
+    quantity: input.quantity ?? 1,
+  });
+  return res.data.data;
+}
+
 /** Thêm vào giỏ. Làm mới cả danh sách lẫn badge. */
 export function useAddToCart() {
   const qc = useQueryClient();
   return useMutation({
     meta: { handlesError: true },
-    mutationFn: async (input: { product_id: number; quantity?: number }) => {
-      const res = await http.post<ApiResponse<Cart>>('/cart', {
-        product_id: input.product_id,
-        quantity: input.quantity ?? 1,
-      });
-      return res.data.data;
-    },
+    mutationFn: postAddToCart,
     onSuccess: () => qc.invalidateQueries({ queryKey: cartKeys.all }),
   });
 }
@@ -102,29 +108,31 @@ export function useAddToCart() {
  * sang thanh toán thành 3, hoặc bị từ chối vì vượt kho. Món đã có trong giỏ
  * thì PATCH về đúng số, chưa có thì thêm mới.
  */
+export async function postBuyNow(input: { product_id: number; quantity: number }): Promise<Cart> {
+  const list = await http.get<ApiResponse<Paginated<Cart>>>('/cart', {
+    params: { currentPage: 1, limit: 100 },
+  });
+  const existing = (list.data.data?.result ?? []).find(
+    (i) => Number(i.product?.id) === Number(input.product_id),
+  );
+  if (existing) {
+    const res = await http.patch<ApiResponse<Cart>>(`/cart/${existing.id}`, {
+      quantity: input.quantity,
+    });
+    return res.data.data ?? existing;
+  }
+  const res = await http.post<ApiResponse<Cart>>('/cart', {
+    product_id: input.product_id,
+    quantity: input.quantity,
+  });
+  return res.data.data;
+}
+
 export function useBuyNow() {
   const qc = useQueryClient();
   return useMutation({
     meta: { handlesError: true },
-    mutationFn: async (input: { product_id: number; quantity: number }) => {
-      const list = await http.get<ApiResponse<Paginated<Cart>>>('/cart', {
-        params: { currentPage: 1, limit: 100 },
-      });
-      const existing = (list.data.data?.result ?? []).find(
-        (i) => Number(i.product?.id) === Number(input.product_id),
-      );
-      if (existing) {
-        const res = await http.patch<ApiResponse<Cart>>(`/cart/${existing.id}`, {
-          quantity: input.quantity,
-        });
-        return res.data.data ?? existing;
-      }
-      const res = await http.post<ApiResponse<Cart>>('/cart', {
-        product_id: input.product_id,
-        quantity: input.quantity,
-      });
-      return res.data.data;
-    },
+    mutationFn: postBuyNow,
     onSuccess: () => qc.invalidateQueries({ queryKey: cartKeys.all }),
   });
 }

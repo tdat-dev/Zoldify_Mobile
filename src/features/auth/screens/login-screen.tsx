@@ -11,6 +11,7 @@ import { AuthIntro } from '@/features/auth/components/auth-intro';
 import { GoogleButton } from '@/features/auth/components/google-button';
 import { OrDivider } from '@/features/auth/components/or-divider';
 import { useLogin } from '@/features/auth/api';
+import { finishLogin } from '@/features/auth/finish-login';
 import { googleAvailable } from '@/lib/firebase-config';
 import { useAuthStore } from '@/features/auth/store';
 import { useOnboardingStore } from '@/features/onboarding/store';
@@ -46,9 +47,11 @@ export default function LoginScreen() {
     login.mutate(
       { email: emailTrim, password },
       {
-        onSuccess: () => {
-          signIn();
-          router.replace('/'); // đóng luồng auth, về feed sản phẩm
+        onSuccess: async () => {
+          await signIn();
+          // Đóng luồng auth; có hành động đang chờ (M-01) thì chạy tiếp thay
+          // vì luôn về trang chủ.
+          await finishLogin();
         },
       },
     );

@@ -7,6 +7,7 @@ import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Palette } from '@/components/ui/theme';
 import { useLogin } from '@/features/auth/api';
+import { finishLogin } from '@/features/auth/finish-login';
 import { useAuthStore } from '@/features/auth/store';
 import { useOnboardingStore } from '@/features/onboarding/store';
 
@@ -32,7 +33,8 @@ export default function PasskeyScreen() {
         onSuccess: async () => {
           await signIn();
           reset();
-          router.replace('/'); // vào feed sản phẩm
+          // Vào feed, hoặc chạy tiếp hành động đang chờ (M-01).
+          await finishLogin();
         },
         onError: () => setFailed(true),
       },

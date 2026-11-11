@@ -4,7 +4,6 @@ import {
   isErrorWithCode,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Platform } from 'react-native';
 
@@ -15,6 +14,7 @@ import {
 } from '@/lib/firebase';
 import { GOOGLE_CLIENT_IDS, googleConfigured } from '@/lib/firebase-config';
 import { authApi } from '@/features/auth/api';
+import { finishLogin } from '@/features/auth/finish-login';
 import { useAuthStore } from '@/features/auth/store';
 
 /**
@@ -51,7 +51,9 @@ export function useGoogleAuth() {
     const firebaseIdToken = await userCred.user.getIdToken();
     await authApi.firebaseLogin(firebaseIdToken);
     await signIn();
-    router.replace('/');
+    // Về đúng món đang bấm (chạy tiếp "Thêm vào giỏ"/"Mua ngay"), không về
+    // trang chủ mặc định như trước (M-01).
+    await finishLogin();
   }
 
   return {

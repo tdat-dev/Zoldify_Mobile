@@ -1,6 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -24,6 +24,7 @@ import { useProductReviews, useSellerStats } from '@/features/reviews/api';
 import { ReviewCard } from '@/features/reviews/components/review-card';
 import { useAddToCart, useBuyNow, useCartCount } from '@/features/cart/api';
 import { useAuthStore } from '@/features/auth/store';
+import { setPendingAuthAction } from '@/features/auth/pending-action';
 import { useRequireAuth } from '@/features/auth/use-require-auth';
 import { isNotFoundError } from '@/lib/api/error-message';
 import { formatVnd } from '@/lib/format';
@@ -31,7 +32,12 @@ import { shareProduct } from '@/lib/share';
 
 /** Chi tiết sản phẩm — token web: giá đỏ, góc 4px, badge tình trạng. */
 export default function ProductDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // `added`/`addError`: finishLogin thêm giỏ xong quay lại đúng món này (M-01).
+  const { id, added: addedFlag, addError: errFlag } = useLocalSearchParams<{
+    id: string;
+    added?: string;
+    addError?: string;
+  }>();
   const insets = useSafeAreaInsets();
   const requireAuth = useRequireAuth();
   const guest = useAuthStore((s) => s.status) !== 'signedIn';
@@ -45,8 +51,18 @@ export default function ProductDetailScreen() {
   // nhanh hai lần trong khe đó là thêm vào giỏ hai lần. Ref đổi ngay lập tức.
   const busyRef = useRef(false);
   const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
-  const [errMsg, setErrMsg] = useState<string | null>(null);
+  // finishLogin thêm giỏ xong quay về đây với cờ `added`/`addError` (M-01):
+  // khởi tạo state ngay lúc mount (không setState trong effect), "Đã thêm ✓"
+  // tự tắt sau 1.5s giống bấm tay.
+  const [added, setAdded] = useState(addedFlag === '1');
+  const [errMsg, setErrMsg] = useState<string | null>(
+    errFlag === '1' ? 'Chưa thêm được vào giỏ. Thử lại nhé.' : null,
+  );
+  useEffect(() => {
+    if (addedFlag !== '1') return;
+    const t = setTimeout(() => setAdded(false), 1500);
+    return () => clearTimeout(t);
+  }, [addedFlag]);
   const { data: cartCount = 0 } = useCartCount();
   const productId = Number(id);
   const { data: product, isPending, isError, error, refetch } = useProduct(productId);
@@ -89,7 +105,12 @@ export default function ProductDetailScreen() {
   };
 
   const onAdd = () => {
-    if (guest) return requireAuth();
+    if (guest) {
+      // Giữ ý định của khách rồi mới mở đăng nhập — đăng nhập xong finishLogin
+      // chạy tiếp, không mất món như trước (M-01).
+      setPendingAuthAction({ kind: 'addToCart', productId: product!.id, quantity: qty });
+      return requireAuth();
+    }
     if (busyRef.current) return;
     busyRef.current = true;
     setErrMsg(null);
@@ -111,7 +132,10 @@ export default function ProductDetailScreen() {
   };
 
   const onBuy = () => {
-    if (guest) return requireAuth();
+    if (guest) {
+      setPendingAuthAction({ kind: 'buyNow', productId: product!.id, quantity: qty });
+      return requireAuth();
+    }
     if (busyRef.current) return;
     busyRef.current = true;
     setErrMsg(null);
