@@ -53,7 +53,9 @@ export default function HomeScreen() {
     );
   }
 
-  if (isError) {
+  // Lỗi ở trang kế tiếp KHÔNG được thay cả feed: đã có dữ liệu thì giữ nguyên
+  // danh sách + vị trí cuộn, chỉ báo lỗi ở cuối lưới (xem ListFooterComponent).
+  if (isError && !data) {
     return (
       <View style={styles.root}>
         <ScreenStatusBar style="light" />
@@ -110,6 +112,13 @@ export default function HomeScreen() {
             <View style={styles.footer}>
               <ActivityIndicator color={Palette.brand} />
             </View>
+          ) : isError ? (
+            <View style={styles.footer}>
+              <Text variant="bodyMuted" style={styles.footerError}>
+                Không tải thêm được món mới. {apiErrorMessage(error, 'Vui lòng thử lại.')}
+              </Text>
+              <Button title="Thử lại" onPress={() => refetch()} />
+            </View>
           ) : !hasNextPage && items.length > 0 ? (
             <Text style={styles.end}>Hết rồi — bạn đã lượn hết chợ.</Text>
           ) : null
@@ -131,6 +140,7 @@ const styles = StyleSheet.create({
   column: { gap: 12 },
   sectionTitle: { marginBottom: 2, paddingHorizontal: 12 },
   empty: { paddingVertical: 48, alignItems: 'center' },
-  footer: { paddingVertical: 20 },
+  footer: { paddingVertical: 20, alignItems: 'center', gap: 8 },
+  footerError: { textAlign: 'center', paddingHorizontal: 24 },
   end: { textAlign: 'center', paddingVertical: 20, color: Palette.inkFaint, fontSize: 12.5 },
 });
