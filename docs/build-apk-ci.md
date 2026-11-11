@@ -13,7 +13,7 @@ APK release ký bằng `debug.keystore` có SHA-1 `5e8f16062ea3cd2c4a0d547876baa
 
 ## Cách chạy
 
-**Tự động:** mỗi lần push lên nhánh `fix/**`, `feat/**`, `ci/**`, `staging`, `main` sẽ build một APK release **staging** (ABI `arm64-v8a,x86_64`). Commit chỉ sửa `docs/**` hoặc file `.md` thì không build. Push mới lên cùng nhánh sẽ huỷ lượt build cũ đang chạy.
+**Tự động:** mỗi lần push lên nhánh `fix/**`, `feat/**`, `ci/**`, `staging` sẽ build một APK release **staging** (ABI `arm64-v8a,x86_64`). Push lên `main` thì build APK **prod** và tự phát hành lên GitHub Release (xem mục "Phát hành cho người dùng"). Commit chỉ sửa `docs/**` hoặc file `.md` thì không build. Push mới lên cùng nhánh sẽ huỷ lượt build cũ đang chạy.
 
 **Bấm tay:** tab Actions, chọn "Build APK", "Run workflow", chọn nhánh rồi điền:
 
@@ -21,6 +21,7 @@ APK release ký bằng `debug.keystore` có SHA-1 `5e8f16062ea3cd2c4a0d547876baa
 - `abi`: `arm64-v8a,x86_64` (mặc định: điện thoại đời mới + máy ảo), đủ 4 ABI cho máy cũ 32-bit, hoặc chỉ một ABI để build nhanh hơn
 - `release`: có build APK release không
 - `dev_client`: tick để build thêm APK dev client
+- `publish`: tạo GitHub Release từ APK vừa build, cần `env` là `prod`. Chạy trên `main` thì thành bản Latest; chạy trên nhánh khác chỉ tạo **bản nháp** để xem trước, không ai tải được qua nút trên web
 
 Nút "Run workflow" chỉ hiện khi file workflow đã có trên nhánh mặc định `main` (tức sau khi PR `ci/build-apk` được merge); trước đó chỉ có build tự động khi push. Sau khi merge, chạy bằng dòng lệnh cũng được:
 
@@ -48,6 +49,15 @@ Build lần đầu (chưa có cache) mất khoảng 30 đến 40 phút; các l�
 ## Phát hành cho người dùng
 
 Android phát qua GitHub Release của repo này. Nút "Tải app cho Android" ở footer zoldify.com trỏ tới `releases/latest/download/Zoldify.apk`, nên mỗi bản phát hành **phải** có file tên đúng `Zoldify.apk` và phải là bản Latest. Thiếu file là nút tải trả 404.
+
+**Từ 08/11/2026 việc này tự chạy:** merge vào `main` là job `publish` build APK prod rồi tạo Release `android-<yyyy-mm-dd>-<sha>` gồm `Zoldify.apk` và `Zoldify-<yyyy-mm-dd>-<sha>-prod.apk`, đặt làm Latest, rồi tự kiểm Latest đúng là bản vừa tạo và có `Zoldify.apk`. Không ai phải build hay tải tay nữa.
+
+- Ghi chú "Có gì mới" lấy từ tiêu đề commit kể từ bản Android trước, bỏ commit `ci`, `docs`, `test`, `chore`, `style`. Nên vào trang Release sửa lại cho người dùng dễ đọc.
+- Nếu từ bản trước tới giờ chỉ đổi `.github/`, `docs/` hoặc file `.md` thì không tạo Release, vì app không đổi gì.
+- Muốn phát hành lại dù không đổi code: Actions, "Build APK", "Run workflow" trên `main`, chọn `env` là `prod` và tick `publish`.
+- Bản nháp tạo từ nhánh khác có đuôi `-nhap`; xem xong thì xoá bằng `gh release delete <tag> -R tdat-dev/Zoldify_Mobile --yes`.
+
+Làm tay (khi CI hỏng):
 
 ```
 gh release create android-<yyyy-mm-dd> Zoldify.apk Zoldify-<yyyy-mm-dd>-prod.apk -R tdat-dev/Zoldify_Mobile --target <sha trên main> --latest
