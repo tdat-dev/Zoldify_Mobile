@@ -13,7 +13,10 @@ export function useRequireAuth() {
   const status = useAuthStore((s) => s.status);
 
   return (action?: () => void): boolean => {
-    if (status === 'signedIn') {
+    // `unverified` không phải khách: token còn đó, cứ chạy action — server hoặc
+    // lỗi mạng sẽ trả lời. Mở form đăng nhập lúc này làm người dùng tưởng
+    // bị logout dù phiên vẫn sống.
+    if (status === 'signedIn' || status === 'unverified') {
       action?.();
       return true;
     }

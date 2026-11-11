@@ -38,6 +38,7 @@ export default function AccountScreen() {
   const status = useAuthStore((s) => s.status);
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
+  const hydrate = useAuthStore((s) => s.hydrate);
   // Đã có mật khẩu chưa → menu hiện "Đặt mật khẩu" cho tài khoản Google.
   const { data: profile } = useProfile(status === 'signedIn');
   const hasPassword = profile?.has_password;
@@ -100,6 +101,18 @@ export default function AccountScreen() {
             <Button title="Đăng xuất" variant="ghost" onPress={() => signOut()} />
           </View>
         </ScrollView>
+      ) : status === 'unverified' ? (
+        // Token còn nhưng mất mạng lúc mở app chưa xác minh được: nói thật là
+        // ngoại tuyến, hứa giữ phiên, cho bấm thử lại — không mời đăng nhập.
+        <View style={styles.center}>
+          <Text variant="heading" style={styles.line}>Đang ngoại tuyến</Text>
+          <Text variant="bodyMuted" style={styles.line}>
+            Phiên đăng nhập của bạn vẫn được giữ. Bật lại mạng rồi thử — hoặc bấm thử lại nhé.
+          </Text>
+          <View style={styles.cta}>
+            <Button title="Thử lại" onPress={() => hydrate()} />
+          </View>
+        </View>
       ) : (
         <View style={styles.center}>
           <Text variant="heading" style={styles.line}>Chào bạn ở Zoldify</Text>

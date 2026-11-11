@@ -40,7 +40,9 @@ export default function ProductDetailScreen() {
   }>();
   const insets = useSafeAreaInsets();
   const requireAuth = useRequireAuth();
-  const guest = useAuthStore((s) => s.status) !== 'signedIn';
+  // Khách THẬT (signedOut). `unverified` có token: bấm mua/thêm thì để server
+  // trả lời — mở login giữa chừng sẽ làm người dùng tưởng bị logout.
+  const guest = useAuthStore((s) => s.status) === 'signedOut';
   const me = useAuthStore((s) => s.user);
   const startConv = useStartConversation();
   const addToCart = useAddToCart();

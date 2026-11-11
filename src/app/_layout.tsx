@@ -6,7 +6,7 @@ import {
   BeVietnamPro_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/be-vietnam-pro';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { onlineManager, QueryClientProvider } from '@tanstack/react-query';
 import {
   DarkTheme,
   DefaultTheme,
@@ -15,10 +15,11 @@ import {
   Stack,
   ThemeProvider,
 } from 'expo-router';
+import * as Network from 'expo-network';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { Alert, Pressable, Text, View, useColorScheme } from 'react-native';
+import { Alert, AppState, Pressable, Text, View, useColorScheme } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
@@ -137,6 +138,43 @@ export default function RootLayout() {
     if (authStatus === 'hydrating') return;
     void setWishlistOwner(authStatus === 'signedIn' ? userId : null);
   }, [authStatus, userId, setWishlistOwner]);
+
+  // Mạng là nguồn cho TanStack Query (offline thì tạm dừng, có mạng tự gọi
+  // lại) VÀ là lúc kiểm tra lại phiên: mở app khi mất mạng thì hydrate chốt
+  // `unverified` (token còn, chưa xác minh được) — nếu không nghe mạng trở
+  // lại, app đứng im ở trạng thái khách cho tới khi người dùng tắt-mở app.
+  useEffect(() => {
+    const onlineOf = (state: Network.NetworkState) =>
+      state.isConnected !== false && state.isInternetReachable !== false;
+
+    const recheckSession = () => {
+      const { status, hydrate } = useAuthStore.getState();
+      if (status !== 'unverified') return;
+      void hydrate();
+    };
+
+    const setOnline = (state: Network.NetworkState) => {
+      const online = onlineOf(state);
+      onlineManager.setOnline(online);
+      if (online) recheckSession();
+    };
+
+    // Trạng thái ban đầu (lắng nghe chỉ báo khi ĐỔI, có thể bỏ lỡ trạng thái
+    // lúc đăng ký). Trạng thái đầu cũng quyết định query có chạy ngay không.
+    void Network.getNetworkStateAsync().then(setOnline);
+    const sub = Network.addNetworkStateListener(setOnline);
+
+    // Mở lại từ nền mà không có sự kiện mạng nào (sự kiện native có thể bị
+    // lỡ khi app tắt màn) vẫn kiểm tra lại phiên.
+    const appState = AppState.addEventListener('change', (next) => {
+      if (next === 'active') recheckSession();
+    });
+
+    return () => {
+      sub.remove();
+      appState.remove();
+    };
+  }, []);
 
   return (
     <KeyboardProvider>

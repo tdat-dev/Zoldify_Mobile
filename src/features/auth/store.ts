@@ -13,20 +13,26 @@ import type { AuthUser } from '@/api';
  * đăng nhập hay chưa. Điều hướng (route-group / auth-gate) chỉ đọc `status`
  * từ đây, không tự đoán bằng cách hỏi SecureStore rải rác.
  *
- *   hydrating -> đang đọc token lúc mở app, CHƯA biết. Giữ splash ở đây.
- *   signedIn  -> có token hợp lệ, đã lấy được profile.
- *   signedOut -> không có token, hoặc token hỏng/hết hạn.
+ *   hydrating   -> đang đọc token lúc mở app, CHƯA biết. Giữ splash ở đây.
+ *   signedIn    -> có token hợp lệ, đã lấy được profile.
+ *   unverified  -> CÓ token nhưng chưa kiểm tra lại được (mất mạng, hết giờ,
+ *                  server lỗi). Không phải khách: đừng mời đăng nhập, cứ chờ
+ *                  có mạng rồi hydrate lại.
+ *   signedOut   -> không có token, hoặc server từ chối (401/403).
  *
  * `user` luôn lấy từ GET /auth/profile (một nguồn), nên không phụ thuộc
  * hình dạng của response đăng nhập.
  */
-export type AuthStatus = 'hydrating' | 'signedIn' | 'signedOut';
+export type AuthStatus = 'hydrating' | 'signedIn' | 'unverified' | 'signedOut';
 
 interface AuthState {
   status: AuthStatus;
   user: AuthUser | null;
 
-  /** Gọi một lần lúc mở app: đọc token, xác thực bằng cách lấy profile. */
+  /**
+   * Đọc token, xác thực bằng cách lấy profile. Gọi lúc mở app và mỗi lần
+   * có mạng trở lại khi trạng thái còn `unverified`.
+   */
   hydrate: () => Promise<void>;
   /** Gọi sau khi đăng nhập thành công (token đã được authApi.login lưu). */
   signIn: () => Promise<void>;
@@ -50,7 +56,7 @@ interface AuthState {
  */
 const HYDRATE_PROFILE_TIMEOUT_MS = 6000;
 
-/** Có token thì lấy profile để chốt signedIn; hỏng thì coi như signedOut. */
+/** Có token thì lấy profile để chốt signedIn; server từ chối mới là signedOut. */
 async function resolveSession(timeoutMs?: number): Promise<{ status: AuthStatus; user: AuthUser | null }> {
   const token = await tokenStore.getAccessToken();
   if (!token) {
@@ -60,12 +66,17 @@ async function resolveSession(timeoutMs?: number): Promise<{ status: AuthStatus;
     const user = await authApi.profile(timeoutMs);
     return { status: 'signedIn', user };
   } catch (e) {
-    // Token bị server từ chối (401) thì interceptor đã xoá. Còn mất mạng hay
-    // hết giờ thì GIỮ token: lần mở sau có mạng là vào lại được, không bắt
-    // đăng nhập lại chỉ vì lúc mở app đang ở chỗ sóng yếu.
     const status = (e as { response?: { status?: number } })?.response?.status;
-    if (status === 401 || status === 403) await tokenStore.clear();
-    return { status: 'signedOut', user: null };
+    if (status === 401 || status === 403) {
+      // Token bị server từ chối thì interceptor đã xoá — hết phiên thật.
+      await tokenStore.clear();
+      return { status: 'signedOut', user: null };
+    }
+    // Mất mạng / hết giờ / 5xx: chưa có bằng chứng nào nói phiên hết. GIỮ token,
+    // báo `unverified` thay vì signedOut — nếu không, mở app ở chỗ sóng yếu là
+    // tab "Tôi" mời đăng nhập nhầm, và có mạng lại vẫn đứng im cho tới khi
+    // tắt-mở app (mới hydrate lại một lần lúc mở).
+    return { status: 'unverified', user: null };
   }
 }
 
@@ -102,8 +113,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   sessionExpired: () => {
-    // Lúc mở app (hydrating) thì hydrate tự chốt signedOut, chưa có gì để dọn.
-    if (signingOut || get().status !== 'signedIn') return false;
+    // hydrating thì hydrate tự chốt xong đã; signedOut thì chẳng còn gì dọn.
+    // unverified mà bị 401 nghĩa là token đã thật sự hết hạn — dọn như signedIn.
+    if (signingOut) return false;
+    const status = get().status;
+    if (status !== 'signedIn' && status !== 'unverified') return false;
     disconnectChatSocket();
     set({ status: 'signedOut', user: null });
     resetSessionCache(queryClient);

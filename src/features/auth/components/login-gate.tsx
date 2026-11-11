@@ -28,10 +28,23 @@ function LoginGate({
   const prompt = loginPromptFor(routeName);
 
   if (!prompt || status === 'signedIn') return children;
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
   // Chưa biết là ai: splash còn che màn, đợi đọc xong phiên chứ không mời nhầm.
   if (status === 'hydrating') return <View style={styles.wait} />;
+  // Có token nhưng chưa kiểm tra lại được (mất mạng lúc mở app): KHÔNG được
+  // mời đăng nhập — sẽ thành lời nói dối "bạn chưa đăng nhập". Nói thẳng là
+  // ngoại tuyến; có mạng là hydrate lại, cổng tự mở.
+  if (status === 'unverified') {
+    return (
+      <TabPlaceholder
+        title="Đang ngoại tuyến"
+        note="Mục này cần kết nối mạng. Bật lại wifi/4G là dùng tiếp được ngay — phiên đăng nhập của bạn vẫn được giữ."
+        onBack={inTabs ? undefined : back}
+      />
+    );
+  }
 
-  const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   return <TabPlaceholder title={prompt.title} note={prompt.note} onBack={inTabs ? undefined : back} />;
 }
 

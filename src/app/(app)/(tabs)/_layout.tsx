@@ -39,7 +39,9 @@ interface TabBarProps {
  */
 function TabBar({ state, descriptors, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
-  const guest = useAuthStore((s) => s.status) !== 'signedIn';
+  // Khách THẬT mới là signedOut. `unverified` (mất mạng lúc mở app, token còn)
+  // vẫn vào được tab — đụng phải màn đăng nhập là app "nhìn như bị logout".
+  const guest = useAuthStore((s) => s.status) === 'signedOut';
   // Số thông báo chưa đọc → chấm số trên tab Thông báo (khách không hỏi).
   const unread = useUnreadCount(!guest).data ?? 0;
 

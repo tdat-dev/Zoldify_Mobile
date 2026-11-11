@@ -40,7 +40,8 @@ function IconButton({
 
 export function HomeHeader() {
   const insets = useSafeAreaInsets();
-  const guest = useAuthStore((s) => s.status) !== 'signedIn';
+  // Khách THẬT mới tính là khách (như tab bar) — `unverified` vẫn là phiên.
+  const guest = useAuthStore((s) => s.status) === 'signedOut';
   const { data: cartCount = 0 } = useCartCount();
   const { data: chatUnread = 0 } = useChatUnreadTotal(!guest);
   const [scopeOpen, setScopeOpen] = useState(false);
