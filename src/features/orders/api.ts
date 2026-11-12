@@ -158,6 +158,25 @@ export function usePayOrderWithWallet() {
   });
 }
 
+/**
+ * Người mua đổi cách trả của đơn còn chờ xác nhận và chưa trả
+ * (PATCH /orders/:id/payment-method, cùng luật với web).
+ */
+export function useChangePaymentMethod() {
+  const qc = useQueryClient();
+  return useMutation({
+    meta: { handlesError: true },
+    mutationFn: async ({ orderId, method }: { orderId: number; method: 'cod' | 'wallet' }) => {
+      const res = await http.patch<ApiResponse<Order>>(`/orders/${orderId}/payment-method`, {
+        payment_method: method,
+      });
+      return res.data.data;
+    },
+    // Lỗi (vd người bán vừa xác nhận) thì đơn trên server cũng đã khác: tải lại.
+    onSettled: () => qc.invalidateQueries({ queryKey: orderKeys.all }),
+  });
+}
+
 /** Người mua huỷ đơn (khi còn cho phép). */
 export function useCancelOrder() {
   const qc = useQueryClient();
