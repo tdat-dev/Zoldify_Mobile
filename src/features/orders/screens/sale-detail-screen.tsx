@@ -195,7 +195,10 @@ export default function SaleDetailScreen() {
           </View>
           {shared ? (
             <Text variant="caption" style={styles.sharedNote}>
-              Đơn này có cả hàng của người bán khác. Số tiền trên là phần của bạn; muốn huỷ thì liên hệ quản trị viên.
+              Đơn này có cả hàng của người bán khác. Số tiền trên là phần của bạn
+              {order.status === 'pending' || order.status === 'confirmed'
+                ? '; muốn huỷ thì liên hệ quản trị viên.'
+                : '.'}
             </Text>
           ) : null}
         </View>
