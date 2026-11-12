@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { Keyboard } from 'react-native';
 
 import { takePendingAuthAction } from '@/features/auth/pending-action';
 import { cartKeys, postAddToCart, postBuyNow } from '@/features/cart/api';
@@ -15,6 +16,12 @@ import { queryClient } from '@/lib/api/query-client';
  * mới. Một mình hàm này `take` hành động đang chờ, không màn nào khác.
  */
 export async function finishLogin(): Promise<void> {
+  // Bỏ focus ô nhập TRƯỚC khi rời màn đăng nhập. Test máy ảo 12/11: app crash
+  // native (SIGSEGV ở FabricUIManagerBinding::findNextFocusableElement) khi ô
+  // mật khẩu còn giữ bàn phím lúc màn bị gỡ, và cửa sổ lấy lại focus (hộp
+  // "lưu mật khẩu" của Google vừa đóng) làm Android đi tìm ô kế tiếp trong
+  // cây view đang huỷ. Không còn ô nào giữ focus thì không có lượt tìm đó.
+  Keyboard.dismiss();
   const pending = takePendingAuthAction();
 
   if (!pending) {
