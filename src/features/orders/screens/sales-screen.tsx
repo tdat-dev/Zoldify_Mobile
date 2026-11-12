@@ -12,6 +12,7 @@ import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useSellerOrders } from '@/features/orders/api';
 import { SALE_TABS, STATUS_META } from '@/features/orders/order-status';
+import { isMultiSeller, sellerSubtotal } from '@/features/orders/seller-share';
 import { formatVnd } from '@/lib/format';
 import type { Order } from '@/api';
 
@@ -20,6 +21,8 @@ function SaleRow({ order }: { order: Order }) {
   const first = items[0];
   const more = items.length - 1;
   const meta = STATUS_META[order.status];
+  // Đơn chung với người bán khác: tổng cả đơn không phải tiền của mình.
+  const shared = isMultiSeller(order);
 
   return (
     <Pressable
@@ -44,8 +47,13 @@ function SaleRow({ order }: { order: Order }) {
       </View>
 
       <View style={styles.cardFoot}>
-        <Text variant="caption">{order.payment_method === 'cod' ? 'Thu hộ (COD)' : 'Đã trả qua app'}</Text>
-        <Text style={styles.total}>{formatVnd(order.final_amount, order.currency)}</Text>
+        <Text variant="caption">
+          {order.payment_method === 'cod' ? 'Thu hộ (COD)' : 'Đã trả qua app'}
+          {shared ? ' · Phần của bạn' : ''}
+        </Text>
+        <Text style={styles.total}>
+          {formatVnd(shared ? sellerSubtotal(order) : order.final_amount, order.currency)}
+        </Text>
       </View>
     </Pressable>
   );

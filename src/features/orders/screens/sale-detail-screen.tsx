@@ -19,6 +19,7 @@ import {
   type OrderShipment,
 } from '@/features/orders/api';
 import { STATUS_META } from '@/features/orders/order-status';
+import { isMultiSeller } from '@/features/orders/seller-share';
 import { formatVnd } from '@/lib/format';
 import type { Order } from '@/api';
 
@@ -94,11 +95,16 @@ export default function SaleDetailScreen() {
   const items = mine.length > 0 ? mine : allItems;
   const myAmount = items.reduce((s, i) => s + Number(i.subtotal ?? 0), 0);
   const shipment = order.shipments?.find((s) => s.seller?.id === me) ?? order.shipments?.[0];
+  // Backend đã lọc còn món của mình (từ 12/11) nên `items` luôn bằng `allItems`;
+  // nhận ra đơn chung bằng tiền hàng cả đơn, như web.
+  const shared = items.length < allItems.length || isMultiSeller(order);
   const meta = STATUS_META[order.status];
   const busy = confirm.isPending || cancel.isPending || retry.isPending || pickup.isPending;
 
   const canConfirm = order.status === 'pending';
-  const canCancel = order.status === 'pending' || order.status === 'confirmed';
+  // Đơn chung thì backend từ chối (huỷ ảnh hưởng phần của người bán khác):
+  // ẩn nút thay vì để người bán bấm rồi mới báo lỗi.
+  const canCancel = !shared && (order.status === 'pending' || order.status === 'confirmed');
   // Tạo lại vận đơn / giả lập lấy hàng chỉ có nghĩa khi đơn còn chờ gửi; đơn
   // đã huỷ vẫn giữ dòng vận đơn lỗi để biết vì sao, nhưng không còn nút.
   const awaitingShipment = order.status === 'confirmed' || order.status === 'processing';
@@ -160,7 +166,7 @@ export default function SaleDetailScreen() {
 
         <View style={styles.card}>
           <Text variant="heading" style={styles.h}>
-            {items.length < allItems.length ? `${items.length} món của bạn` : `${items.length} món`}
+            {shared ? `${items.length} món của bạn` : `${items.length} món`}
           </Text>
           <View style={styles.items}>
             {items.map((it) => {
@@ -187,6 +193,11 @@ export default function SaleDetailScreen() {
             </Text>
             <Text style={styles.total}>{formatVnd(myAmount, order.currency)}</Text>
           </View>
+          {shared ? (
+            <Text variant="caption" style={styles.sharedNote}>
+              Đơn này có cả hàng của người bán khác. Số tiền trên là phần của bạn; muốn huỷ thì liên hệ quản trị viên.
+            </Text>
+          ) : null}
         </View>
 
         {canConfirm || canCancel || canRetry || canPickup ? (
@@ -275,5 +286,6 @@ const styles = StyleSheet.create({
   sumRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
   sumTotal: { borderTopWidth: 1, borderTopColor: Palette.line, marginTop: 12, paddingTop: 10 },
   total: { fontFamily: Font.extrabold, fontSize: 18, color: Palette.price, fontVariant: ['tabular-nums'] },
+  sharedNote: { marginTop: 8 },
   actions: { gap: 10 },
 });
