@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useCancelOrder, useConfirmReceived, useOrder, usePayOrderWithWallet } from '@/features/orders/api';
+import { ChangePaymentButton, canChangePaymentMethod } from '@/features/orders/change-payment-button';
 import { useMyReviewedProducts } from '@/features/reviews/api';
 import { STATUS_META, type OrderStatus } from '@/features/orders/order-status';
 import { apiErrorMessage } from '@/lib/api/error-message';
@@ -111,6 +112,7 @@ export default function OrderDetailScreen() {
   // Chọn ví lúc đặt mà trừ tiền chưa được (thiếu số dư...): đơn còn chờ và
   // chưa trả thì cho trả lại ngay tại đây.
   const canPayWallet = order.payment_method === 'wallet' && !order.is_paid && order.status === 'pending';
+  const canChangePay = canChangePaymentMethod(order);
   // Vận đơn GHN bị từ chối: nói rõ cho người mua thay vì để đơn nằm im ở "Đã
   // xác nhận" (lỗi H-08 test E2E, đơn ORD-20260930-785). Chỉ khi đơn còn chờ
   // gửi: đơn đã huỷ mà vẫn hứa "sẽ được giao" là nói sai (thấy khi test 05/10).
@@ -297,7 +299,7 @@ export default function OrderDetailScreen() {
           </View>
         </View>
 
-        {canPayWallet || canReceive || canCancel ? (
+        {canPayWallet || canChangePay || canReceive || canCancel ? (
           <View style={styles.actions}>
             {canPayWallet ? (
               <Button
@@ -306,6 +308,7 @@ export default function OrderDetailScreen() {
                 loading={pay.isPending}
               />
             ) : null}
+            {canChangePay ? <ChangePaymentButton order={order} /> : null}
             {canReceive ? (
               <Button
                 title={receiving ? 'Đang xác nhận…' : 'Đã nhận hàng'}
