@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import http from '@/lib/api/client';
 import type { ApiResponse } from '@/api';
+import { useAuthStore } from '@/features/auth/store';
 
 /** Các trường pickup GHN cần đủ để được phép đăng bán. */
 export interface ShopPickup {
@@ -72,6 +73,12 @@ export function useSaveShop() {
       });
       return res.data.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: shopKeys.me }),
+    onSuccess: (_shop, input) => {
+      qc.invalidateQueries({ queryKey: shopKeys.me });
+      // Mở shop là server nâng buyer lên seller (backend issue #41). Màn Tôi đọc
+      // `user.role` để hiện khu Người bán, nên đọc lại hồ sơ ngay: không thì
+      // người vừa mở shop phải đăng xuất hoặc tắt app mới thấy chỗ bán.
+      if (!input.hasShop) void useAuthStore.getState().refreshProfile();
+    },
   });
 }
