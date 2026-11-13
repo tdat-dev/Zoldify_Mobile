@@ -56,6 +56,7 @@ type PayMethod = NonNullable<CreateOrderDto['payment_method']>;
 const PAY_OPTIONS: { value: PayMethod; title: string; desc: string; icon: keyof typeof Feather.glyphMap }[] = [
   { value: 'cod', title: 'Thanh toán khi nhận (COD)', desc: 'Trả tiền mặt khi nhận hàng', icon: 'truck' },
   { value: 'wallet', title: 'Ví Zoldify', desc: 'Trừ vào số dư ví của bạn', icon: 'credit-card' },
+  { value: 'bank_transfer', title: 'Chuyển khoản ngân hàng', desc: 'Chuyển khoản qua tài khoản ngân hàng', icon: 'briefcase' },
 ];
 
 /** Thanh toán: địa chỉ GHN → phí ship theo người bán → tạo đơn (COD/Ví). */
