@@ -19,6 +19,7 @@ import { useAddresses, type Address } from '@/features/addresses/api';
 import { isCartItemAvailable, useCart, useRefetchCartOnFocus } from '@/features/cart/api';
 import { type GhnAddressSelection } from '@/features/checkout/ghn-address-form';
 import { useCreateOrder, usePayOrderWithWallet, useShippingQuote, useWalletBalance } from '@/features/orders/api';
+import { openOrderPayosCheckout } from '@/features/orders/payos-checkout';
 import type { CreateOrderDto, Order } from '@/api';
 import { apiErrorMessage } from '@/lib/api/error-message';
 import { formatVnd } from '@/lib/format';
@@ -53,13 +54,19 @@ function toSelection(a: Address): GhnAddressSelection {
 }
 
 type PayMethod = NonNullable<CreateOrderDto['payment_method']>;
+/**
+ * Ba cách trả, giống hệt web (`Zoldify_Frontend/src/app/checkout/page.tsx`):
+ * `payos` là "Thẻ hoặc QR" — tạo đơn xong app chuyển sang trang PayOS có mã
+ * VietQR. Trước đây app gửi 'bank_transfer' và KHÔNG tạo link, nên chọn xong
+ * đơn nằm ở "Chưa trả" mà không có gì để quét.
+ */
 const PAY_OPTIONS: { value: PayMethod; title: string; desc: string; icon: keyof typeof Feather.glyphMap }[] = [
   { value: 'cod', title: 'Thanh toán khi nhận (COD)', desc: 'Trả tiền mặt khi nhận hàng', icon: 'truck' },
   { value: 'wallet', title: 'Ví Zoldify', desc: 'Trừ vào số dư ví của bạn', icon: 'credit-card' },
-  { value: 'bank_transfer', title: 'Chuyển khoản ngân hàng', desc: 'Chuyển khoản qua tài khoản ngân hàng', icon: 'briefcase' },
+  { value: 'payos', title: 'Thẻ hoặc QR (PayOS)', desc: 'Quét mã QR hoặc chuyển khoản, thẻ ATM', icon: 'smartphone' },
 ];
 
-/** Thanh toán: địa chỉ GHN → phí ship theo người bán → tạo đơn (COD/Ví). */
+/** Thanh toán: địa chỉ GHN → phí ship theo người bán → tạo đơn (COD / Ví / PayOS). */
 export default function CheckoutScreen() {
   const insets = useSafeAreaInsets();
   // `only` = mua ngay 1 món: chỉ thanh toán đúng cart item đó, không phải cả giỏ.
@@ -196,6 +203,7 @@ export default function CheckoutScreen() {
     create.mutate({ dto, idempotencyKey: idempotencyKey.current ?? undefined }, {
       onSuccess: (created) => {
         if (payment === 'wallet') void payWithWallet(created);
+        else if (payment === 'payos') void payWithPayos(created);
         else router.replace('/orders');
       },
       onError: (e) => {
@@ -229,6 +237,37 @@ export default function CheckoutScreen() {
       'Đơn đã tạo nhưng chưa thanh toán',
       `${failed.message}\n\nĐơn vẫn được giữ. Nạp thêm ví rồi bấm "Trả bằng ví" trong chi tiết đơn, hoặc huỷ đơn nếu không mua nữa.`,
     );
+  };
+
+  /**
+   * PayOS: đơn phải có trước mới tạo được link, nên chuyển sang trang PayOS
+   * (mã VietQR + số tài khoản) ngay sau khi tạo. Giỏ có món của nhiều người bán
+   * thì tách thành nhiều đơn, mỗi đơn một link — mở đơn đầu, còn lại trả tiếp
+   * trong "Đơn mua" để không mở một loạt tab.
+   */
+  const payWithPayos = async (created: Order | Order[]) => {
+    const orders = Array.isArray(created) ? created : [created];
+    const first = orders[0];
+    let linkError: string | null = null;
+    try {
+      await openOrderPayosCheckout(first.id);
+    } catch (e) {
+      // Đơn ĐÃ tạo: không được báo như đặt hàng thất bại.
+      linkError = apiErrorMessage(e, 'Không lấy được link thanh toán PayOS.');
+    }
+    const others = orders.length - 1;
+    if (linkError) {
+      Alert.alert(
+        'Đơn đã tạo nhưng chưa mở được trang thanh toán',
+        `${linkError}\n\nĐơn nằm trong "Đơn mua" — bấm "Thanh toán bằng PayOS" để mở lại.`,
+      );
+    } else if (others > 0) {
+      Alert.alert(
+        `Còn ${others} đơn chưa trả`,
+        'Giỏ có món từ nhiều người bán nên tách thành nhiều đơn, mỗi đơn trả một lần. Mở từng đơn trong "Đơn mua" để trả tiếp.',
+      );
+    }
+    router.replace({ pathname: '/orders/[id]', params: { id: String(first.id) } });
   };
 
   const header = (

@@ -158,6 +158,90 @@ export function usePayOrderWithWallet() {
   });
 }
 
+/* ── Thanh toán PayOS (thẻ / QR chuyển khoản) ─────────────────────────────── */
+
+/**
+ * Link PayOS của một đơn — POST /payos/create-link, đúng endpoint web gọi khi
+ * chọn "Thẻ hoặc QR" (`Zoldify_Frontend/src/app/checkout/page.tsx`).
+ * `checkoutUrl` là trang pay.payos.vn có mã VietQR + số tài khoản để chuyển.
+ */
+export interface OrderPayosLink {
+  checkoutUrl: string;
+  qrCode?: string;
+  paymentLinkId?: string;
+  orderCode?: number;
+  amount?: number;
+  expiresAt?: number;
+}
+
+/** Trạng thái thanh toán PayOS của đơn (GET /payos/order/:id). */
+export interface PayosOrderStatus {
+  orderId: number;
+  is_paid: boolean;
+  paid_at?: string | null;
+  status?: string;
+  paymentStatus?: 'pending' | 'success' | 'failed';
+  /** Mã link PayOS đang treo cho đơn; null khi chưa từng tạo link. */
+  payos_order_code?: string | null;
+}
+
+/** Link đã lưu + trạng thái SỐNG lấy từ PayOS (GET /payos/status/:code). */
+export interface PayosLinkStatus {
+  paymentStatus?: 'pending' | 'success' | 'failed';
+  paid_at?: string | null;
+  /** PENDING | PAID | CANCELLED | EXPIRED (PayOS); null khi PayOS không trả lời. */
+  payosStatus?: string | null;
+  orderCode?: string;
+  orderId?: number | null;
+  amount?: number;
+  qrCode?: string | null;
+  checkoutUrl?: string | null;
+  expiresAt?: number | null;
+}
+
+export async function createOrderPayosLink(orderId: number): Promise<OrderPayosLink> {
+  const res = await http.post<ApiResponse<OrderPayosLink>>('/payos/create-link', {
+    type: 'order',
+    order_id: orderId,
+  });
+  const link = res.data.data;
+  if (!link?.checkoutUrl) throw new Error('Không lấy được link thanh toán PayOS.');
+  return link;
+}
+
+export async function fetchPayosOrderStatus(orderId: number): Promise<PayosOrderStatus> {
+  const res = await http.get<ApiResponse<PayosOrderStatus>>(`/payos/order/${orderId}`);
+  return res.data.data;
+}
+
+export async function fetchPayosLinkStatus(payosOrderCode: string): Promise<PayosLinkStatus> {
+  const res = await http.get<ApiResponse<PayosLinkStatus>>(`/payos/status/${payosOrderCode}`);
+  return res.data.data;
+}
+
+/**
+ * Hỏi thẳng PayOS xem đơn đã trả chưa rồi ghi nhận (GET /payos/refresh/:id) —
+ * dùng chung đường với webhook nên không sợ cộng tiền hai lần. Webhook có thể
+ * tới chậm vài giây; không có bước này thì người vừa chuyển khoản xong vẫn thấy
+ * "Chưa trả" và tưởng mất tiền.
+ */
+export function useSyncPayosOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    // Chạy tự động mỗi lần mở màn: đơn chưa từng tạo link sẽ 404, mạng chập
+    // chờn cũng có — không đáng báo cho người dùng.
+    meta: { handlesError: true },
+    mutationFn: async (orderId: number) => {
+      const res = await http.get<ApiResponse<{ is_paid?: boolean }>>(`/payos/refresh/${orderId}`);
+      return res.data.data;
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: orderKeys.all });
+      qc.invalidateQueries({ queryKey: walletKeys.balance });
+    },
+  });
+}
+
 /**
  * Người mua đổi cách trả của đơn còn chờ xác nhận và chưa trả
  * (PATCH /orders/:id/payment-method, cùng luật với web).

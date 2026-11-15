@@ -21,9 +21,9 @@ export function canChangePaymentMethod(order: Order): boolean {
  * Nút "Đổi cách trả" cho đơn chưa trả, giống web (#168).
  *
  * Vì sao cần: chọn ví mà thiếu tiền thì đơn nằm chờ, muốn trả khi nhận hàng
- * phải huỷ rồi đặt lại trong khi giỏ đã bị xoá. App chỉ có COD và ví lúc đặt
- * (PayOS cho đơn chỉ có trên web), nên chỉ cho đổi qua lại hai cách này; đơn
- * PayOS đặt từ web vẫn đổi được sang một trong hai.
+ * phải huỷ rồi đặt lại trong khi giỏ đã bị xoá. Nút này chỉ đổi qua lại COD và
+ * ví; đơn trả bằng PayOS (thẻ/QR) thì đã có nút "Thanh toán bằng PayOS" ngay
+ * trên màn chi tiết, nên vẫn đổi sang một trong hai cách này được.
  *
  * Đổi sang ví thì trừ ví luôn, khỏi phải bấm thêm "Trả bằng ví".
  */
