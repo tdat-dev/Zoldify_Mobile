@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,8 +9,9 @@ import { BackChevron } from '@/components/ui/back-chevron';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Font, Palette, Radius } from '@/components/ui/theme';
-import { useCancelOrder, useConfirmReceived, useOrder, usePayOrderWithWallet } from '@/features/orders/api';
+import { useCancelOrder, useConfirmReceived, useOrder, usePayOrderWithWallet, useSyncPayosOrder } from '@/features/orders/api';
 import { ChangePaymentButton, canChangePaymentMethod } from '@/features/orders/change-payment-button';
+import { useOpenOrderPayosCheckout } from '@/features/orders/payos-checkout';
 import { useMyReviewedProducts } from '@/features/reviews/api';
 import { STATUS_META, type OrderStatus } from '@/features/orders/order-status';
 import { apiErrorMessage } from '@/lib/api/error-message';
@@ -65,6 +66,8 @@ export default function OrderDetailScreen() {
   // isPending của một hook chỉ theo lượt gọi cuối, mà ở đây gọi cho từng người bán.
   const [receiving, setReceiving] = useState(false);
   const pay = usePayOrderWithWallet();
+  const openPayos = useOpenOrderPayosCheckout();
+  const syncPayos = useSyncPayosOrder();
   // Món nào đã đánh giá: hỏi server (trước đây nhớ trên máy, lỗi H-01).
   const { data: reviewedSet } = useMyReviewedProducts();
 
@@ -73,6 +76,25 @@ export default function OrderDetailScreen() {
     useCallback(() => {
       refetch();
     }, [refetch]),
+  );
+
+  // Đơn PayOS chưa trả: mỗi lần mở màn hỏi thẳng PayOS một lần. Webhook có thể
+  // tới chậm, mà người vừa quét QR xong quay lại đây thấy "Chưa trả" thì tưởng
+  // mất tiền. `mutate` đổi danh tính mỗi lần render nên đi qua ref để effect
+  // không tự chạy lại theo vòng làm mới đơn.
+  const unpaidPayos =
+    !!order &&
+    !order.is_paid &&
+    order.status === 'pending' &&
+    (order.payment_method === 'payos' || order.payment_method === 'bank_transfer');
+  const syncRef = useRef(syncPayos.mutate);
+  useEffect(() => {
+    syncRef.current = syncPayos.mutate;
+  }, [syncPayos.mutate]);
+  useFocusEffect(
+    useCallback(() => {
+      if (unpaidPayos) syncRef.current(Number(id));
+    }, [unpaidPayos, id]),
   );
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/orders'));
@@ -112,6 +134,13 @@ export default function OrderDetailScreen() {
   // Chọn ví lúc đặt mà trừ tiền chưa được (thiếu số dư...): đơn còn chờ và
   // chưa trả thì cho trả lại ngay tại đây.
   const canPayWallet = order.payment_method === 'wallet' && !order.is_paid && order.status === 'pending';
+  // Chọn thẻ/QR PayOS mà chưa trả (đóng trang thanh toán, link hết hạn): mở lại
+  // trang QR ngay tại đây. Đơn 'bank_transfer' là bản app cũ gửi lên, giữ cho
+  // người đã lỡ đặt vẫn trả được.
+  const canPayPayos =
+    (order.payment_method === 'payos' || order.payment_method === 'bank_transfer') &&
+    !order.is_paid &&
+    order.status === 'pending';
   const canChangePay = canChangePaymentMethod(order);
   // Vận đơn GHN bị từ chối: nói rõ cho người mua thay vì để đơn nằm im ở "Đã
   // xác nhận" (lỗi H-08 test E2E, đơn ORD-20260930-785). Chỉ khi đơn còn chờ
@@ -125,6 +154,13 @@ export default function OrderDetailScreen() {
     pay.mutate(order.id, {
       onSuccess: () => Alert.alert('Đã thanh toán', 'Đã trừ tiền trong ví cho đơn này.'),
       onError: (e) => Alert.alert('Chưa thanh toán được', apiErrorMessage(e, 'Chưa trừ được tiền trong ví.')),
+    });
+  };
+
+  const onPayPayos = () => {
+    openPayos.mutate(order.id, {
+      onError: (e) =>
+        Alert.alert('Chưa mở được trang thanh toán', apiErrorMessage(e, 'Thử lại sau nhé.')),
     });
   };
 
@@ -299,13 +335,20 @@ export default function OrderDetailScreen() {
           </View>
         </View>
 
-        {canPayWallet || canChangePay || canReceive || canCancel ? (
+        {canPayWallet || canPayPayos || canChangePay || canReceive || canCancel ? (
           <View style={styles.actions}>
             {canPayWallet ? (
               <Button
                 title={pay.isPending ? 'Đang trừ ví…' : 'Trả bằng ví'}
                 onPress={onPayWallet}
                 loading={pay.isPending}
+              />
+            ) : null}
+            {canPayPayos ? (
+              <Button
+                title={openPayos.isPending ? 'Đang mở…' : 'Thanh toán bằng PayOS'}
+                onPress={onPayPayos}
+                loading={openPayos.isPending}
               />
             ) : null}
             {canChangePay ? <ChangePaymentButton order={order} /> : null}

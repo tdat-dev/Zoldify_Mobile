@@ -48,7 +48,11 @@ function SaleRow({ order }: { order: Order }) {
 
       <View style={styles.cardFoot}>
         <Text variant="caption">
-          {order.payment_method === 'cod' ? 'Thu hộ (COD)' : 'Đã trả qua app'}
+          {order.payment_method === 'cod'
+            ? 'Thu hộ (COD)'
+            : order.is_paid
+              ? 'Đã trả qua app'
+              : 'Chưa thanh toán'}
           {shared ? ' · Phần của bạn' : ''}
         </Text>
         <Text style={styles.total}>
