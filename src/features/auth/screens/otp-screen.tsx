@@ -22,10 +22,11 @@ export default function OtpScreen() {
   const verify = useVerifyRegisterOtp();
   const resend = useSendRegisterOtp();
 
-  const onSubmit = () => {
-    if (otp.length < 6) return;
+  // Gõ đủ 6 số là gửi luôn, khỏi bấm "Xác nhận"; nút vẫn giữ cho lần thử lại.
+  const onSubmit = (code: string = otp) => {
+    if (code.length < 6 || verify.isPending) return;
     verify.mutate(
-      { email, otp, password },
+      { email, otp: code, password },
       { onSuccess: () => router.push('/passkey') },
     );
   };
@@ -42,7 +43,7 @@ export default function OtpScreen() {
         </Text>
       </View>
 
-      <OtpInput value={otp} onChange={setOtp} autoFocus />
+      <OtpInput value={otp} onChange={setOtp} onComplete={onSubmit} autoFocus />
 
       {verify.isError ? (
         <Text variant="caption" style={styles.error}>
@@ -52,7 +53,7 @@ export default function OtpScreen() {
 
       <Button
         title="Xác nhận"
-        onPress={onSubmit}
+        onPress={() => onSubmit()}
         loading={verify.isPending}
         disabled={otp.length < 6 || verify.isPending}
         style={styles.cta}

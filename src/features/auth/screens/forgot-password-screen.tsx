@@ -30,6 +30,7 @@ export default function ForgotPasswordScreen() {
   const [newTouched, setNewTouched] = useState(false);
   const [confirmTouched, setConfirmTouched] = useState(false);
 
+  const newRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
   const send = useSendForgotPasswordOtp();
   const reset = useResetPassword();
@@ -72,8 +73,10 @@ export default function ForgotPasswordScreen() {
         />
 
         <View style={styles.form}>
-          <OtpInput value={otp} onChange={setOtp} autoFocus />
+          {/* Đủ 6 số thì nhảy sang ô mật khẩu mới, khỏi phải chạm tay. */}
+          <OtpInput value={otp} onChange={setOtp} onComplete={() => newRef.current?.focus()} autoFocus />
           <TextField
+            ref={newRef}
             label="Mật khẩu mới"
             value={newPassword}
             onChangeText={setNewPassword}
