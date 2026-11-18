@@ -17,6 +17,7 @@ import { useCategories } from '@/features/categories/api';
 import { uploadImage } from '@/lib/upload';
 import { CONDITION_FULL_LABEL } from '@/features/products/filters';
 import { ConditionDetailsFields } from '@/features/products/components/condition-details-fields';
+import { locGia, loiGia } from '@/features/products/price-input';
 import {
   EMPTY_DURABILITY,
   fromForm,
@@ -65,7 +66,8 @@ export default function SellScreen() {
     const next: typeof errors = {};
     if (images.length === 0) next.images = 'Thêm ít nhất 1 ảnh.';
     if (name.trim().length < 3) next.name = 'Nhập tên món (từ 3 ký tự).';
-    if (!(Number(price) > 0)) next.price = 'Nhập giá hợp lệ.';
+    const priceError = loiGia(price);
+    if (priceError) next.price = priceError;
     if (!categoryId) next.category = 'Chọn một danh mục.';
     if (condition !== 'new' && !conditionNote.trim()) {
       next.conditionNote = 'Kể rõ tình trạng món đồ để người mua yên tâm.';
@@ -132,7 +134,7 @@ export default function SellScreen() {
           <View>
             <View style={styles.twoCol}>
               <View style={styles.col}>
-                <TextField label="Giá (đ)" value={price} onChangeText={setPrice} placeholder="150000" keyboardType="number-pad" error={errors.price} />
+                <TextField label="Giá (đ)" value={price} onChangeText={(t) => setPrice(locGia(t))} placeholder="150000" keyboardType="number-pad" error={errors.price} />
               </View>
               <View style={styles.col}>
                 <TextField label="Số lượng" value={stock} onChangeText={(t) => setStock(t.replace(/[^0-9]/g, ''))} placeholder="1" keyboardType="number-pad" />

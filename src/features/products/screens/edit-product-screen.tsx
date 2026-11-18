@@ -28,6 +28,7 @@ import {
   type DurabilityForm,
 } from '@/features/products/condition-details';
 import { apiErrorMessage } from '@/lib/api/error-message';
+import { locGia, loiGia } from '@/features/products/price-input';
 
 const CONDITIONS = ['new', 'like_new', 'good', 'fair', 'used', 'refurbished'];
 const DESC_MAX = 1000;
@@ -83,7 +84,8 @@ export default function EditProductScreen() {
     if (!product) return;
     const next: typeof errors = {};
     if (name.trim().length < 3) next.name = 'Nhập tên món (từ 3 ký tự).';
-    if (!(Number(price) > 0)) next.price = 'Nhập giá hợp lệ.';
+    const priceError = loiGia(price);
+    if (priceError) next.price = priceError;
     if (stock === '' || !Number.isInteger(Number(stock))) next.stock = 'Nhập số lượng.';
     setErrors(next);
     const doBen = fromForm(durability, hasBattery(product.category?.slug));
@@ -154,7 +156,7 @@ export default function EditProductScreen() {
                 <TextField
                   label="Giá (đ)"
                   value={price}
-                  onChangeText={(t) => setPrice(t.replace(/\D/g, ''))}
+                  onChangeText={(t) => setPrice(locGia(t))}
                   keyboardType="number-pad"
                   error={errors.price}
                 />
