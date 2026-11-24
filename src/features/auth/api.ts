@@ -4,11 +4,9 @@ import http from '@/lib/api/client';
 import { tokenStore } from '@/lib/auth/token-store';
 import type {
   ApiResponse,
-  AuthUser,
   LoginResponse,
   LoginUserDto,
   MessageResponse,
-  RegisterUserDto,
   SendRegisterOtpDto,
   VerifyRegisterOtpDto,
 } from '@/api';
@@ -48,10 +46,6 @@ export const authApi = {
     return data;
   },
 
-  async register(dto: RegisterUserDto): Promise<AuthUser> {
-    const res = await http.post<ApiResponse<AuthUser>>('/auth/register', dto);
-    return res.data.data;
-  },
 
   /**
    * Đăng nhập/đăng ký bằng Google: gửi Firebase idToken (lấy sau khi Google
@@ -163,14 +157,6 @@ export function useLogin() {
   return useMutation({
     meta: { handlesError: true },
     mutationFn: (dto: LoginUserDto) => authApi.login(dto),
-  });
-}
-
-/** Mutation đăng ký (trực tiếp, không OTP). */
-export function useRegister() {
-  return useMutation({
-    meta: { handlesError: true },
-    mutationFn: (dto: RegisterUserDto) => authApi.register(dto),
   });
 }
 
