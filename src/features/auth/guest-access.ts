@@ -33,6 +33,7 @@ const MEMBER_ROUTES: Record<string, LoginPrompt> = {
   'sales/[id]': { title: 'Đơn bán', note: 'Đăng nhập để xem đơn người mua đặt ở shop bạn.' },
   cart: { title: 'Giỏ hàng', note: 'Đăng nhập để lưu giỏ hàng và thanh toán.' },
   checkout: { title: 'Thanh toán', note: 'Đăng nhập để đặt đơn. Giỏ hàng vẫn được giữ.' },
+  pay: { title: 'Thanh toán', note: 'Đăng nhập để thanh toán đơn hàng và nạp tiền vào ví.' },
   messages: { title: 'Tin nhắn', note: 'Đăng nhập để nhắn với người bán.' },
   'chat/[id]': { title: 'Tin nhắn', note: 'Đăng nhập để nhắn với người bán.' },
   following: { title: 'Đang theo dõi', note: 'Đăng nhập để theo dõi người bán và xem hàng mới của họ.' },

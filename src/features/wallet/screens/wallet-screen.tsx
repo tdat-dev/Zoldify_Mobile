@@ -1,7 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { openBrowserAsync } from 'expo-web-browser';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -14,6 +13,7 @@ import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useWalletBalance, walletKeys } from '@/features/orders/api';
+import { openPayosWeb } from '@/features/payments/open-payos';
 import {
   LEDGER_LABEL,
   MIN_TOPUP,
@@ -99,13 +99,14 @@ export default function WalletScreen() {
     setTopupErr(null);
     try {
       const url = await topup.mutateAsync(amount);
-      // Trang PayOS mở trong trình duyệt của app; đóng lại (trả xong hay huỷ)
-      // thì đọc lại số dư. Tiền vào ví do webhook PayOS ghi, có thể trễ vài giây.
-      await openBrowserAsync(url);
+      // Trang PayOS mở NGAY TRONG app (WebView). Đóng trang (trả xong hay huỷ)
+      // thì màn đó đọc lại số dư; tiền vào ví do webhook PayOS ghi, có thể trễ
+      // vài giây nên vẫn nhắc người dùng kéo xuống làm mới nếu chưa thấy.
       setTopupAmount('');
       setPanel('none');
       setNotice('Nếu đã thanh toán, số dư sẽ cập nhật trong giây lát. Kéo xuống để làm mới.');
       refreshAll();
+      openPayosWeb({ url, kind: 'topup' });
     } catch (e) {
       setTopupErr(errMsg(e, 'Không tạo được link nạp tiền. Thử lại sau nhé.'));
     }

@@ -106,7 +106,7 @@ export function useMyWithdrawals() {
   });
 }
 
-/** Tạo link PayOS để nạp ví. Trả về checkoutUrl để mở trình duyệt. */
+/** Tạo link PayOS để nạp ví. Trả về checkoutUrl cho màn thanh toán trong app. */
 export function useCreateTopupLink() {
   return useMutation({
     meta: { handlesError: true },

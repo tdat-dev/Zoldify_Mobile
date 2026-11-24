@@ -56,25 +56,62 @@ export function GhnAddressForm({
   const [districtId, setDistrictId] = useState(initial?.ghn_district_id ?? 0);
   const [wardCode, setWardCode] = useState(initial?.ghn_ward_code ?? '');
 
-  const { data: provinces = [] } = useProvinces();
-  const { data: districts = [], isFetching: dLoading } = useDistricts(provinceId || null);
-  const { data: wards = [], isFetching: wLoading } = useWards(districtId || null);
+  const { data: provinces = [], isFetching: pLoading } = useProvinces();
+  const {
+    data: districts = [],
+    isFetching: dLoading,
+    isError: dError,
+  } = useDistricts(provinceId || null);
+  const {
+    data: wards = [],
+    isFetching: wLoading,
+    isError: wError,
+  } = useWards(districtId || null);
 
-  // Sửa địa chỉ: mã quận đã lưu có thể không còn trong danh sách GHN hiện tại
-  // (GHN đổi mã sau sáp nhập, VD quận 2045), trong khi danh sách phường theo mã
-  // cũ vẫn tải được. Trước đây ô Quận trống không lời nào mà phường vẫn còn,
-  // bấm Cập nhật là gửi thiếu quận (D-07, E2E 02/11). Mã cũ đó GHN cũng không
-  // tính phí được, nên KHÔNG giữ lại: bỏ quận + phường đã lưu và nhắc chọn lại.
-  const [staleDistrict, setStaleDistrict] = useState<string | null>(null);
+  /**
+   * Mã địa chỉ cũ không còn trong danh mục GHN (sáp nhập 7/2025: bỏ cấp huyện,
+   * gộp phường/xã, đổi mã hàng loạt). Giữ mã cũ thì GHN không tính được phí
+   * ("không có tuyến giao") và người dùng bị chặn ở checkout mà không hiểu vì
+   * sao — ô chọn vẫn hiện tên cũ nên tưởng đã đúng.
+   *
+   * Mỗi cấp tự kiểm khi danh sách của cấp đó đã tải xong: mã đã lưu mà không có
+   * trong danh sách thì BỎ và nhắc chọn lại. Lỗi mạng thì KHÔNG kết luận (đợi
+   * lần tải sau), tránh xoá oan địa chỉ đang đúng.
+   */
+  const [stale, setStale] = useState<{ level: 'province' | 'district' | 'ward'; name: string } | null>(
+    null,
+  );
   if (
+    provinceId > 0 &&
+    provinceId === initial?.ghn_province_id &&
+    !pLoading &&
+    provinces.length > 0 &&
+    !provinces.some((p) => Number(p.ProvinceID) === provinceId)
+  ) {
+    setStale({ level: 'province', name: initial?.province || 'tỉnh/thành cũ' });
+    setProvinceId(0);
+    setDistrictId(0);
+    setWardCode('');
+  } else if (
     districtId > 0 &&
     districtId === initial?.ghn_district_id &&
     !dLoading &&
+    !dError &&
     districts.length > 0 &&
     !districts.some((d) => Number(d.DistrictID) === districtId)
   ) {
-    setStaleDistrict(initial?.district || 'quận/huyện cũ');
+    setStale({ level: 'district', name: initial?.district || 'quận/huyện cũ' });
     setDistrictId(0);
+    setWardCode('');
+  } else if (
+    wardCode &&
+    wardCode === initial?.ghn_ward_code &&
+    !wLoading &&
+    !wError &&
+    wards.length > 0 &&
+    !wards.some((w) => String(w.WardCode) === wardCode)
+  ) {
+    setStale({ level: 'ward', name: initial?.ward || 'phường/xã cũ' });
     setWardCode('');
   }
 
@@ -147,7 +184,14 @@ export function GhnAddressForm({
           setProvinceId(Number(id));
           setDistrictId(0);
           setWardCode('');
+          setStale(null);
         }}
+        error={
+          stale?.level === 'province' && !provinceId
+            ? `"${stale.name}" không còn trong danh sách của GHN (đã sáp nhập tỉnh/thành). Chọn lại tỉnh/thành, quận/huyện và phường/xã nhé.`
+            : undefined
+        }
+        loading={pLoading}
       />
       <SelectField
         label="Quận / Huyện"
@@ -157,11 +201,11 @@ export function GhnAddressForm({
         onSelect={(id) => {
           setDistrictId(Number(id));
           setWardCode('');
-          setStaleDistrict(null);
+          setStale(null);
         }}
         error={
-          staleDistrict && !districtId
-            ? `"${staleDistrict}" không còn trong danh sách của GHN. Chọn lại quận/huyện và phường/xã nhé.`
+          stale?.level === 'district' && !districtId
+            ? `"${stale.name}" không còn trong danh sách của GHN. Chọn lại quận/huyện và phường/xã nhé.`
             : undefined
         }
         disabled={!provinceId}
@@ -172,7 +216,15 @@ export function GhnAddressForm({
         placeholder="Chọn phường/xã"
         value={wardCode || null}
         options={withSelected(wards.map((w) => ({ id: String(w.WardCode), name: w.WardName })), wardCode, wardName)}
-        onSelect={(code) => setWardCode(String(code))}
+        onSelect={(code) => {
+          setWardCode(String(code));
+          setStale(null);
+        }}
+        error={
+          stale?.level === 'ward' && !wardCode
+            ? `"${stale.name}" không còn trong danh sách của GHN. Chọn lại phường/xã nhé.`
+            : undefined
+        }
         disabled={!districtId}
         loading={wLoading}
       />

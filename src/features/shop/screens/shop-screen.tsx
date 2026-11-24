@@ -118,7 +118,18 @@ export default function ShopScreen() {
           </View>
         </View>
 
-        {!isMe ? (
+        {isMe ? (
+          // Shop của chính mình: không theo dõi/nhắn được, đổi thành lối sửa shop.
+          <Pressable
+            style={styles.ownShopBar}
+            onPress={() => router.push('/shop/settings')}
+            accessibilityRole="button"
+            accessibilityLabel="Chỉnh sửa shop của bạn">
+            <Feather name="edit-3" size={14} color={Palette.brand} />
+            <Text style={styles.ownShopText}>Đây là shop của bạn — chỉnh sửa</Text>
+            <Feather name="chevron-right" size={14} color={Palette.brand} />
+          </Pressable>
+        ) : (
           <View style={styles.actionRow}>
             <Pressable
               style={[styles.followBtn, followed && styles.followBtnOn]}
@@ -143,7 +154,7 @@ export default function ShopScreen() {
               <Text style={styles.msgText}>{startChat.isPending ? 'Đang mở…' : 'Nhắn shop'}</Text>
             </Pressable>
           </View>
-        ) : null}
+        )}
       </View>
 
       <Text variant="heading" style={styles.sectionTitle}>
@@ -275,6 +286,18 @@ const styles = StyleSheet.create({
     backgroundColor: Palette.brandTint,
   },
   msgText: { fontFamily: Font.semibold, fontSize: 14, color: Palette.brand },
+  ownShopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: Palette.lineStrong,
+    borderRadius: Radius.control,
+    backgroundColor: Palette.brandTint,
+  },
+  ownShopText: { fontFamily: Font.semibold, fontSize: 13, color: Palette.brand },
   sectionTitle: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 },
   list: { paddingHorizontal: 12, paddingBottom: 12, gap: 18 },
   column: { gap: 12, paddingHorizontal: 0 },

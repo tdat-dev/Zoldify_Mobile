@@ -16,10 +16,12 @@ import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { Font, Palette, Radius } from '@/components/ui/theme';
 import { useAddresses, type Address } from '@/features/addresses/api';
+import { useAuthStore } from '@/features/auth/store';
 import { isCartItemAvailable, useCart, useRefetchCartOnFocus } from '@/features/cart/api';
 import { type GhnAddressSelection } from '@/features/checkout/ghn-address-form';
 import { useCreateOrder, usePayOrderWithWallet, useShippingQuote, useWalletBalance } from '@/features/orders/api';
-import { openOrderPayosCheckout } from '@/features/orders/payos-checkout';
+import { orderPayosUrl } from '@/features/orders/payos-checkout';
+import { openPayosWeb } from '@/features/payments/open-payos';
 import type { CreateOrderDto, Order } from '@/api';
 import { apiErrorMessage } from '@/lib/api/error-message';
 import { formatVnd } from '@/lib/format';
@@ -132,6 +134,13 @@ export default function CheckoutScreen() {
   const pay = usePayOrderWithWallet();
   const wallet = useWalletBalance();
   const submitting = create.isPending || pay.isPending;
+  /**
+   * Đang xin link PayOS sau khi đơn đã tạo (2 lượt gọi mạng) — giỏ lúc này đã bị
+   * làm rỗng nên nếu chỉ dựa vào `submitting` thì màn nháy "Chưa có món để
+   * thanh toán" rồi mới mở trang trả tiền. Bật cờ này để giữ vòng chờ.
+   */
+  const [payosOpening, setPayosOpening] = useState(false);
+  const busy = submitting || payosOpening;
 
   const subtotal = useMemo(
     () => items.reduce((acc, i) => acc + Number(i.product?.price ?? 0) * (i.quantity ?? 1), 0),
@@ -141,16 +150,23 @@ export default function CheckoutScreen() {
   // GHN không tính được phí thì server trả ok=false (hoặc error theo người
   // bán). Trước đây app hiện "Miễn phí" và vẫn cho đặt: đơn đi Văn Giang (quận
   // GHN đã ngừng phục vụ) lên 0đ rồi kẹt ở bước tạo vận đơn (lỗi H-07 test E2E).
-  const feeFailure = quote.data?.items.find((s) => s.error)?.error;
+  const failedQuote = quote.data?.items.find((s) => s.error);
+  const feeFailure = failedQuote?.error;
   const feeError = quote.isError
     ? 'Chưa tính được phí vận chuyển. Thử lại hoặc chọn địa chỉ khác nhé.'
     : quote.data && (quote.data.ok === false || feeFailure)
-      ? `GHN chưa giao được tới địa chỉ này: ${feeFailure ?? 'không rõ lý do'}. Chọn địa chỉ khác nhé.`
+      ? failedQuote
+        ? `GHN chưa giao được tới địa chỉ này: ${feeFailure}.`
+        : 'GHN chưa tính được phí vận chuyển cho đơn này. Thử lại hoặc chọn địa chỉ khác nhé.'
       : null;
   // GHN báo không có tuyến tới quận nhận: thường do địa chỉ lưu mã quận cũ mà
   // GHN đã ngừng phục vụ (D-04, E2E 02/11: quận 2045). Nói rõ và cho mở ngay
   // địa chỉ đó để chọn lại quận, thay vì chỉ bảo "chọn địa chỉ khác".
   const noRoute = !!feeFailure && /tuyến|route|quận nhận|district/i.test(feeFailure);
+  // Đơn có món của chính shop mình (hay gặp lúc thử app): địa chỉ LẤY hàng của
+  // shop cũng có thể mang mã GHN cũ, và sửa địa chỉ NHẬN sẽ không bao giờ hết lỗi.
+  const me = useAuthStore((s) => s.user);
+  const failingIsMyShop = !!failedQuote && !!me && failedQuote.seller_id === me.id;
   const grandTotal = subtotal + shippingFee;
   const currency = items[0]?.product?.currency;
   // Biết chắc ví không đủ thì không cho đặt: tạo đơn xong mới trừ hụt là để
@@ -171,6 +187,16 @@ export default function CheckoutScreen() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address.ghn_district_id, address.ghn_ward_code, items.length]);
+
+  /** GHN lỗi tạm thời (timeout, 5xx) thì không cần đổi địa chỉ — hỏi lại là được. */
+  const retryQuote = () => {
+    if (!ghnReady || items.length === 0) return;
+    quote.mutate({
+      to_district_id: address.ghn_district_id,
+      to_ward_code: address.ghn_ward_code,
+      cart_item_ids: items.map((i) => i.id),
+    });
+  };
 
   const onSubmit = () => {
     setErrMsg(null);
@@ -200,6 +226,8 @@ export default function CheckoutScreen() {
       payment_method: payment,
       cart_item_ids: items.map((i) => i.id),
     };
+    // Từ đây giỏ có thể bị làm rỗng (đơn đã tạo) trước khi trang PayOS kịp mở.
+    if (payment === 'payos') setPayosOpening(true);
     create.mutate({ dto, idempotencyKey: idempotencyKey.current ?? undefined }, {
       onSuccess: (created) => {
         if (payment === 'wallet') void payWithWallet(created);
@@ -207,6 +235,7 @@ export default function CheckoutScreen() {
         else router.replace('/orders');
       },
       onError: (e) => {
+        setPayosOpening(false);
         const msg = (e as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
         setErrMsg(Array.isArray(msg) ? String(msg[0]) : typeof msg === 'string' ? msg : 'Đặt hàng chưa được. Thử lại nhé.');
       },
@@ -240,22 +269,24 @@ export default function CheckoutScreen() {
   };
 
   /**
-   * PayOS: đơn phải có trước mới tạo được link, nên chuyển sang trang PayOS
-   * (mã VietQR + số tài khoản) ngay sau khi tạo. Giỏ có món của nhiều người bán
-   * thì tách thành nhiều đơn, mỗi đơn một link — mở đơn đầu, còn lại trả tiếp
-   * trong "Đơn mua" để không mở một loạt tab.
+   * PayOS: đơn phải có trước mới tạo được link, nên mở luôn trang thanh toán
+   * (mã VietQR + số tài khoản) TRONG app sau khi tạo — không nhảy sang trình
+   * duyệt. Giỏ có món của nhiều người bán thì tách thành nhiều đơn, mỗi đơn một
+   * link: trả đơn đầu, còn lại trả tiếp trong "Đơn mua" để không mở một loạt
+   * trang thanh toán.
    */
   const payWithPayos = async (created: Order | Order[]) => {
     const orders = Array.isArray(created) ? created : [created];
     const first = orders[0];
+    const others = orders.length - 1;
+    let url: string | null = null;
     let linkError: string | null = null;
     try {
-      await openOrderPayosCheckout(first.id);
+      url = await orderPayosUrl(first.id);
     } catch (e) {
       // Đơn ĐÃ tạo: không được báo như đặt hàng thất bại.
       linkError = apiErrorMessage(e, 'Không lấy được link thanh toán PayOS.');
     }
-    const others = orders.length - 1;
     if (linkError) {
       Alert.alert(
         'Đơn đã tạo nhưng chưa mở được trang thanh toán',
@@ -267,7 +298,10 @@ export default function CheckoutScreen() {
         'Giỏ có món từ nhiều người bán nên tách thành nhiều đơn, mỗi đơn trả một lần. Mở từng đơn trong "Đơn mua" để trả tiếp.',
       );
     }
-    router.replace({ pathname: '/orders/[id]', params: { id: String(first.id) } });
+    // Giỏ đã chốt nên màn checkout thành vô dụng: trang PayOS thay chỗ nó, đóng
+    // thì về chi tiết đơn. Không có link thì về chi tiết đơn để trả lại từ đó.
+    if (url) openPayosWeb({ url, kind: 'order', orderId: first.id, mode: 'replace' });
+    else router.replace({ pathname: '/orders/[id]', params: { id: String(first.id) } });
   };
 
   const header = (
@@ -277,14 +311,20 @@ export default function CheckoutScreen() {
     </View>
   );
 
-  // Đặt xong giỏ được làm mới nên `items` rỗng trong lúc còn trừ ví: giữ
-  // vòng chờ thay vì nháy màn "Chưa có món".
-  if (isPending || (submitting && items.length === 0)) {
+  // Đặt xong giỏ được làm mới nên `items` rỗng trong lúc còn trừ ví hoặc còn
+  // xin link PayOS: giữ vòng chờ thay vì nháy màn "Chưa có món" (màn đó chỉ
+  // đúng khi giỏ thật sự trống).
+  if (isPending || (busy && items.length === 0)) {
     return (
       <View style={styles.root}>
         {header}
         <View style={styles.center}>
           <ActivityIndicator size="large" color={Palette.brand} />
+          {payosOpening && items.length === 0 ? (
+            <Text variant="bodyMuted" style={styles.centerText}>
+              Đang mở trang thanh toán PayOS…
+            </Text>
+          ) : null}
         </View>
       </View>
     );
@@ -466,24 +506,46 @@ export default function CheckoutScreen() {
             </Text>
           ) : null}
           {feeError && ghnReady && !quote.isPending ? (
-            noRoute && selectedId !== null ? (
-              <View>
-                <Text variant="caption" style={styles.errText}>
-                  GHN chưa có tuyến giao tới quận/huyện của địa chỉ này. Quận có thể đã đổi mã sau
-                  sáp nhập: chọn lại quận/huyện cho địa chỉ, hoặc chọn địa chỉ khác.
-                </Text>
-                <Pressable
-                  hitSlop={8}
-                  style={styles.fixAddr}
-                  onPress={() => router.push({ pathname: '/addresses/[id]', params: { id: selectedId } })}
-                  accessibilityRole="button">
-                  <Feather name="edit-2" size={13} color={Palette.brand} />
-                  <Text style={styles.pickEditText}>Chọn lại quận/huyện</Text>
-                </Pressable>
-              </View>
-            ) : (
+            <View style={styles.feeErrBox}>
               <Text variant="caption" style={styles.errText}>{feeError}</Text>
-            )
+              {failingIsMyShop ? (
+                <Text variant="caption" style={styles.errText}>
+                  Đơn này có món của shop bạn: địa chỉ LẤY hàng của shop cũng phải chọn lại theo
+                  danh mục GHN mới (Cài đặt shop → địa chỉ lấy hàng).
+                </Text>
+              ) : noRoute ? (
+                <Text variant="caption" style={styles.errText}>
+                  Mã quận/huyện hoặc phường/xã có thể đã đổi sau sáp nhập. Chọn lại địa chỉ nhận;
+                  nếu vẫn lỗi thì người bán cần cập nhật địa chỉ lấy hàng của shop.
+                </Text>
+              ) : null}
+              <View style={styles.feeErrActions}>
+                <Pressable hitSlop={8} style={styles.fixAddr} onPress={retryQuote} accessibilityRole="button">
+                  <Feather name="refresh-cw" size={13} color={Palette.brand} />
+                  <Text style={styles.pickEditText}>Thử lại</Text>
+                </Pressable>
+                {selectedId !== null ? (
+                  <Pressable
+                    hitSlop={8}
+                    style={styles.fixAddr}
+                    onPress={() => router.push({ pathname: '/addresses/[id]', params: { id: selectedId } })}
+                    accessibilityRole="button">
+                    <Feather name="edit-2" size={13} color={Palette.brand} />
+                    <Text style={styles.pickEditText}>Sửa địa chỉ nhận</Text>
+                  </Pressable>
+                ) : null}
+                {failingIsMyShop ? (
+                  <Pressable
+                    hitSlop={8}
+                    style={styles.fixAddr}
+                    onPress={() => router.push('/shop/settings')}
+                    accessibilityRole="button">
+                    <Feather name="home" size={13} color={Palette.brand} />
+                    <Text style={styles.pickEditText}>Sửa địa chỉ lấy hàng</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            </View>
           ) : null}
           {walletShort && wallet.data ? (
             <Text variant="caption" style={[styles.errText, styles.walletShort]}>
@@ -586,6 +648,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Palette.line,
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
+  centerText: { textAlign: 'center' },
   emptyCta: { alignSelf: 'stretch', paddingHorizontal: 24 },
   body: { padding: 12, gap: 12 },
   card: {
@@ -647,6 +710,8 @@ const styles = StyleSheet.create({
   pickEdit: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 12 },
   pickEditText: { fontFamily: Font.semibold, fontSize: 12.5, color: Palette.brand },
   fixAddr: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginTop: 6 },
+  feeErrBox: { marginTop: 8, gap: 4 },
+  feeErrActions: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 16 },
   sheetFooter: { padding: 16, borderTopWidth: 1, borderTopColor: Palette.line },
   noteHead: { marginBottom: 12 },
   soldOutNote: { marginTop: -4, marginBottom: 12 },

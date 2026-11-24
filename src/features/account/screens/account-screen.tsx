@@ -82,6 +82,22 @@ export default function AccountScreen() {
               <Text variant="label" style={styles.sectionLabel}>Người bán</Text>
               <View style={styles.menu}>
                 <MenuRow icon="cube-outline" label="Đơn bán" first onPress={() => router.push('/sales' as Href)} />
+                {/* Xem đúng trang người mua thấy: trước đây chỉ vào được bằng cách
+                    mở một món của mình rồi bấm vào tên người bán. */}
+                <MenuRow
+                  icon="eye-outline"
+                  label="Xem shop của tôi"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/shop/[id]',
+                      params: {
+                        id: String(user.id),
+                        name: user.full_name,
+                        avatar: (user as { avatar?: string }).avatar ?? '',
+                      },
+                    })
+                  }
+                />
                 <MenuRow icon="storefront-outline" label="Cài đặt shop" onPress={() => router.push('/shop/settings')} />
               </View>
             </View>

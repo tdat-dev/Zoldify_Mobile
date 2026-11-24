@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { openBrowserAsync } from 'expo-web-browser';
+
+import { openPayosWeb } from '@/features/payments/open-payos';
 
 import {
   createOrderPayosLink,
@@ -10,18 +11,23 @@ import {
 import { pickPayableLink } from './payos-link';
 
 /**
- * Mở trang thanh toán PayOS của một đơn: mã VietQR + số tài khoản + nút mở app
+ * URL trang thanh toán PayOS của một đơn: mã VietQR + số tài khoản + nút mở app
  * ngân hàng — đúng trang mà web chuyển sang khi chọn "Thẻ hoặc QR".
- *
- * Trên Android `openBrowserAsync` mở Custom Tab và trả về ngay (không chờ người
- * dùng đóng tab), nên màn gọi không được coi việc nó resolve là "đã thanh toán".
  *
  * Dùng lại link cũ khi còn sống: xem `payos-link.ts` (PayOS từ chối orderCode
  * trùng nên tạo link mới sẽ hỏng).
  */
+export async function orderPayosUrl(orderId: number): Promise<string> {
+  return (await payableLinkOf(orderId)) ?? (await createOrderPayosLink(orderId)).checkoutUrl;
+}
+
+/**
+ * Mở trang thanh toán PayOS TRONG app (màn `pay`, WebView) — không còn nhảy sang
+ * trình duyệt. Màn đó tự poll trạng thái để đóng khi đơn đã trả.
+ */
 export async function openOrderPayosCheckout(orderId: number): Promise<void> {
-  const url = (await payableLinkOf(orderId)) ?? (await createOrderPayosLink(orderId)).checkoutUrl;
-  await openBrowserAsync(url);
+  const url = await orderPayosUrl(orderId);
+  openPayosWeb({ url, kind: 'order', orderId });
 }
 
 /** Link cũ còn dùng được; lỗi (chưa có link, mạng) coi như không có. */
